@@ -1,6 +1,6 @@
-from .imports.general import *
-from .src.experiment import Experiment
-from .src.parameters import Parameters
+from imports.general import *
+from src.experiment import Experiment
+from src.parameters import Parameters
 
 
 def run():
