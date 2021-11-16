@@ -1,6 +1,8 @@
 ### VisualStudioCode ###
 .vscode/*   
 
+results/*
+
 ### VisualStudioCode Patch ###
 # Ignore all local history of files
 **/.history
