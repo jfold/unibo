@@ -1,4 +1,4 @@
-from src.parameters import Parameters
+from src.parameters import Defaults, Parameters
 from imports.general import *
 from imports.ml import *
 from sklearn.model_selection import GridSearchCV
@@ -8,7 +8,9 @@ from sklearn.ensemble import RandomForestRegressor
 class RandomForest(object):
     """Random forest surrogate class. """
 
-    def __init__(self, parameters: Parameters, cv_splits: int = 5, name: str = "RF"):
+    def __init__(
+        self, parameters: Parameters = Defaults(), cv_splits: int = 5, name: str = "RF"
+    ):
         self.__dict__.update(parameters.__dict__)
         self.cv_splits = cv_splits
         self.rf_params_grid = {
