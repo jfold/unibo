@@ -1,5 +1,5 @@
-from ..imports.general import *
-from ..imports.ml import *
+from imports.general import *
+from imports.ml import *
 
 
 class Defaults(object):
