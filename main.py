@@ -1,4 +1,5 @@
 from .imports.general import *
+from .src.experiment import Experiment
 from .src.parameters import Parameters
 
 
@@ -31,8 +32,8 @@ def run():
             if "main.py" not in args:
                 print("Trouble with " + arg)
     parameters = Parameters(**kwargs)
-    # experiment = Experiment(parameters)
-    # experiment.run()
+    experiment = Experiment(parameters)
+    experiment.run()
     print("FINISHED EXPERIMENT")
     print("------------------------------------")
 
