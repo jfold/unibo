@@ -42,8 +42,8 @@ class RandomForest(object):
         Returns:
             [tuple] [(np.ndarray,np.ndarray)]: predictive mean and variance
         """
-        mu_predictive = self.model.predict(self.X_test)
-        sigma_predictive = self.calculate_y_std(self.X_test)
+        mu_predictive = self.model.predict(X_test)
+        sigma_predictive = self.calculate_y_std(X_test)
         return (mu_predictive[:, np.newaxis], sigma_predictive[:, np.newaxis])
 
     def calculate_y_std(self, X: np.ndarray) -> np.ndarray:
@@ -76,4 +76,4 @@ class RandomForest(object):
             p = hist * width
             nentropies.append(-entropy(p))
         mean_nentropy = np.mean(nentropies)
-        return nentropies, mean_nentropy
+        return np.array(nentropies), mean_nentropy
