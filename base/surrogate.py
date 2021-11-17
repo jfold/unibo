@@ -8,9 +8,9 @@ class Surrogate(ABC):
     def __init__(self):
         super().__init__()
 
-    @abstractproperty
-    def name(self):
-        pass
+    # @abstractproperty
+    # def name(self):
+    #     pass
 
     @abstractmethod
     def fit(self, X_train: np.ndarray, y_train: np.ndarray) -> None:

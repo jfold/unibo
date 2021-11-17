@@ -8,8 +8,8 @@ class Experiment(object):
     def __init__(self, parameters: Parameters = Defaults) -> None:
         self.__dict__.update(parameters.__dict__)
         self.data = Dataset(parameters)
-        self.optimizer = Optimizer(self.data, parameters)
-        self.calibration = Calibration(parameters, self.optimizer.surrogate)
+        self.optimizer = Optimizer(parameters)
+        self.calibration = Calibration(parameters)
 
     def __str__(self):
         return (

@@ -2,6 +2,7 @@ import json
 from imports.general import *
 from imports.ml import *
 from dataclasses import dataclass, asdict
+import random, string
 
 
 @dataclass(frozen=False, order=True)
@@ -18,9 +19,12 @@ class Defaults:
     data_location: str = "data.benchmarks.benchmark"
     data_class: str = "Benchmark"
     problem: str = "Alpine01"
-    algorithm: str = "vanilla_gp"
-    savepth: str = "/results/"
-    experiment: str = datetime.now().strftime("%H:%M:%S-%d%m%y")
+    surrogate: str = "RandomForest"
+    acquisition: str = "ExpectedImprovement"
+    savepth: str = os.getcwd() + "/results/"
+    experiment: str = datetime.now().strftime("%H:%M:%S-%d%m%y") + "|" + "".join(
+        random.choice(string.ascii_uppercase + string.digits) for _ in range(4)
+    )
 
 
 class Parameters(Defaults):

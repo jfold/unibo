@@ -1,12 +1,14 @@
 import unittest
 from sklearn.datasets import make_regression
-from models.random_forest import *
+from surrogates.random_forest import *
 
 
 class RandomForestTest(unittest.TestCase):
     def test(self) -> None:
         parameters = Parameters(n_train=9, n_test=1, D=2)
         X, y = make_regression(n_samples=10, n_features=2)
+        X = (X - np.nanmean(X, axis=0)) / np.nanstd(X, axis=0)
+        y = (y - np.nanmean(y, axis=0)) / np.nanstd(y, axis=0)
         rf = RandomForest(parameters)
         rf.fit(X, y)
         mu, var = rf.predict(X)

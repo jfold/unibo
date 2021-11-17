@@ -1,8 +1,11 @@
 from base.surrogate import Surrogate
 from src.parameters import *
+import torch
+import botorch
 
 
 class Optimizer(object):
-    def __init__(self, parameters: Parameters, surrogate: Surrogate) -> None:
+    """Optimizer wrapper for botorch"""
+
+    def __init__(self, parameters: Parameters) -> None:
         super().__init__()
-        self.surrogate = surrogate

@@ -8,11 +8,11 @@ from base.surrogate import Surrogate
 class Calibration(CalibrationPlots):
     """Calibration experiment class """
 
-    def __init__(self, parameters: Parameters, surrogate: Surrogate) -> None:
+    def __init__(self, parameters: Parameters) -> None:
         super().__init__()
         self.__dict__.update(parameters.__dict__)
         self.summary_init()
-        self.surrogate = surrogate
+        self.surrogate = None
         if self.plot_data and self.D == 1:
             self.plot_xy()
 
