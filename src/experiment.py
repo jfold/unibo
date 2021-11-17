@@ -22,8 +22,9 @@ class Experiment(object):
         )
 
     def run(self):
-        self.optimizer.surrogate.fit(
-            self.dataset.data.X_train, self.dataset.data.y_train
-        )
-        self.calibration.analyze(self.optimizer.surrogate)
-        self.optimizer.acquire_sample(self.dataset)
+        for e in range(self.n_evals):
+            self.optimizer.surrogate.fit(
+                self.dataset.data.X_train, self.dataset.data.y_train
+            )
+            self.calibration.analyze(self.optimizer.surrogate)
+            self.optimizer.acquire_sample(self.dataset)
