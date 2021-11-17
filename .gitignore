@@ -1,6 +1,6 @@
 ### VisualStudioCode ###
 .vscode/*   
-
+**/.DS_Store
 results/*
 cluster
 **/.DS_Store
@@ -12,7 +12,7 @@ CodeChart.drawio
 **/.history
 
 # Byte-compiled / optimized / DLL files
-__pycache__/
+**/__pycache__/
 *.py[cod]
 *$py.class
 

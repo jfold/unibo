@@ -2,25 +2,30 @@ import json
 from imports.general import *
 from imports.ml import *
 from dataclasses import dataclass, asdict
+import random, string
 
 
 @dataclass(frozen=False, order=True)
 class Defaults:
     seed: bool = 0
     dtype = tf.float64
-    D: int = 1
+    d: int = 1
     n_test: int = 3000
     n_train: int = 500
     n_initial: int = 500
     n_evals: int = 500
     rf_cv_splits: int = 5
     plot_data: bool = False
+    csi: float = 0.0
     data_location: str = "data.benchmarks.benchmark"
     data_class: str = "Benchmark"
     problem: str = "Alpine01"
-    algorithm: str = "vanilla_gp"
-    savepth: str = "/results/"
-    experiment: str = datetime.now().strftime("%H:%M:%S-%d%m%y")
+    surrogate: str = "RandomForest"
+    acquisition: str = "ExpectedImprovement"
+    savepth: str = os.getcwd() + "/results/"
+    experiment: str = datetime.now().strftime("%H:%M:%S-%d%m%y") + "|" + "".join(
+        random.choice(string.ascii_uppercase + string.digits) for _ in range(4)
+    )
 
 
 class Parameters(Defaults):

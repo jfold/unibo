@@ -11,7 +11,7 @@ def run():
         args = []
     print("------------------------------------")
     print("RUNNING EXPERIMENT...")
-    kwargs = {"savepth": os.getcwd() + "/results/"}
+    kwargs = {}
     parameters = Parameters(**kwargs)
     for arg in args:
         try:

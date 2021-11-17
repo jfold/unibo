@@ -1,3 +1,4 @@
+from base.surrogate import Surrogate
 from src.parameters import Defaults, Parameters
 from imports.general import *
 from imports.ml import *
@@ -5,7 +6,7 @@ from sklearn.model_selection import GridSearchCV
 from sklearn.ensemble import RandomForestRegressor
 
 
-class RandomForest(object):
+class RandomForest(Surrogate):
     """Random forest surrogate class. """
 
     def __init__(
@@ -19,6 +20,7 @@ class RandomForest(object):
             "max_samples": [int(self.n_train / 2), self.n_train],
             "max_features": ["auto", "sqrt"],
         }
+        self.name = name
 
     def fit(self, X_train: np.ndarray, y_train: np.ndarray):
         """Fits random forest model with hyperparameter tuning

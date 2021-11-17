@@ -1,17 +1,20 @@
+from src.calibration import Calibration
+from src.dataset import Dataset
+from src.optimizer import Optimizer
 from .parameters import Defaults, Parameters
 
 
 class Experiment(object):
     def __init__(self, parameters: Parameters = Defaults) -> None:
         self.__dict__.update(parameters.__dict__)
-        # self.data = Dataset(parameters)
-        # self.optimizer = Optimizer(self.data, parameters)
-        # self.calibration = Calibration(parameters)
+        self.dataset = Dataset(parameters)
+        self.optimizer = Optimizer(parameters)
+        self.calibration = Calibration(parameters)
 
     def __str__(self):
         return (
             "Experiment:"
-            + self.data.__str__
+            + self.dataset.__str__
             + "\r\n"
             + self.optimizer.__str__
             + "\r\n"
@@ -19,5 +22,8 @@ class Experiment(object):
         )
 
     def run(self):
-        for e in range(1):
-            print("Ready to run")
+        self.optimizer.surrogate.fit(
+            self.dataset.data.X_train, self.dataset.data.y_train
+        )
+        self.calibration.analyze(self.optimizer.surrogate)
+        self.optimizer.acquire_sample(self.dataset)
