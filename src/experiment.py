@@ -7,14 +7,14 @@ from .parameters import Defaults, Parameters
 class Experiment(object):
     def __init__(self, parameters: Parameters = Defaults) -> None:
         self.__dict__.update(parameters.__dict__)
-        self.data = Dataset(parameters)
+        self.dataset = Dataset(parameters)
         self.optimizer = Optimizer(parameters)
         self.calibration = Calibration(parameters)
 
     def __str__(self):
         return (
             "Experiment:"
-            + self.data.__str__
+            + self.dataset.__str__
             + "\r\n"
             + self.optimizer.__str__
             + "\r\n"
@@ -22,5 +22,8 @@ class Experiment(object):
         )
 
     def run(self):
-        self.calibration.surrogate.fit(self.data.X_train, self.data.y_train)
-        self.calibration.surrogate.predict(self.data.X_test)
+        self.optimizer.surrogate.fit(
+            self.dataset.data.X_train, self.dataset.data.y_train
+        )
+        self.calibration.analyze(self.optimizer.surrogate)
+        self.optimizer.acquire_sample(self.dataset)

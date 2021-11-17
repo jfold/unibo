@@ -13,7 +13,6 @@ class Calibration(CalibrationPlots):
         super().__init__()
         self.__dict__.update(parameters.__dict__)
         self.summary_init()
-        self.surrogate = RandomForest(parameters)
         if self.plot_data and self.D == 1:
             self.plot_xy()
 
@@ -120,33 +119,31 @@ class Calibration(CalibrationPlots):
         self.summary.update({name + f"{name}_mse": mse})
         self.summary.update({name + f"{name}_nmse": nmse})
 
-    def run(self, plot_it: bool = False, save_it: bool = True):
+    def analyze(
+        self, surrogate: Surrogate, plot_it: bool = False, save_it: bool = True
+    ):
 
-        self.surrogate.fit(self.X_train, self.y_train)
-        mu_test, sigma_test = self.surrogate.predict(self.X_test)
+        surrogate.fit(self.X_train, self.y_train)
+        mu_test, sigma_test = surrogate.predict(self.X_test)
 
         if self.D == 1 and plot_it:
             self.plot_predictive(
-                self.X_test,
-                mu_test,
-                sigma_test,
-                reg_name=self.surrogate.name,
-                n_stds=3,
+                self.X_test, mu_test, sigma_test, reg_name=surrogate.name, n_stds=3,
             )
         self.check_y_calibration(
-            mu_test, sigma_test, self.y_test, name=self.surrogate.name,
+            mu_test, sigma_test, self.y_test, name=surrogate.name,
         )
         self.check_f_calibration(
-            mu_test, sigma_test, self.f_test, name=self.surrogate.name,
+            mu_test, sigma_test, self.f_test, name=surrogate.name,
         )
         self.check_gaussian_sharpness(
-            mu_test, sigma_test, name=self.surrogate.name,
+            mu_test, sigma_test, name=surrogate.name,
         )
-        self.check_histogram_sharpness(self.surrogate, self.X_test)
+        self.check_histogram_sharpness(surrogate, self.X_test)
         self.expected_log_predictive_density(
-            mu_test, sigma_test, self.y_test, name=self.surrogate.name,
+            mu_test, sigma_test, self.y_test, name=surrogate.name,
         )
-        self.nmse(self.y_test, mu_test, name=self.surrogate.name)
+        self.nmse(self.y_test, mu_test, name=surrogate.name)
 
         if plot_it:
             self.plot_calibration_results()
