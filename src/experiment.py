@@ -22,5 +22,5 @@ class Experiment(object):
         )
 
     def run(self):
-        for e in range(1):
-            print("Ready to run")
+        self.calibration.surrogate.fit(self.data.X_train, self.data.y_train)
+        self.calibration.surrogate.predict(self.data.X_test)

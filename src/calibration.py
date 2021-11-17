@@ -1,6 +1,7 @@
 from imports.general import *
 from imports.ml import *
 from src.parameters import Parameters
+from surrogates.random_forest import RandomForest
 from .plots import CalibrationPlots
 from base.surrogate import Surrogate
 
@@ -12,7 +13,7 @@ class Calibration(CalibrationPlots):
         super().__init__()
         self.__dict__.update(parameters.__dict__)
         self.summary_init()
-        self.surrogate = None
+        self.surrogate = RandomForest(parameters)
         if self.plot_data and self.D == 1:
             self.plot_xy()
 
