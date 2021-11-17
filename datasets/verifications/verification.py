@@ -12,6 +12,7 @@ class VerificationData(object):
         self.summary.update({"K": self.K, "SNR": self.snr})
         tf.random.set_seed(self.seed)
         np.random.seed(self.seed)
+        self.init_model()
 
     def init_model(self):
         self.sigma_0 = 5
