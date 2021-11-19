@@ -12,7 +12,7 @@ class Defaults:
     d: int = 1
     n_test: int = 3000
     n_train: int = 500
-    n_initial: int = 500
+    n_initial: int = 10
     n_evals: int = 500
     rf_cv_splits: int = 5
     plot_data: bool = False
@@ -20,6 +20,9 @@ class Defaults:
     data_location: str = "data.benchmarks.benchmark"
     data_class: str = "Benchmark"
     problem: str = "Alpine01"
+    minmax: str = "minimization"
+    snr: float = 10.0
+    K: int = 1
     surrogate: str = "RandomForest"
     acquisition: str = "ExpectedImprovement"
     savepth: str = os.getcwd() + "/results/"

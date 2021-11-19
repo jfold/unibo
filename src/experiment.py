@@ -1,3 +1,4 @@
+from imports.general import *
 from src.calibration import Calibration
 from src.dataset import Dataset
 from src.optimizer import Optimizer
@@ -22,8 +23,10 @@ class Experiment(object):
         )
 
     def run(self):
-        self.optimizer.surrogate.fit(
-            self.dataset.data.X_train, self.dataset.data.y_train
-        )
-        self.calibration.analyze(self.optimizer.surrogate)
-        self.optimizer.acquire_sample(self.dataset)
+        for e in tqdm(range(self.n_evals), leave=False):
+            self.optimizer.surrogate.fit(self.dataset.data.X, self.dataset.data.y)
+            x_new = self.optimizer.next_sample(self.dataset)
+            self.dataset.add_X_sample_y(x_new)
+            self.calibration.analyze(
+                self.optimizer.surrogate, self.dataset, save_settings=f"epoch-{e+1}"
+            )
