@@ -3,7 +3,7 @@ from imports.general import *
 from imports.ml import *
 from src.parameters import Parameters
 from surrogates.random_forest import RandomForest
-from .plots import CalibrationPlots
+from visualizations.scripts.calibrationplots import CalibrationPlots
 from base.surrogate import Surrogate
 from base.dataset import Dataset
 
