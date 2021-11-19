@@ -12,7 +12,7 @@ class Defaults:
     d: int = 1
     n_test: int = 3000
     n_train: int = 500
-    n_initial: int = 500
+    n_initial: int = 10
     n_evals: int = 500
     rf_cv_splits: int = 5
     plot_data: bool = False

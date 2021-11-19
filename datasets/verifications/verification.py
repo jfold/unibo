@@ -65,4 +65,3 @@ class VerificationData(object):
         )
         return X.numpy()
 
-

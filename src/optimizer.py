@@ -8,7 +8,7 @@ from sklearn.utils.validation import check_is_fitted
 
 
 class Optimizer(object):
-    """Optimizer wrapper for botorch"""
+    """TODO: Optimizer wrapper for botorch"""
 
     def __init__(self, parameters: Parameters) -> None:
         self.__dict__.update(parameters.__dict__)
@@ -20,12 +20,12 @@ class Optimizer(object):
         return standard_norm_dist.cdf(locs)
 
     def next_sample(self, dataset: Dataset) -> np.array:
-        check_is_fitted(self.surrogate.model)
-        X_candidates = dataset.data.sample_X(n_samples=1)
+        # check_is_fitted(self.surrogate.model)
+        X_candidates = dataset.data.sample_X(n_samples=self.n_test)
         mu_posterior, sigma_posterior = self.surrogate.predict(X_candidates)
         ei = self.expected_improvement(
             np.min(dataset.data.y), mu_posterior, sigma_posterior
         ).numpy()
         idx = np.argmin(ei)
-        x_new = X_candidates[idx]
-        return x_new[:, np.newaxis]
+        x_new = X_candidates[[idx], :]
+        return x_new

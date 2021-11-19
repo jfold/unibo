@@ -17,7 +17,11 @@ class RandomForest(Surrogate):
         self.rf_params_grid = {
             "n_estimators": [10, 100, 1000],
             "max_depth": [5, 10, 20],
-            "max_samples": [int(self.n_train / 2), self.n_train],
+            "max_samples": [
+                int(self.n_initial / 4),
+                int(self.n_initial / 2),
+                int((3 / 4) * self.n_initial),
+            ],
             "max_features": ["auto", "sqrt"],
         }
         self.name = name
@@ -28,13 +32,22 @@ class RandomForest(Surrogate):
             X_train (np.ndarray): training input
             y_train (np.ndarray): training output
         """
+        self.rf_params_grid.update(
+            {
+                "max_samples": [
+                    int(X_train.shape[0] / 4),
+                    int(X_train.shape[0] / 2),
+                    int((3 / 4) * X_train.shape[0]),
+                ],
+            }
+        )
         grid_search = GridSearchCV(
             estimator=RandomForestRegressor(),
             param_grid=self.rf_params_grid,
             cv=self.cv_splits,
             n_jobs=-1,
             verbose=0,
-        ).fit(X_train, y_train)
+        ).fit(X_train, y_train.squeeze())
         self.model = grid_search.best_estimator_
 
     def predict(self, X_test: np.ndarray) -> Union[np.ndarray, np.ndarray]:

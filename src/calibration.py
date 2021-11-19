@@ -1,3 +1,4 @@
+import json
 from imports.general import *
 from imports.ml import *
 from src.parameters import Parameters
@@ -30,7 +31,7 @@ class Calibration(CalibrationPlots):
         mean_sharpness = tf.reduce_mean(sharpness)
         self.summary.update(
             {
-                f"{name}_sharpness": sharpness.numpy(),
+                # f"{name}_sharpness": sharpness.numpy(),
                 f"{name}_mean_sharpness": mean_sharpness.numpy(),
             }
         )
@@ -40,7 +41,7 @@ class Calibration(CalibrationPlots):
             hist_sharpness, mean_hist_sharpness = model.histogram_sharpness(X)
             self.summary.update(
                 {
-                    f"{model.name}_hist_sharpness": hist_sharpness,
+                    # f"{model.name}_hist_sharpness": hist_sharpness,
                     f"{model.name}_mean_hist_sharpness": mean_hist_sharpness,
                 }
             )
@@ -117,8 +118,23 @@ class Calibration(CalibrationPlots):
         """
         mse = np.mean((y - predictions) ** 2)
         nmse = mse / np.var(y)
-        self.summary.update({name + f"{name}_mse": mse})
-        self.summary.update({name + f"{name}_nmse": nmse})
+        self.summary.update({f"{name}_mse": mse})
+        self.summary.update({f"{name}_nmse": nmse})
+
+    def save(self, save_settings: str = ""):
+        final_dict = {k: v.tolist() for k, v in self.summary.items()}
+        json_dump = json.dumps(final_dict)
+        f = open(
+            self.savepth
+            + self.experiment
+            + "/calibration---"
+            + self.settings
+            + save_settings
+            + ".json",
+            "a",
+        )
+        f.write(json_dump)
+        f.close()
 
     def analyze(
         self,
@@ -126,6 +142,7 @@ class Calibration(CalibrationPlots):
         dataset: Dataset,
         plot_it: bool = False,
         save_it: bool = True,
+        save_settings: str = "",
     ):
         X_test, y_test = dataset.sample_testset()
         mu_test, sigma_test = surrogate.predict(X_test)
@@ -154,6 +171,6 @@ class Calibration(CalibrationPlots):
 
         # Save
         if save_it:
-            np.save(self.savepth + "summary---" + self.settings + ".npy", self.summary)
+            self.save(save_settings)
             print("Successfully saved with settings:", self.settings)
 
