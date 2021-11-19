@@ -6,7 +6,7 @@ from .parameters import Defaults, Parameters
 
 
 class Experiment(object):
-    def __init__(self, parameters: Parameters = Defaults) -> None:
+    def __init__(self, parameters: Parameters = Defaults()) -> None:
         self.__dict__.update(parameters.__dict__)
         self.dataset = Dataset(parameters)
         self.optimizer = Optimizer(parameters)
@@ -30,3 +30,7 @@ class Experiment(object):
             self.calibration.analyze(
                 self.optimizer.surrogate, self.dataset, save_settings=f"epoch-{e+1}"
             )
+
+
+if __name__ == "__main__":
+    Experiment()

@@ -1,40 +1,39 @@
 from imports.general import *
-import matplotlib
-import matplotlib.pyplot as plt
-
-matplotlib.rcParams["mathtext.fontset"] = "cm"
-matplotlib.rcParams["font.family"] = "STIXGeneral"
-matplotlib.rcParams["axes.grid"] = True
-matplotlib.rcParams["font.size"] = 14
-matplotlib.rcParams["figure.figsize"] = (10, 6)
-matplotlib.rcParams["savefig.bbox"] = "tight"
+from imports.ml import *
+from base.dataset import Dataset
 
 
 class CalibrationPlots(object):
     """Calibration experiment class """
 
-    def plot_xy(self):
-        assert self.D == 1
+    def plot_xy(self, dataset: Dataset):
+        assert self.d == 1
         plt.figure()
-        plt.plot(self.X_train, self.y_train, "*", label="Train")
-        plt.plot(self.X_test, self.y_test, "*", label="Test", alpha=0.1)
+        plt.plot(dataset.data.X_train, dataset.data.y_train, "*", label="Train")
+        plt.plot(dataset.data.X_test, dataset.data.y_test, "*", label="Test", alpha=0.1)
         plt.xlabel(r"$x$")
         plt.ylabel(r"$y$")
         plt.legend()
         plt.show()
 
     def plot_predictive(
-        self, X, mu, sigma_predictive, reg_name: str = "", n_stds: float = 3.0
+        self,
+        dataset: Dataset,
+        X,
+        mu,
+        sigma_predictive,
+        reg_name: str = "",
+        n_stds: float = 3.0,
     ):
-        assert self.D == 1
+        assert self.d == 1
         idx = np.argsort(X.squeeze())
         X = X[idx].squeeze()
         mu = mu[idx].squeeze()
         sigma_predictive = sigma_predictive[idx].squeeze()
 
         plt.figure()
-        plt.plot(self.X_train, self.y_train, "*", label="Train")
-        plt.plot(self.X_test, self.y_test, "*", label="Test", alpha=0.1)
+        plt.plot(dataset.data.X_train, dataset.data.y_train, "*", label="Train")
+        plt.plot(dataset.data.X_test, dataset.data.y_test, "*", label="Test", alpha=0.1)
         plt.plot(
             X,
             mu,
@@ -51,19 +50,11 @@ class CalibrationPlots(object):
             alpha=0.1,
             label=r"$\mathcal{" + reg_name + "}_{" + str(n_stds) + "\sigma}$",
         )
-        idx = np.argsort(self.X.numpy().squeeze())
-        X = self.X.numpy()[idx].squeeze()
-        y = self.f.numpy()[idx].squeeze()
-        plt.plot(X, y, "--", color="red", label="True")
-        plt.xlabel(r"$x$")
-        plt.ylabel(r"$y$")
-        plt.legend()
-        plt.show()
 
-    def plot_mse_sigma(self, mu_test, y_test, sigma_test):
+    def plot_mse_sigma(self, mu, y, sigma):
         plt.figure()
-        abs_err = np.abs(mu_test - y_test)
-        plt.plot(abs_err, sigma_test, "*")
+        abs_err = np.abs(mu - y)
+        plt.plot(abs_err, sigma, "*")
         plt.xlim([0, np.max(abs_err)])
         plt.ylim([0, np.max(abs_err)])
         plt.xlabel(r"Absolute error")
@@ -82,12 +73,6 @@ class CalibrationPlots(object):
         err_hist = np.array(err_hist)
         plt.figure()
         plt.plot(limits, limits, label=r"$x=y$", linewidth=0.4)
-        # plt.plot(
-        #     limits,
-        #     np.tile(y_std_true, len(limits)),
-        #     label=r"true $\sigma$ ",
-        #     linewidth=2,
-        # )
         plt.plot(limits, err_hist, "*")
         plt.xlabel("Mean absolute error (binned)")
         plt.ylabel(r"$\sigma$")
