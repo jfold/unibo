@@ -4,6 +4,7 @@ from src.parameters import Parameters
 from surrogates.random_forest import RandomForest
 from .plots import CalibrationPlots
 from base.surrogate import Surrogate
+from base.dataset import Dataset
 
 
 class Calibration(CalibrationPlots):
@@ -13,7 +14,7 @@ class Calibration(CalibrationPlots):
         super().__init__()
         self.__dict__.update(parameters.__dict__)
         self.summary_init()
-        if self.plot_data and self.D == 1:
+        if self.plot_data and self.d == 1:
             self.plot_xy()
 
     def summary_init(self):
@@ -120,36 +121,39 @@ class Calibration(CalibrationPlots):
         self.summary.update({name + f"{name}_nmse": nmse})
 
     def analyze(
-        self, surrogate: Surrogate, plot_it: bool = False, save_it: bool = True
+        self,
+        surrogate: Surrogate,
+        dataset: Dataset,
+        plot_it: bool = False,
+        save_it: bool = True,
     ):
+        X_test, y_test = dataset.sample_testset()
+        mu_test, sigma_test = surrogate.predict(X_test)
 
-        surrogate.fit(self.X_train, self.y_train)
-        mu_test, sigma_test = surrogate.predict(self.X_test)
-
-        if self.D == 1 and plot_it:
+        if self.d == 1 and plot_it:
             self.plot_predictive(
                 self.X_test, mu_test, sigma_test, reg_name=surrogate.name, n_stds=3,
             )
         self.check_y_calibration(
-            mu_test, sigma_test, self.y_test, name=surrogate.name,
+            mu_test, sigma_test, y_test, name=surrogate.name,
         )
-        self.check_f_calibration(
-            mu_test, sigma_test, self.f_test, name=surrogate.name,
-        )
+        # self.check_f_calibration(
+        #     mu_test, sigma_test, dataset.data.f_test, name=surrogate.name,
+        # )
         self.check_gaussian_sharpness(
             mu_test, sigma_test, name=surrogate.name,
         )
-        self.check_histogram_sharpness(surrogate, self.X_test)
+        self.check_histogram_sharpness(surrogate, X_test)
         self.expected_log_predictive_density(
-            mu_test, sigma_test, self.y_test, name=surrogate.name,
+            mu_test, sigma_test, y_test, name=surrogate.name,
         )
-        self.nmse(self.y_test, mu_test, name=surrogate.name)
+        self.nmse(y_test, mu_test, name=surrogate.name)
 
         if plot_it:
             self.plot_calibration_results()
 
         # Save
         if save_it:
-            np.save(self.save_pth + "summary---" + self.settings + ".npy", self.summary)
+            np.save(self.savepth + "summary---" + self.settings + ".npy", self.summary)
             print("Successfully saved with settings:", self.settings)
 

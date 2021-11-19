@@ -20,6 +20,9 @@ class Defaults:
     data_location: str = "data.benchmarks.benchmark"
     data_class: str = "Benchmark"
     problem: str = "Alpine01"
+    minmax: str = "minimization"
+    snr: float = 10.0
+    K: int = 1
     surrogate: str = "RandomForest"
     acquisition: str = "ExpectedImprovement"
     savepth: str = os.getcwd() + "/results/"
