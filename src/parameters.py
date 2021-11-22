@@ -23,7 +23,7 @@ class Defaults:
     minmax: str = "minimization"
     snr: float = 10.0
     K: int = 1
-    surrogate: str = "RandomForest"
+    surrogate: str = "RF"
     acquisition: str = "ExpectedImprovement"
     savepth: str = os.getcwd() + "/results/"
     experiment: str = datetime.now().strftime("%H:%M:%S-%d%m%y") + "|" + "".join(
@@ -35,12 +35,13 @@ class Parameters(Defaults):
     def __init__(self, **kwargs):
         super().__init__()
         self.__dict__.update(kwargs)
+        self.savepth = self.savepth + self.experiment + "/"
         self.save()
 
     def save(self):
-        if not os.path.isdir(self.savepth + self.experiment):
-            os.mkdir(self.savepth + self.experiment)
+        if not os.path.isdir(self.savepth):
+            os.mkdir(self.savepth)
         json_dump = json.dumps(asdict(self))
-        f = open(self.savepth + self.experiment + "/parameters.json", "a")
+        f = open(self.savepth + "parameters.json", "a")
         f.write(json_dump)
         f.close()

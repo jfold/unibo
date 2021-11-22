@@ -20,18 +20,17 @@ class Calibration(CalibrationPlots):
 
     def summary_init(self):
         self.summary = {}
-        for attr in []:
-            self.summary.update({attr: getattr(self, attr)})
-        self.settings = str.join(
-            "--", [str(key) + "-" + str(val) for key, val in self.summary.items()]
-        ).replace(".", "-")
+        self.settings = self.surrogate
+        # str.join(
+        #     "--", [str(key) + "-" + str(val) for key, val in self.summary.items()]
+        # ).replace(".", "-")
 
     def check_gaussian_sharpness(self, mus: np.ndarray, sigmas: np.ndarray, name: str):
         sharpness = -tfp.distributions.Normal(mus, sigmas).entropy()
         mean_sharpness = tf.reduce_mean(sharpness)
         self.summary.update(
             {
-                # f"{name}_sharpness": sharpness.numpy(),
+                f"{name}_sharpness": sharpness.numpy(),
                 f"{name}_mean_sharpness": mean_sharpness.numpy(),
             }
         )
@@ -41,7 +40,7 @@ class Calibration(CalibrationPlots):
             hist_sharpness, mean_hist_sharpness = model.histogram_sharpness(X)
             self.summary.update(
                 {
-                    # f"{model.name}_hist_sharpness": hist_sharpness,
+                    f"{model.name}_hist_sharpness": hist_sharpness,
                     f"{model.name}_mean_hist_sharpness": mean_hist_sharpness,
                 }
             )
@@ -124,15 +123,7 @@ class Calibration(CalibrationPlots):
     def save(self, save_settings: str = ""):
         final_dict = {k: v.tolist() for k, v in self.summary.items()}
         json_dump = json.dumps(final_dict)
-        f = open(
-            self.savepth
-            + self.experiment
-            + "/calibration---"
-            + self.settings
-            + save_settings
-            + ".json",
-            "a",
-        )
+        f = open(self.savepth + "scores.json", "a",)
         f.write(json_dump)
         f.close()
 
@@ -145,6 +136,7 @@ class Calibration(CalibrationPlots):
         save_settings: str = "",
     ):
         X_test, y_test = dataset.sample_testset()
+        self.ne_true = dataset.data.ne_true
         mu_test, sigma_test = surrogate.predict(X_test)
 
         if self.d == 1 and plot_it:
@@ -167,7 +159,8 @@ class Calibration(CalibrationPlots):
         self.nmse(y_test, mu_test, name=surrogate.name)
 
         if plot_it:
-            self.plot_calibration_results()
+            self.plot_y_calibration(surrogate.name)
+            self.plot_sharpness_histogram(surrogate.name)
 
         # Save
         if save_it:

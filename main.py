@@ -33,7 +33,7 @@ def run():
                 print("Trouble with " + arg)
     parameters = Parameters(**kwargs)
     experiment = Experiment(parameters)
-    experiment.run()
+    experiment.demo()
     print("FINISHED EXPERIMENT")
     print("------------------------------------")
 

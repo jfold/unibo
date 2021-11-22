@@ -31,6 +31,14 @@ class Experiment(object):
                 self.optimizer.surrogate, self.dataset, save_settings=f"epoch-{e+1}"
             )
 
+    def demo(self):
+        """Demo method to test calibration phase - will removed """
+        self.dataset.add_X_sample_y(
+            self.dataset.data.sample_X(self.n_train - self.n_initial)
+        )
+        self.optimizer.surrogate.fit(self.dataset.data.X, self.dataset.data.y)
+        self.calibration.analyze(self.optimizer.surrogate, self.dataset, plot_it=True)
+
 
 if __name__ == "__main__":
     Experiment()

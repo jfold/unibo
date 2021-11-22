@@ -79,92 +79,84 @@ class CalibrationPlots(object):
         plt.title(title)
         plt.legend()
 
-    def plot_calibration_results(self, n_bins=50):
+    def plot_y_calibration(self, name: str):
         # Target (y) calibration
         fig = plt.figure()
-        plt.plot(self.summary["y_p_array"], self.summary["y_p_array"], "-")
-        if self.ran_GP:
-            plt.plot(
-                self.summary["y_p_array"],
-                self.summary["GP_y_calibration"],
-                "*",
-                label=r"$\mathcal{GP}$ | MSE = "
-                + "{:.2e}".format(self.summary["GP_y_calibration_mse"]),
-            )
-        if self.ran_RF:
-            plt.plot(
-                self.summary["y_p_array"],
-                self.summary["RF_y_calibration"],
-                "*",
-                label=r"$\mathcal{RF}$ | MSE = "
-                + "{:.2e}".format(self.summary["RF_y_calibration_mse"]),
-            )
+        plt.plot(
+            self.summary["y_p_array"], self.summary["y_p_array"], "-", label="Optimal"
+        )
+        plt.plot(
+            self.summary["y_p_array"],
+            self.summary[f"{name}_y_calibration"],
+            "*",
+            label=r"$\mathcal{"
+            + name
+            + "}$ | MSE = "
+            + "{:.2e}".format(self.summary[f"{name}_y_calibration_mse"]),
+        )
         plt.xlabel(r"$p$")
         plt.legend()
         plt.ylabel(r"$\mathbb{E}[ \mathbb{I} \{ \mathbf{y} \leq F^{-1}(p) \} ]$")
-        plt.show()
+        fig.savefig(self.savepth + "calibration-y.pdf")
+        plt.close()
 
-        # Mean (f) calibration
+    def plot_sharpness_histogram(self, name: str, n_bins: int = 50):
         fig = plt.figure()
-        plt.plot(self.summary["f_p_array"], self.summary["f_p_array"], "--")
-        if self.ran_GP:
-            plt.plot(
-                self.summary["f_p_array"],
-                self.summary["GP_f_calibration"],
-                "*",
-                label=r"$\mathcal{GP}$ | MSE = "
-                + "{:.2e}".format(self.summary["GP_f_calibration_mse"]),
-            )
-        if self.ran_RF:
-            plt.plot(
-                self.summary["f_p_array"],
-                self.summary["RF_f_calibration"],
-                "*",
-                label=r"$\mathcal{RF}$ | MSE = "
-                + "{:.2e}".format(self.summary["RF_f_calibration_mse"]),
-            )
-        plt.legend()
-        plt.xlabel(r"$p$")
-        plt.ylabel(r"$\mathbb{E}[ \mathbb{I} \{ \mathbf{f} \leq F^{-1}(p) \} ]$")
-        plt.show()
-
-        # Sharpness
-        fig = plt.figure()
-        if self.ran_GP:
+        plt.hist(
+            self.summary[f"{name}_sharpness"],
+            bins=n_bins,
+            label=r"$\mathcal{"
+            + name
+            + "}$ | mean: "
+            + "{:.2e}".format(self.summary[f"{name}_mean_sharpness"]),
+            alpha=0.6,
+        )
+        if f"{name}_hist_sharpness" in self.summary:
             plt.hist(
-                self.summary["GP_nentropies"],
+                self.summary[f"{name}_hist_sharpness"],
                 bins=n_bins,
-                label=r"$\mathcal{GP}$ | mean: "
-                + "{:.2e}".format(self.summary["mean_GP_nentropy"]),
-                alpha=0.6,
-            )
-        if self.ran_RF:
-            plt.hist(
-                self.summary["RF_nentropies"],
-                bins=n_bins,
-                label=r"$\mathcal{RF}$ | mean: "
-                + "{:.2e}".format(self.summary["mean_RF_nentropy"]),
-                alpha=0.6,
-            )
-            plt.hist(
-                self.summary["RF_hist_nentropies"],
-                bins=n_bins,
-                label=r"$\mathcal{RF}$  hist | mean: "
-                + "{:.2e}".format(self.summary["mean_RF_hist_nentropy"]),
+                label=r"$\mathcal{"
+                + name
+                + "}$  hist | mean: "
+                + "{:.2e}".format(self.summary[f"{name}_mean_hist_sharpness"]),
                 alpha=0.6,
             )
         plt.annotate(
             "True",
             xy=(self.ne_true, 0),
-            xytext=(self.ne_true, -(self.N_test / 100)),
+            xytext=(self.ne_true, -(self.n_test / 100)),
             arrowprops=dict(facecolor="black", shrink=0.05),
         )
         left, right = plt.xlim()
-        # plt.xlim([left,self.ne_true])
         plt.legend()
         plt.xlabel("Negative Entropy")
         plt.ylabel("Count")
-        plt.show()
+        fig.savefig(self.savepth + "sharpness-histogram.pdf")
+        plt.close()
+
+        # # Mean (f) calibration
+        # fig = plt.figure()
+        # plt.plot(self.summary["f_p_array"], self.summary["f_p_array"], "--")
+        # if self.ran_GP:
+        #     plt.plot(
+        #         self.summary["f_p_array"],
+        #         self.summary["GP_f_calibration"],
+        #         "*",
+        #         label=r"$\mathcal{GP}$ | MSE = "
+        #         + "{:.2e}".format(self.summary["GP_f_calibration_mse"]),
+        #     )
+        # if self.ran_RF:
+        #     plt.plot(
+        #         self.summary["f_p_array"],
+        #         self.summary["RF_f_calibration"],
+        #         "*",
+        #         label=r"$\mathcal{RF}$ | MSE = "
+        #         + "{:.2e}".format(self.summary["RF_f_calibration_mse"]),
+        #     )
+        # plt.legend()
+        # plt.xlabel(r"$p$")
+        # plt.ylabel(r"$\mathbb{E}[ \mathbb{I} \{ \mathbf{f} \leq F^{-1}(p) \} ]$")
+        # plt.show()
 
 
 class BayesianOptimizationPlots(object):
