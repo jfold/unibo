@@ -37,7 +37,7 @@ class Experiment(object):
             self.dataset.data.sample_X(self.n_train - self.n_initial)
         )
         self.optimizer.surrogate.fit(self.dataset.data.X, self.dataset.data.y)
-        self.calibration.analyze(self.optimizer.surrogate, self.dataset, plot_it=False)
+        self.calibration.analyze(self.optimizer.surrogate, self.dataset)
 
 
 if __name__ == "__main__":

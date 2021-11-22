@@ -1,4 +1,6 @@
 import json
+
+from numpy.lib.npyio import save
 from imports.general import *
 from imports.ml import *
 from src.parameters import Parameters
@@ -15,8 +17,6 @@ class Calibration(CalibrationPlots):
         super().__init__()
         self.__dict__.update(parameters.__dict__)
         self.summary_init()
-        if self.plot_data and self.d == 1:
-            self.plot_xy()
 
     def summary_init(self):
         self.summary = {}
@@ -162,12 +162,7 @@ class Calibration(CalibrationPlots):
         f.close()
 
     def analyze(
-        self,
-        surrogate: Surrogate,
-        dataset: Dataset,
-        plot_it: bool = False,
-        save_it: bool = True,
-        save_settings: str = "",
+        self, surrogate: Surrogate, dataset: Dataset, save_settings: str = "",
     ):
         """Runs calibration, sharpness, expected log predictive density and 
         normalized mean square error functions for the "surrogate" on a testset
@@ -176,18 +171,12 @@ class Calibration(CalibrationPlots):
         Args:
             surrogate (Surrogate): Surrogate object
             dataset (Dataset): Dataset object
-            plot_it (bool, optional): Whether plots should be made and saved. Defaults to False.
-            save_it (bool, optional): Whether scores should be saved. Defaults to True.
             save_settings (str, optional): Extra string suffix for naming. Defaults to "".
         """
         X_test, y_test = dataset.sample_testset()
         self.ne_true = dataset.data.ne_true
         mu_test, sigma_test = surrogate.predict(X_test)
 
-        if self.d == 1 and plot_it:
-            self.plot_predictive(
-                self.X_test, mu_test, sigma_test, reg_name=surrogate.name, n_stds=3,
-            )
         self.check_y_calibration(
             mu_test, sigma_test, y_test, name=surrogate.name,
         )
@@ -203,12 +192,16 @@ class Calibration(CalibrationPlots):
         )
         self.nmse(y_test, mu_test, name=surrogate.name)
 
-        if plot_it:
+        if self.plot_it and self.save_it:
+            if self.d == 1:
+                self.plot_predictive(
+                    dataset, X_test, y_test, mu_test, sigma_test, name=surrogate.name
+                )
             self.plot_y_calibration(surrogate.name)
             self.plot_sharpness_histogram(surrogate.name)
 
         # Save
-        if save_it:
+        if self.save_it:
             self.save(save_settings)
             print("Successfully saved with settings:", self.settings)
 

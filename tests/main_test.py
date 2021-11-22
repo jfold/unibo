@@ -9,11 +9,29 @@ class MainTest(unittest.TestCase):
         experiment = Experiment(parameters)
         experiment.run_bo()
 
-    def test_demo(self) -> None:
-        kwargs = {"savepth": os.getcwd() + "/results/", "d": 2}
+    def test_demo1d(self) -> None:
+        kwargs = {
+            "savepth": os.getcwd() + "/results/",
+            "d": 1,
+            "plot_it": True,
+        }
         parameters = Parameters(**kwargs)
         experiment = Experiment(parameters)
         experiment.run_calibraion_demo()
+        assert experiment.dataset.data.X.shape == (parameters.n_train, parameters.d)
+        assert experiment.dataset.data.y.shape == (parameters.n_train, 1)
+
+    def test_demo2d(self) -> None:
+        kwargs = {
+            "savepth": os.getcwd() + "/results/",
+            "d": 2,
+            "plot_it": True,
+        }
+        parameters = Parameters(**kwargs)
+        experiment = Experiment(parameters)
+        experiment.run_calibraion_demo()
+        assert experiment.dataset.data.X.shape == (parameters.n_train, parameters.d)
+        assert experiment.dataset.data.y.shape == (parameters.n_train, 1)
 
 
 if __name__ == "__main__":

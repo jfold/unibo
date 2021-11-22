@@ -15,7 +15,8 @@ class Defaults:
     n_initial: int = 10
     n_evals: int = 500
     rf_cv_splits: int = 5
-    plot_data: bool = False
+    plot_it: bool = False
+    save_it: bool = True
     csi: float = 0.0
     data_location: str = "data.benchmarks.benchmark"
     data_class: str = "Benchmark"
@@ -26,7 +27,7 @@ class Defaults:
     surrogate: str = "RF"
     acquisition: str = "ExpectedImprovement"
     savepth: str = os.getcwd() + "/results/"
-    experiment: str = datetime.now().strftime("%H:%M:%S-%d%m%y") + "|" + "".join(
+    experiment: str = datetime.now().strftime("%d%m%y-%H%M%S") + "|" + "".join(
         random.choice(string.ascii_uppercase + string.digits) for _ in range(4)
     )
 
