@@ -5,7 +5,7 @@ from main import *
 class MainTest(unittest.TestCase):
     def test_run(self) -> None:
         kwargs = {"savepth": os.getcwd() + "/results/", "n_evals": 2, "d": 2}
-        parameters = Parameters(**kwargs)
+        parameters = Parameters(kwargs, mkdir=True)
         experiment = Experiment(parameters)
         experiment.run_bo()
 
@@ -15,7 +15,7 @@ class MainTest(unittest.TestCase):
             "d": 1,
             "plot_it": True,
         }
-        parameters = Parameters(**kwargs)
+        parameters = Parameters(kwargs, mkdir=True)
         experiment = Experiment(parameters)
         experiment.run_calibraion_demo()
         assert experiment.dataset.data.X.shape == (parameters.n_train, parameters.d)
@@ -27,7 +27,7 @@ class MainTest(unittest.TestCase):
             "d": 2,
             "plot_it": True,
         }
-        parameters = Parameters(**kwargs)
+        parameters = Parameters(kwargs, mkdir=True)
         experiment = Experiment(parameters)
         experiment.run_calibraion_demo()
         assert experiment.dataset.data.X.shape == (parameters.n_train, parameters.d)

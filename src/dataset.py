@@ -4,8 +4,8 @@ from datasets.verifications.verification import VerificationData
 
 
 class Dataset(object):
-    def __init__(self, parameters: Parameters = Defaults()) -> None:
-        self.__dict__.update(parameters.__dict__)
+    def __init__(self, parameters: Parameters) -> None:
+        self.__dict__.update(asdict(parameters))
         self.data = VerificationData(parameters)
 
     def add_X_sample_y(self, x_new: np.array):

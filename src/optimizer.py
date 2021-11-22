@@ -11,7 +11,7 @@ class Optimizer(object):
     """TODO: Optimizer wrapper for botorch"""
 
     def __init__(self, parameters: Parameters) -> None:
-        self.__dict__.update(parameters.__dict__)
+        self.__dict__.update(asdict(parameters))
         self.surrogate = RandomForest(parameters)
 
     def expected_improvement(self, y_min, mus, sigmas):

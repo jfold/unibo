@@ -1,13 +1,14 @@
+from dataclasses import asdict
 from imports.general import *
 from src.calibration import Calibration
 from src.dataset import Dataset
 from src.optimizer import Optimizer
-from .parameters import Defaults, Parameters
+from .parameters import Parameters
 
 
 class Experiment(object):
-    def __init__(self, parameters: Parameters = Defaults()) -> None:
-        self.__dict__.update(parameters.__dict__)
+    def __init__(self, parameters: Parameters) -> None:
+        self.__dict__.update(asdict(parameters))
         self.dataset = Dataset(parameters)
         self.optimizer = Optimizer(parameters)
         self.calibration = Calibration(parameters)

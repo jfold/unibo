@@ -12,7 +12,7 @@ def run():
     print("------------------------------------")
     print("RUNNING EXPERIMENT...")
     kwargs = {}
-    parameters = Parameters(**kwargs)
+    parameters = Parameters()
     for arg in args:
         try:
             var = arg.split("=")[0]
@@ -31,7 +31,8 @@ def run():
         except:
             if "main.py" not in args:
                 print("Trouble with " + arg)
-    parameters = Parameters(**kwargs)
+    parameters.update(kwargs)
+    parameters.save()
     experiment = Experiment(parameters)
     experiment.demo()
     print("FINISHED EXPERIMENT")

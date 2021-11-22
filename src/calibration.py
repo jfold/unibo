@@ -1,3 +1,4 @@
+from dataclasses import asdict
 import json
 
 from numpy.lib.npyio import save
@@ -15,7 +16,7 @@ class Calibration(CalibrationPlots):
 
     def __init__(self, parameters: Parameters) -> None:
         super().__init__()
-        self.__dict__.update(parameters.__dict__)
+        self.__dict__.update(asdict(parameters))
         self.summary_init()
 
     def summary_init(self):

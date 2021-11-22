@@ -1,5 +1,6 @@
+from dataclasses import asdict
 from base.surrogate import Surrogate
-from src.parameters import Defaults, Parameters
+from src.parameters import Parameters
 from imports.general import *
 from imports.ml import *
 from sklearn.model_selection import GridSearchCV
@@ -11,12 +12,12 @@ class RandomForest(Surrogate):
 
     def __init__(
         self,
-        parameters: Parameters = Defaults(),
+        parameters: Parameters,
         cv_splits: int = 5,
         name: str = "RF",
         vanilla=True,
     ):
-        self.__dict__.update(parameters.__dict__)
+        self.__dict__.update(asdict(parameters))
         self.cv_splits = cv_splits
         self.vanilla = vanilla
         if self.vanilla:

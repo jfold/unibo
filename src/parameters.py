@@ -1,12 +1,13 @@
 import json
+from typing import Dict
 from imports.general import *
 from imports.ml import *
-from dataclasses import dataclass, asdict
+from dataclasses import dataclass, asdict, replace
 import random, string
 
 
-@dataclass(frozen=False, order=True)
-class Defaults:
+@dataclass
+class Parameters:
     seed: bool = 0
     dtype = tf.float64
     d: int = 1
@@ -27,22 +28,32 @@ class Defaults:
     surrogate: str = "RF"
     acquisition: str = "ExpectedImprovement"
     savepth: str = os.getcwd() + "/results/"
-    experiment: str = datetime.now().strftime("%d%m%y-%H%M%S") + "|" + "".join(
-        random.choice(string.ascii_uppercase + string.digits) for _ in range(4)
-    )
+    experiment: str = ""
 
+    def __init__(self, kwargs: Dict = {}, mkdir: bool = False) -> None:
+        self.update(kwargs)
+        setattr(
+            self,
+            "experiment",
+            datetime.now().strftime("%d%m%y-%H%M%S")
+            + "|"
+            + "".join(
+                random.choice(string.ascii_uppercase + string.digits) for _ in range(4)
+            ),
+        )
+        setattr(self, "savepth", self.savepth + self.experiment + "/")
+        if mkdir and not os.path.isdir(self.savepth):
+            os.mkdir(self.savepth)
+            self.save()
 
-class Parameters(Defaults):
-    def __init__(self, **kwargs):
-        super().__init__()
-        self.__dict__.update(kwargs)
-        self.savepth = self.savepth + self.experiment + "/"
-        self.save()
+    def update(self, kwargs):
+        for key, value in kwargs.items():
+            if hasattr(self, key):
+                setattr(self, key, value)
 
     def save(self):
-        if not os.path.isdir(self.savepth):
-            os.mkdir(self.savepth)
         json_dump = json.dumps(asdict(self))
-        f = open(self.savepth + "parameters.json", "a")
+        f = open(self.savepth + "parameters.json", "w")
         f.write(json_dump)
         f.close()
+

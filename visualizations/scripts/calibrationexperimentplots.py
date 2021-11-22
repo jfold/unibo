@@ -4,9 +4,14 @@ from imports.ml import *
 
 
 class Figures(object):
-    def __init__(self, experiments: list[str], settings: Dict[str, str]):
+    def __init__(self, experiments: list[str] = [], settings: Dict[str, str] = {}):
         self.experiments = experiments
         self.settings = settings
+        self.savepth = os.getcwd() + "/results/"
+
+    def generate(self):
+        for experiment in self.experiments:
+            files = os.listdir(self.savepth + experiment)
 
     def plot_calibration():
         pth = "./calibration_results/"
