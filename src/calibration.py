@@ -26,6 +26,13 @@ class Calibration(CalibrationPlots):
         # ).replace(".", "-")
 
     def check_gaussian_sharpness(self, mus: np.ndarray, sigmas: np.ndarray, name: str):
+        """Calculates the sharpness (negative entropy) of the gaussian distributions 
+        with means: mus and standard deviation: sigmas
+        Args:
+            mus (np.ndarray): predictive mean
+            sigmas (np.ndarray): predictive standard deviation
+            name (str): model name
+        """
         sharpness = -tfp.distributions.Normal(mus, sigmas).entropy()
         mean_sharpness = tf.reduce_mean(sharpness)
         self.summary.update(
@@ -36,6 +43,13 @@ class Calibration(CalibrationPlots):
         )
 
     def check_histogram_sharpness(self, model, X: np.ndarray, n_bins: int = 50):
+        """Calculates the sharpness (negative entropy) of the histogram distributions 
+        calculated from input X
+        Args:
+            mus (np.ndarray): predictive mean
+            sigmas (np.ndarray): predictive standard deviation
+            name (str): model name
+        """
         if hasattr(model, "histogram_sharpness"):
             hist_sharpness, mean_hist_sharpness = model.histogram_sharpness(X)
             self.summary.update(
@@ -53,6 +67,16 @@ class Calibration(CalibrationPlots):
         name: str,
         n_bins: int = 50,
     ):
+        """Calculates the calibration of underlying mean (f), hence without noise.
+
+        Args:
+            mus (np.ndarray): predictive mean
+            sigmas (np.ndarray): predictive std 
+            f (np.ndarray): underlying mean function
+            name (str): model name
+            n_bins (int, optional): number of bins dividing the calibration curve. 
+            Defaults to 50.
+        """
         p = np.linspace(0.01, 0.99, n_bins)
         norm_dists = tfp.distributions.Normal(loc=0, scale=sigmas)
         fractiles = norm_dists.quantile(0.5 - p / 2)
@@ -76,6 +100,16 @@ class Calibration(CalibrationPlots):
         name: str,
         n_bins: int = 50,
     ):
+        """Calculates the calibration of the target (y).
+
+        Args:
+            mus (np.ndarray): predictive mean
+            sigmas (np.ndarray): predictive std 
+            f (np.ndarray): underlying mean function
+            name (str): model name
+            n_bins (int, optional): number of bins dividing the calibration curve. 
+            Defaults to 50.
+        """
         p = np.linspace(0, 1, n_bins)
         norm_dists = tfp.distributions.Normal(loc=mus, scale=sigmas)
         # eq. (3) in "Accurate Uncertainties for Deep Learning Using Calibrated Regression"
@@ -135,6 +169,17 @@ class Calibration(CalibrationPlots):
         save_it: bool = True,
         save_settings: str = "",
     ):
+        """Runs calibration, sharpness, expected log predictive density and 
+        normalized mean square error functions for the "surrogate" on a testset
+        drawn from "dataset".
+
+        Args:
+            surrogate (Surrogate): Surrogate object
+            dataset (Dataset): Dataset object
+            plot_it (bool, optional): Whether plots should be made and saved. Defaults to False.
+            save_it (bool, optional): Whether scores should be saved. Defaults to True.
+            save_settings (str, optional): Extra string suffix for naming. Defaults to "".
+        """
         X_test, y_test = dataset.sample_testset()
         self.ne_true = dataset.data.ne_true
         mu_test, sigma_test = surrogate.predict(X_test)
