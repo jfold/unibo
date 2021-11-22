@@ -4,14 +4,67 @@ from imports.ml import *
 
 
 class Figures(object):
-    def __init__(self, experiments: list[str] = [], settings: Dict[str, str] = {}):
-        self.experiments = experiments
+    def __init__(self, loadpths: list[str] = [], settings: Dict[str, str] = {}):
+        self.loadpths = loadpths
         self.settings = settings
-        self.savepth = os.getcwd() + "/results/"
+        self.savepth = os.getcwd() + "/visualizations/figures/"
 
-    def generate(self):
-        for experiment in self.experiments:
-            files = os.listdir(self.savepth + experiment)
+    def load_raw(self):
+        self.calibrations = []
+        self.sharpnesses = []
+        for experiment in self.loadpths:
+            with open(experiment + "scores.json") as json_file:
+                scores = json.load(json_file)
+            with open(experiment + "parameters.json") as json_file:
+                parameters = json.load(json_file)
+            if self.settings.items() <= parameters.items():
+                # Calibration
+                calibration = np.array(
+                    scores[parameters["surrogate"] + "_y_calibration"]
+                )
+                self.name = parameters["surrogate"]
+                self.calibrations.append(calibration)
+                # Calibration
+                sharpness = np.array(scores[parameters["surrogate"] + "_sharpness"])
+                self.sharpnesses.append(sharpness)
+                self.calibration_p_array = np.array(scores["y_p_array"])
+        self.calibrations = np.array(self.calibrations)
+        self.sharpnesses = np.array(self.sharpnesses)
+
+    def generate(self,):
+        self.load_raw()
+        if self.calibrations.shape[0] > 1:
+            mean_calibration = np.nanmean(self.calibrations, axis=0)
+            std_calibration = np.nanstd(self.calibrations, axis=0)
+            fig = plt.figure()
+            plt.plot(
+                self.calibration_p_array,
+                self.calibration_p_array,
+                "--",
+                label="Perfectly calibrated",
+            )
+            plt.plot(
+                self.calibration_p_array,
+                mean_calibration,
+                "o",
+                # color="green",
+                label=r"$\mathcal{" + self.name + "}$ ",
+            )
+            eb = plt.errorbar(
+                self.calibration_p_array,
+                mean_calibration,
+                yerr=std_calibration,
+                # color="green",
+                capsize=4,
+                alpha=0.5,
+            )  # ,label=r"$\mathcal{"+self.name+"}$ s.e.m."
+            eb[-1][0].set_linestyle("--")
+            plt.legend()
+            plt.xlabel(r"$p$")
+            plt.ylabel(r"$\mathcal{C}_{\mathbf{y}}$")
+            plt.tight_layout()
+            fig.savefig(self.savepth + "Example" + ".pdf")
+            plt.close()
 
     def plot_calibration():
         pth = "./calibration_results/"
