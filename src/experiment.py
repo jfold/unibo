@@ -22,7 +22,7 @@ class Experiment(object):
             + self.calibration.__str__
         )
 
-    def run(self):
+    def run_bo(self):
         for e in tqdm(range(self.n_evals), leave=False):
             self.optimizer.surrogate.fit(self.dataset.data.X, self.dataset.data.y)
             x_new = self.optimizer.next_sample(self.dataset)
@@ -31,13 +31,13 @@ class Experiment(object):
                 self.optimizer.surrogate, self.dataset, save_settings=f"epoch-{e+1}"
             )
 
-    def demo(self):
-        """Demo method to test calibration phase - will removed """
+    def run_calibraion_demo(self):
+        """Samples all datapoints uniformly"""
         self.dataset.add_X_sample_y(
             self.dataset.data.sample_X(self.n_train - self.n_initial)
         )
         self.optimizer.surrogate.fit(self.dataset.data.X, self.dataset.data.y)
-        self.calibration.analyze(self.optimizer.surrogate, self.dataset, plot_it=True)
+        self.calibration.analyze(self.optimizer.surrogate, self.dataset, plot_it=False)
 
 
 if __name__ == "__main__":

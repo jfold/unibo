@@ -7,13 +7,13 @@ class MainTest(unittest.TestCase):
         kwargs = {"savepth": os.getcwd() + "/results/", "n_evals": 2, "d": 2}
         parameters = Parameters(**kwargs)
         experiment = Experiment(parameters)
-        experiment.run()
+        experiment.run_bo()
 
     def test_demo(self) -> None:
         kwargs = {"savepth": os.getcwd() + "/results/", "d": 2}
         parameters = Parameters(**kwargs)
         experiment = Experiment(parameters)
-        experiment.demo()
+        experiment.run_calibraion_demo()
 
 
 if __name__ == "__main__":
