@@ -29,7 +29,7 @@ class Experiment(object):
             x_new = self.optimizer.next_sample(self.dataset)
             self.dataset.add_X_sample_y(x_new)
             self.calibration.analyze(
-                self.optimizer.surrogate, self.dataset, save_settings=f"epoch-{e+1}"
+                self.optimizer.surrogate, self.dataset, save_settings=f"---epoch-{e+1}"
             )
 
     def run_calibraion_demo(self):

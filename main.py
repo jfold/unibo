@@ -17,13 +17,13 @@ def run():
         try:
             var = arg.split("=")[0]
 
-            if type(getattr(parameters, var)) is int:
+            if isinstance(type(getattr(parameters, var)), int):
                 val = int(arg.split("=")[1])
-            elif type(getattr(parameters, var)) is bool:
+            elif isinstance(type(getattr(parameters, var)), bool):
                 val = arg.split("=")[1].lower() == "true"
-            elif type(getattr(parameters, var)) is float:
+            elif isinstance(type(getattr(parameters, var)), float):
                 val = float(arg.split("=")[1])
-            elif type(getattr(parameters, var)) is str:
+            elif isinstance(type(getattr(parameters, var)), str):
                 val = arg.split("=")[1]
             else:
                 print("COULD NOT FIND VARIABLE:", var)

@@ -23,7 +23,6 @@ class CalibrationPlots(object):
         y_test,
         mu,
         sigma_predictive,
-        name: str = "",
         n_stds: float = 3.0,
     ):
         assert self.d == 1
@@ -37,12 +36,7 @@ class CalibrationPlots(object):
         plt.plot(dataset.data.X, dataset.data.y, "*", label="Train")
         plt.plot(X_test, y_test, "*", label="Test", alpha=0.1)
         plt.plot(
-            X_test,
-            mu,
-            "--",
-            color="black",
-            label=r"$\mathcal{" + name + "}_{\mu}$",
-            linewidth=1,
+            X_test, mu, "--", color="black", label=r"$\mathcal{M}_{\mu}$", linewidth=1,
         )
         plt.fill_between(
             X_test,
@@ -50,7 +44,7 @@ class CalibrationPlots(object):
             mu - n_stds * sigma_predictive,
             color="blue",
             alpha=0.1,
-            label=r"$\mathcal{" + name + "}_{" + str(n_stds) + "\sigma}$",
+            label=r"$\mathcal{M}_{" + str(n_stds) + "\sigma}$",
         )
         plt.xlabel("x")
         plt.ylabel("y")
@@ -86,7 +80,7 @@ class CalibrationPlots(object):
         plt.title(title)
         plt.legend()
 
-    def plot_y_calibration(self, name: str):
+    def plot_y_calibration(self):
         # Target (y) calibration
         fig = plt.figure()
         plt.plot(
@@ -94,12 +88,10 @@ class CalibrationPlots(object):
         )
         plt.plot(
             self.summary["y_p_array"],
-            self.summary[f"{name}_y_calibration"],
+            self.summary["y_calibration"],
             "*",
-            label=r"$\mathcal{"
-            + name
-            + "}$ | MSE = "
-            + "{:.2e}".format(self.summary[f"{name}_y_calibration_mse"]),
+            label=r"$\mathcal{M}$ | MSE = "
+            + "{:.2e}".format(self.summary["y_calibration_mse"]),
         )
         plt.xlabel(r"$p$")
         plt.legend()
@@ -107,18 +99,16 @@ class CalibrationPlots(object):
         fig.savefig(self.savepth + "calibration-y.pdf")
         plt.close()
 
-    def plot_f_calibration(self, name: str):
+    def plot_f_calibration(self):
         # Mean (f) calibration
         fig = plt.figure()
         plt.plot(self.summary["f_p_array"], self.summary["f_p_array"], "--")
         plt.plot(
             self.summary["f_p_array"],
-            self.summary[f"{name}_f_calibration"],
+            self.summary["f_calibration"],
             "*",
-            label=r"$\mathcal{"
-            + name
-            + "}$ | MSE = "
-            + "{:.2e}".format(self.summary[f"{name}_f_calibration_mse"]),
+            label=r"$\mathcal{M}$ | MSE = "
+            + "{:.2e}".format(self.summary["f_calibration_mse"]),
         )
         plt.legend()
         plt.xlabel(r"$p$")
@@ -127,25 +117,21 @@ class CalibrationPlots(object):
         fig.savefig(self.savepth + "calibration-f.pdf")
         plt.close()
 
-    def plot_sharpness_histogram(self, name: str, n_bins: int = 50):
+    def plot_sharpness_histogram(self, n_bins: int = 50):
         fig = plt.figure()
         plt.hist(
-            self.summary[f"{name}_sharpness"],
+            self.summary["sharpness"],
             bins=n_bins,
-            label=r"$\mathcal{"
-            + name
-            + "}$ | mean: "
-            + "{:.2e}".format(self.summary[f"{name}_mean_sharpness"]),
+            label=r"$\mathcal{M}$ | mean: "
+            + "{:.2e}".format(self.summary["mean_sharpness"]),
             alpha=0.6,
         )
-        if f"{name}_hist_sharpness" in self.summary:
+        if "hist_sharpness" in self.summary:
             plt.hist(
-                self.summary[f"{name}_hist_sharpness"],
+                self.summary["hist_sharpness"],
                 bins=n_bins,
-                label=r"$\mathcal{"
-                + name
-                + "}$  hist | mean: "
-                + "{:.2e}".format(self.summary[f"{name}_mean_hist_sharpness"]),
+                label=r"$\mathcal{M}$  hist | mean: "
+                + "{:.2e}".format(self.summary["mean_hist_sharpness"]),
                 alpha=0.6,
             )
         plt.annotate(

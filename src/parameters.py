@@ -25,8 +25,9 @@ class Parameters:
     minmax: str = "minimization"
     snr: float = 10.0
     K: int = 1
+    vanilla: bool = False
     surrogate: str = "RF"
-    acquisition: str = "ExpectedImprovement"
+    acquisition: str = "EI"
     savepth: str = os.getcwd() + "/results/"
     experiment: str = ""
 
@@ -37,9 +38,10 @@ class Parameters:
             "experiment",
             datetime.now().strftime("%d%m%y-%H%M%S")
             + "|"
-            + "".join(
-                random.choice(string.ascii_uppercase + string.digits) for _ in range(4)
-            ),
+            + f"{self.surrogate}-{self.acquisition}"
+            # + "".join(
+            #    random.choice(string.ascii_uppercase + string.digits) for _ in range(4)
+            # ),
         )
         setattr(self, "savepth", self.savepth + self.experiment + "/")
         if mkdir and not os.path.isdir(self.savepth):
@@ -53,7 +55,6 @@ class Parameters:
 
     def save(self):
         json_dump = json.dumps(asdict(self))
-        f = open(self.savepth + "parameters.json", "w")
-        f.write(json_dump)
-        f.close()
+        with open(self.savepth + "parameters.json", "w") as f:
+            f.write(json_dump)
 

@@ -4,7 +4,6 @@ from src.parameters import *
 import torch
 import botorch
 from surrogates.random_forest import RandomForest
-from sklearn.utils.validation import check_is_fitted
 
 
 class Optimizer(object):
@@ -20,7 +19,6 @@ class Optimizer(object):
         return standard_norm_dist.cdf(locs)
 
     def next_sample(self, dataset: Dataset) -> np.array:
-        # check_is_fitted(self.surrogate.model)
         X_candidates = dataset.data.sample_X(n_samples=self.n_test)
         mu_posterior, sigma_posterior = self.surrogate.predict(X_candidates)
         ei = self.expected_improvement(

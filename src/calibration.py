@@ -26,7 +26,7 @@ class Calibration(CalibrationPlots):
         #     "--", [str(key) + "-" + str(val) for key, val in self.summary.items()]
         # ).replace(".", "-")
 
-    def check_gaussian_sharpness(self, mus: np.ndarray, sigmas: np.ndarray, name: str):
+    def check_gaussian_sharpness(self, mus: np.ndarray, sigmas: np.ndarray):
         """Calculates the sharpness (negative entropy) of the gaussian distributions 
         with means: mus and standard deviation: sigmas
         Args:
@@ -37,13 +37,12 @@ class Calibration(CalibrationPlots):
         sharpness = -tfp.distributions.Normal(mus, sigmas).entropy()
         mean_sharpness = tf.reduce_mean(sharpness)
         self.summary.update(
-            {
-                f"{name}_sharpness": sharpness.numpy(),
-                f"{name}_mean_sharpness": mean_sharpness.numpy(),
-            }
+            {"sharpness": sharpness.numpy(), "mean_sharpness": mean_sharpness.numpy(),}
         )
 
-    def check_histogram_sharpness(self, model, X: np.ndarray, n_bins: int = 50):
+    def check_histogram_sharpness(
+        self, model: Surrogate, X: np.ndarray, n_bins: int = 50
+    ):
         """Calculates the sharpness (negative entropy) of the histogram distributions 
         calculated from input X
         Args:
@@ -52,7 +51,9 @@ class Calibration(CalibrationPlots):
             name (str): model name
         """
         if hasattr(model, "histogram_sharpness"):
-            hist_sharpness, mean_hist_sharpness = model.histogram_sharpness(X)
+            hist_sharpness, mean_hist_sharpness = model.histogram_sharpness(
+                X, n_bins=n_bins
+            )
             self.summary.update(
                 {
                     f"{model.name}_hist_sharpness": hist_sharpness,
@@ -88,18 +89,13 @@ class Calibration(CalibrationPlots):
         self.summary.update(
             {
                 "f_p_array": p,
-                f"{name}_f_calibration": calibrations,
-                f"{name}_f_calibration_mse": np.mean((p - calibrations) ** 2),
+                "f_calibration": calibrations,
+                "f_calibration_mse": np.mean((p - calibrations) ** 2),
             }
         )
 
     def check_y_calibration(
-        self,
-        mus: np.ndarray,
-        sigmas: np.ndarray,
-        y: np.ndarray,
-        name: str,
-        n_bins: int = 50,
+        self, mus: np.ndarray, sigmas: np.ndarray, y: np.ndarray, n_bins: int = 50,
     ):
         """Calculates the calibration of the target (y).
 
@@ -119,13 +115,13 @@ class Calibration(CalibrationPlots):
         self.summary.update(
             {
                 "y_p_array": p,
-                f"{name}_y_calibration": calibrations,
-                f"{name}_y_calibration_mse": np.mean((calibrations - p) ** 2),
+                "y_calibration": calibrations,
+                "y_calibration_mse": np.mean((calibrations - p) ** 2),
             }
         )
 
     def expected_log_predictive_density(
-        self, mus: np.ndarray, sigmas: np.ndarray, y: np.ndarray, name: str,
+        self, mus: np.ndarray, sigmas: np.ndarray, y: np.ndarray,
     ):
         """Calculates expected log predictive density (elpd) using
         \mathbb{E}\left[\log p_\theta(\textbf{y}|\textbf{X})\right]  
@@ -139,11 +135,11 @@ class Calibration(CalibrationPlots):
         norm_dists = tfp.distributions.Normal(loc=mus, scale=sigmas)
         log_cdfs = norm_dists.log_cdf(y)
         elpd = tf.reduce_mean(log_cdfs).numpy()
-        self.summary.update({f"{name}_elpd": elpd})
+        self.summary.update({"elpd": elpd})
 
-    def nmse(self, y: np.ndarray, predictions: np.ndarray, name: str):
+    def nmse(self, y: np.ndarray, predictions: np.ndarray):
         """Calculates normalized mean square error by 
-        \ frac{1}{N\cdot\mathbb{V}[\textbf{y}]} \sum_i (\textbf{y}-\hat{\textbf{y}})^2
+        nmse = \ frac{1}{N\cdot\mathbb{V}[\textbf{y}]} \sum_i (\textbf{y}-\hat{\textbf{y}})^2
         where N is the length of y
         Args:
             y (np.ndarray): true outputs
@@ -152,20 +148,19 @@ class Calibration(CalibrationPlots):
         """
         mse = np.mean((y - predictions) ** 2)
         nmse = mse / np.var(y)
-        self.summary.update({f"{name}_mse": mse})
-        self.summary.update({f"{name}_nmse": nmse})
+        self.summary.update({"mse": mse})
+        self.summary.update({"nmse": nmse})
 
     def save(self, save_settings: str = ""):
         final_dict = {k: v.tolist() for k, v in self.summary.items()}
         json_dump = json.dumps(final_dict)
-        f = open(self.savepth + "scores.json", "a",)
-        f.write(json_dump)
-        f.close()
+        with open(self.savepth + f"scores{save_settings}.json", "w") as f:
+            f.write(json_dump)
 
     def analyze(
         self, surrogate: Surrogate, dataset: Dataset, save_settings: str = "",
     ):
-        """Runs calibration, sharpness, expected log predictive density and 
+        """Calculates calibration, sharpness, expected log predictive density and 
         normalized mean square error functions for the "surrogate" on a testset
         drawn from "dataset".
 
@@ -177,29 +172,29 @@ class Calibration(CalibrationPlots):
         X_test, y_test = dataset.sample_testset()
         self.ne_true = dataset.data.ne_true
         mu_test, sigma_test = surrogate.predict(X_test)
-
-        self.check_y_calibration(
-            mu_test, sigma_test, y_test, name=surrogate.name,
-        )
-        # self.check_f_calibration(
-        #     mu_test, sigma_test, dataset.data.f_test, name=surrogate.name,
-        # )
+        name = f"{surrogate.name}{save_settings}"
+        self.check_y_calibration(mu_test, sigma_test, y_test)
         self.check_gaussian_sharpness(
-            mu_test, sigma_test, name=surrogate.name,
+            mu_test, sigma_test,
         )
-        self.check_histogram_sharpness(surrogate, X_test)
         self.expected_log_predictive_density(
-            mu_test, sigma_test, y_test, name=surrogate.name,
+            mu_test, sigma_test, y_test,
         )
-        self.nmse(y_test, mu_test, name=surrogate.name)
+        self.nmse(y_test, mu_test)
+
+        # Throw out?
+        # self.check_histogram_sharpness(surrogate, X_test)
+        # self.check_f_calibration(
+        #     mu_test, sigma_test, dataset.data.f_test, name=name,
+        # )
 
         if self.plot_it and self.save_it:
             if self.d == 1:
                 self.plot_predictive(
-                    dataset, X_test, y_test, mu_test, sigma_test, name=surrogate.name
+                    dataset, X_test, y_test, mu_test, sigma_test,
                 )
-            self.plot_y_calibration(surrogate.name)
-            self.plot_sharpness_histogram(surrogate.name)
+            self.plot_y_calibration()
+            self.plot_sharpness_histogram()
 
         # Save
         if self.save_it:

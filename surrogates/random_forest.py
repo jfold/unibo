@@ -1,4 +1,5 @@
 from dataclasses import asdict
+from typing import Tuple
 from base.surrogate import Surrogate
 from src.parameters import Parameters
 from imports.general import *
@@ -11,15 +12,10 @@ class RandomForest(Surrogate):
     """Random forest surrogate class. """
 
     def __init__(
-        self,
-        parameters: Parameters,
-        cv_splits: int = 5,
-        name: str = "RF",
-        vanilla=True,
+        self, parameters: Parameters, cv_splits: int = 5, name: str = "RF",
     ):
         self.__dict__.update(asdict(parameters))
         self.cv_splits = cv_splits
-        self.vanilla = vanilla
         if self.vanilla:
             self.rf_params_grid = {
                 "n_estimators": [10],
@@ -63,7 +59,9 @@ class RandomForest(Surrogate):
         ).fit(X_train, y_train.squeeze())
         self.model = grid_search.best_estimator_
 
-    def predict(self, X_test: np.ndarray) -> Union[np.ndarray, np.ndarray]:
+    def predict(
+        self, X_test: np.ndarray, stabilizer: float = 1e-8
+    ) -> Tuple[np.ndarray, np.ndarray]:
         """Calculates mean (prediction) and variance (uncertainty)
         Args:
             X_test [np.ndarray]: input data
@@ -71,7 +69,7 @@ class RandomForest(Surrogate):
             [tuple] [(np.ndarray,np.ndarray)]: predictive mean and variance
         """
         mu_predictive = self.model.predict(X_test)
-        sigma_predictive = self.calculate_y_std(X_test)
+        sigma_predictive = self.calculate_y_std(X_test) + stabilizer
         return (mu_predictive[:, np.newaxis], sigma_predictive[:, np.newaxis])
 
     def calculate_y_std(self, X: np.ndarray) -> np.ndarray:
@@ -87,14 +85,14 @@ class RandomForest(Surrogate):
 
     def histogram_sharpness(
         self, X: np.ndarray, n_bins: int = 50
-    ) -> Union[np.ndarray, np.ndarray]:
+    ) -> Tuple[np.ndarray, np.ndarray]:
         """[Calculates sharpness (negative entropy) from histogram]
 
         Args:
             X (np.ndarray): [data]
 
         Returns:
-            Union[np.ndarray, np.ndarray]: [description]
+            tuple[np.ndarray, np.ndarray]: [description]
         """
         predictions = self.tree_predictions(X)
         nentropies = []
