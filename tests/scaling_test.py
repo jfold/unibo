@@ -1,7 +1,6 @@
 from os import mkdir
 import unittest
 from main import *
-from visualizations.scripts.calibrationexperimentplots import Figures
 
 
 class ScalingTest(unittest.TestCase):
