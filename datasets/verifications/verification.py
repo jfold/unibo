@@ -1,12 +1,12 @@
 from imports.general import *
 from imports.ml import *
-from src.parameters import Defaults, Parameters
+from src.parameters import Parameters
 
 
 class VerificationData(object):
     """Linear sum activation data generation class."""
 
-    def __init__(self, parameters: Parameters = Defaults()):
+    def __init__(self, parameters: Parameters = Parameters):
         self.snr = parameters.snr
         self.K = parameters.K
         self.d = parameters.d

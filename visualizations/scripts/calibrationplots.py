@@ -1,69 +1,61 @@
 from imports.general import *
-import matplotlib
-import matplotlib.pyplot as plt
-
-matplotlib.rcParams["mathtext.fontset"] = "cm"
-matplotlib.rcParams["font.family"] = "STIXGeneral"
-matplotlib.rcParams["axes.grid"] = True
-matplotlib.rcParams["font.size"] = 14
-matplotlib.rcParams["figure.figsize"] = (10, 6)
-matplotlib.rcParams["savefig.bbox"] = "tight"
+from imports.ml import *
+from base.dataset import Dataset
 
 
 class CalibrationPlots(object):
     """Calibration experiment class """
 
-    def plot_xy(self):
-        assert self.D == 1
+    def plot_xy(self, dataset: Dataset):
+        assert self.d == 1
         plt.figure()
-        plt.plot(self.X_train, self.y_train, "*", label="Train")
-        plt.plot(self.X_test, self.y_test, "*", label="Test", alpha=0.1)
+        plt.plot(dataset.data.X_train, dataset.data.y_train, "*", label="Train")
+        plt.plot(dataset.data.X_test, dataset.data.y_test, "*", label="Test", alpha=0.1)
         plt.xlabel(r"$x$")
         plt.ylabel(r"$y$")
         plt.legend()
         plt.show()
 
     def plot_predictive(
-        self, X, mu, sigma_predictive, reg_name: str = "", n_stds: float = 3.0
+        self,
+        dataset: Dataset,
+        X_test,
+        y_test,
+        mu,
+        sigma_predictive,
+        n_stds: float = 3.0,
     ):
-        assert self.D == 1
-        idx = np.argsort(X.squeeze())
-        X = X[idx].squeeze()
+        assert self.d == 1
+        idx = np.argsort(X_test.squeeze())
+        X_test = X_test[idx].squeeze()
+        y_test = y_test[idx].squeeze()
         mu = mu[idx].squeeze()
         sigma_predictive = sigma_predictive[idx].squeeze()
 
-        plt.figure()
-        plt.plot(self.X_train, self.y_train, "*", label="Train")
-        plt.plot(self.X_test, self.y_test, "*", label="Test", alpha=0.1)
+        fig = plt.figure()
+        plt.plot(dataset.data.X, dataset.data.y, "*", label="Train")
+        plt.plot(X_test, y_test, "*", label="Test", alpha=0.1)
         plt.plot(
-            X,
-            mu,
-            "--",
-            color="black",
-            label=r"$\mathcal{" + reg_name + "}_{\mu}$",
-            linewidth=1,
+            X_test, mu, "--", color="black", label=r"$\mathcal{M}_{\mu}$", linewidth=1,
         )
         plt.fill_between(
-            X,
+            X_test,
             mu + n_stds * sigma_predictive,
             mu - n_stds * sigma_predictive,
             color="blue",
             alpha=0.1,
-            label=r"$\mathcal{" + reg_name + "}_{" + str(n_stds) + "\sigma}$",
+            label=r"$\mathcal{M}_{" + str(n_stds) + "\sigma}$",
         )
-        idx = np.argsort(self.X.numpy().squeeze())
-        X = self.X.numpy()[idx].squeeze()
-        y = self.f.numpy()[idx].squeeze()
-        plt.plot(X, y, "--", color="red", label="True")
-        plt.xlabel(r"$x$")
-        plt.ylabel(r"$y$")
+        plt.xlabel("x")
+        plt.ylabel("y")
         plt.legend()
-        plt.show()
+        fig.savefig(self.savepth + "predictive.pdf")
+        plt.close()
 
-    def plot_mse_sigma(self, mu_test, y_test, sigma_test):
+    def plot_mse_sigma(self, mu, y, sigma):
         plt.figure()
-        abs_err = np.abs(mu_test - y_test)
-        plt.plot(abs_err, sigma_test, "*")
+        abs_err = np.abs(mu - y)
+        plt.plot(abs_err, sigma, "*")
         plt.xlim([0, np.max(abs_err)])
         plt.ylim([0, np.max(abs_err)])
         plt.xlabel(r"Absolute error")
@@ -82,104 +74,78 @@ class CalibrationPlots(object):
         err_hist = np.array(err_hist)
         plt.figure()
         plt.plot(limits, limits, label=r"$x=y$", linewidth=0.4)
-        # plt.plot(
-        #     limits,
-        #     np.tile(y_std_true, len(limits)),
-        #     label=r"true $\sigma$ ",
-        #     linewidth=2,
-        # )
         plt.plot(limits, err_hist, "*")
         plt.xlabel("Mean absolute error (binned)")
         plt.ylabel(r"$\sigma$")
         plt.title(title)
         plt.legend()
 
-    def plot_calibration_results(self, n_bins=50):
+    def plot_y_calibration(self):
         # Target (y) calibration
         fig = plt.figure()
-        plt.plot(self.summary["y_p_array"], self.summary["y_p_array"], "-")
-        if self.ran_GP:
-            plt.plot(
-                self.summary["y_p_array"],
-                self.summary["GP_y_calibration"],
-                "*",
-                label=r"$\mathcal{GP}$ | MSE = "
-                + "{:.2e}".format(self.summary["GP_y_calibration_mse"]),
-            )
-        if self.ran_RF:
-            plt.plot(
-                self.summary["y_p_array"],
-                self.summary["RF_y_calibration"],
-                "*",
-                label=r"$\mathcal{RF}$ | MSE = "
-                + "{:.2e}".format(self.summary["RF_y_calibration_mse"]),
-            )
+        plt.plot(
+            self.summary["y_p_array"], self.summary["y_p_array"], "-", label="Optimal"
+        )
+        plt.plot(
+            self.summary["y_p_array"],
+            self.summary["y_calibration"],
+            "*",
+            label=r"$\mathcal{M}$ | MSE = "
+            + "{:.2e}".format(self.summary["y_calibration_mse"]),
+        )
         plt.xlabel(r"$p$")
         plt.legend()
         plt.ylabel(r"$\mathbb{E}[ \mathbb{I} \{ \mathbf{y} \leq F^{-1}(p) \} ]$")
-        plt.show()
+        fig.savefig(self.savepth + "calibration-y.pdf")
+        plt.close()
 
+    def plot_f_calibration(self):
         # Mean (f) calibration
         fig = plt.figure()
         plt.plot(self.summary["f_p_array"], self.summary["f_p_array"], "--")
-        if self.ran_GP:
-            plt.plot(
-                self.summary["f_p_array"],
-                self.summary["GP_f_calibration"],
-                "*",
-                label=r"$\mathcal{GP}$ | MSE = "
-                + "{:.2e}".format(self.summary["GP_f_calibration_mse"]),
-            )
-        if self.ran_RF:
-            plt.plot(
-                self.summary["f_p_array"],
-                self.summary["RF_f_calibration"],
-                "*",
-                label=r"$\mathcal{RF}$ | MSE = "
-                + "{:.2e}".format(self.summary["RF_f_calibration_mse"]),
-            )
+        plt.plot(
+            self.summary["f_p_array"],
+            self.summary["f_calibration"],
+            "*",
+            label=r"$\mathcal{M}$ | MSE = "
+            + "{:.2e}".format(self.summary["f_calibration_mse"]),
+        )
         plt.legend()
         plt.xlabel(r"$p$")
         plt.ylabel(r"$\mathbb{E}[ \mathbb{I} \{ \mathbf{f} \leq F^{-1}(p) \} ]$")
         plt.show()
+        fig.savefig(self.savepth + "calibration-f.pdf")
+        plt.close()
 
-        # Sharpness
+    def plot_sharpness_histogram(self, n_bins: int = 50):
         fig = plt.figure()
-        if self.ran_GP:
+        plt.hist(
+            self.summary["sharpness"],
+            bins=n_bins,
+            label=r"$\mathcal{M}$ | mean: "
+            + "{:.2e}".format(self.summary["mean_sharpness"]),
+            alpha=0.6,
+        )
+        if "hist_sharpness" in self.summary:
             plt.hist(
-                self.summary["GP_nentropies"],
+                self.summary["hist_sharpness"],
                 bins=n_bins,
-                label=r"$\mathcal{GP}$ | mean: "
-                + "{:.2e}".format(self.summary["mean_GP_nentropy"]),
-                alpha=0.6,
-            )
-        if self.ran_RF:
-            plt.hist(
-                self.summary["RF_nentropies"],
-                bins=n_bins,
-                label=r"$\mathcal{RF}$ | mean: "
-                + "{:.2e}".format(self.summary["mean_RF_nentropy"]),
-                alpha=0.6,
-            )
-            plt.hist(
-                self.summary["RF_hist_nentropies"],
-                bins=n_bins,
-                label=r"$\mathcal{RF}$  hist | mean: "
-                + "{:.2e}".format(self.summary["mean_RF_hist_nentropy"]),
+                label=r"$\mathcal{M}$  hist | mean: "
+                + "{:.2e}".format(self.summary["mean_hist_sharpness"]),
                 alpha=0.6,
             )
         plt.annotate(
             "True",
             xy=(self.ne_true, 0),
-            xytext=(self.ne_true, -(self.N_test / 100)),
+            xytext=(self.ne_true, -(self.n_test / 100)),
             arrowprops=dict(facecolor="black", shrink=0.05),
         )
         left, right = plt.xlim()
-        # plt.xlim([left,self.ne_true])
         plt.legend()
         plt.xlabel("Negative Entropy")
         plt.ylabel("Count")
-        plt.show()
+        fig.savefig(self.savepth + "sharpness-histogram.pdf")
+        plt.close()
 
 
 class BayesianOptimizationPlots(object):

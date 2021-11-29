@@ -1,10 +1,11 @@
+from typing import Dict
 from src.parameters import *
 from datasets.verifications.verification import VerificationData
 
 
 class Dataset(object):
-    def __init__(self, parameters: Parameters = Defaults()) -> None:
-        self.__dict__.update(parameters.__dict__)
+    def __init__(self, parameters: Parameters) -> None:
+        self.__dict__.update(asdict(parameters))
         self.data = VerificationData(parameters)
 
     def add_X_sample_y(self, x_new: np.array):
@@ -12,7 +13,7 @@ class Dataset(object):
         y_new = self.data.sample_y(x_new)
         self.data.y = np.append(self.data.y, y_new, axis=0)
 
-    def sample_testset(self, n_samples: int = None):
+    def sample_testset(self, n_samples: int = None) -> Dict:
         n_samples = self.n_test if n_samples is None else n_samples
         X = self.data.sample_X(n_samples=n_samples)
         y = self.data.sample_y(X)

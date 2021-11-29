@@ -17,7 +17,5 @@ class Surrogate(ABC):
         pass
 
     @abstractmethod
-    def predict(
-        self, X_train: np.ndarray, y_train: np.ndarray
-    ) -> Union[np.ndarray, np.ndarray]:
+    def predict(self, X_train: np.ndarray, stabilizer: float) -> None:
         pass
