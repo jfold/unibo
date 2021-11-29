@@ -34,7 +34,7 @@ def run():
     parameters.update(kwargs)
     parameters.save()
     experiment = Experiment(parameters)
-    experiment.demo()
+    experiment.run_bo()
     print("FINISHED EXPERIMENT")
     print("------------------------------------")
 

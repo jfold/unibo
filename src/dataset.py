@@ -1,6 +1,7 @@
 from typing import Dict
 from src.parameters import *
 from datasets.verifications.verification import VerificationData
+from datasets.benchmarks.benchmark import Benchmark
 
 
 class Dataset(object):
