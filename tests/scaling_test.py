@@ -21,7 +21,6 @@ class ScalingTest(unittest.TestCase):
 
     def test_bayesian_opt(self) -> None:
         savepths = []
-        print("HELLO")
         for seed in range(3):
             kwargs = {
                 "savepth": os.getcwd() + "/results/",
