@@ -8,7 +8,7 @@ from dataclasses import dataclass, asdict, replace
 @dataclass
 class Parameters:
     seed: bool = 0
-    dtype = tf.float64
+    #dtype = tf.float64
     d: int = 1
     n_test: int = 3000
     n_train: int = 500
@@ -55,4 +55,3 @@ class Parameters:
         json_dump = json.dumps(asdict(self))
         with open(self.savepth + "parameters.json", "w") as f:
             f.write(json_dump)
-
