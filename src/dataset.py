@@ -8,6 +8,7 @@ class Dataset(object):
     def __init__(self, parameters: Parameters) -> None:
         self.__dict__.update(asdict(parameters))
         self.data = VerificationData(parameters)
+        self.data = Benchmark(parameters)
 
     def add_X_sample_y(self, x_new: np.array):
         self.data.X = np.append(self.data.X, x_new, axis=0)

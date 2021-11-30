@@ -3,7 +3,6 @@ from typing import Dict
 from imports.general import *
 from imports.ml import *
 from dataclasses import dataclass, asdict, replace
-import random, string
 
 
 @dataclass
@@ -19,9 +18,9 @@ class Parameters:
     plot_it: bool = False
     save_it: bool = True
     csi: float = 0.0
-    data_location: str = "data.benchmarks.benchmark"
-    data_class: str = "Benchmark"
-    problem: str = "Alpine01"
+    data_location: str = "datasets.verifications.verification"  # "datasets.benchmarks.benchmark"
+    data_class: str = "VerificationData"  # "Benchmark"
+    problem: str = ""  # "Alpine01"
     minmax: str = "minimization"
     snr: float = 10.0
     K: int = 1
@@ -38,10 +37,7 @@ class Parameters:
             "experiment",
             datetime.now().strftime("%d%m%y-%H%M%S")
             + "|"
-            + f"{self.surrogate}-{self.acquisition}"
-            # + "".join(
-            #    random.choice(string.ascii_uppercase + string.digits) for _ in range(4)
-            # ),
+            + f"{self.surrogate}-{self.acquisition}",
         )
         setattr(self, "savepth", self.savepth + self.experiment + "/")
         if mkdir and not os.path.isdir(self.savepth):
@@ -52,6 +48,8 @@ class Parameters:
         for key, value in kwargs.items():
             if hasattr(self, key):
                 setattr(self, key, value)
+            else:
+                raise ValueError(f"Parameter {key} not found")
 
     def save(self):
         json_dump = json.dumps(asdict(self))

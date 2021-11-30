@@ -12,6 +12,8 @@ class ScalingTest(unittest.TestCase):
                 "d": 2,
                 "seed": seed,
                 "plot_it": True,
+                "data_location": "datasets.verifications.verification",
+                "data_class": "VerificationData",
                 "vanilla": True,
             }
             parameters = Parameters(kwargs, mkdir=True)
@@ -26,6 +28,8 @@ class ScalingTest(unittest.TestCase):
                 "savepth": os.getcwd() + "/results/",
                 "d": 2,
                 "seed": seed,
+                "data_location": "datasets.verifications.verification",
+                "data_class": "VerificationData",
                 "plot_it": True,
                 "vanilla": True,
                 "n_evals": 10,
