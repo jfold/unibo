@@ -20,15 +20,18 @@ class Figures(object):
             for experiment in [
                 p for p in self.loadpths if p.split("|")[-1] == surrogate
             ]:
-                with open(experiment + "scores.json") as json_file:
-                    scores = json.load(json_file)
-                with open(experiment + "parameters.json") as json_file:
-                    parameters = json.load(json_file)
-                if self.settings.items() <= parameters.items():
-                    self.p_axis = np.array(scores["y_p_array"])
-                    name = f"{parameters['surrogate']}-{parameters['acquisition']}"
-                    calibrations.append(np.array(scores["y_calibration"]))
-                    sharpnesses.append(np.array(scores["sharpness"]))
+                if os.path.isfile(experiment + "scores.json") and os.path.isfile(
+                    experiment + "parameters.json"
+                ):
+                    with open(experiment + "scores.json") as json_file:
+                        scores = json.load(json_file)
+                    with open(experiment + "parameters.json") as json_file:
+                        parameters = json.load(json_file)
+                    if self.settings.items() <= parameters.items():
+                        self.p_axis = np.array(scores["y_p_array"])
+                        name = f"{parameters['surrogate']}-{parameters['acquisition']}"
+                        calibrations.append(np.array(scores["y_calibration"]))
+                        sharpnesses.append(np.array(scores["sharpness"]))
             self.names.append(name)
             self.calibrations.append(np.array(calibrations))
             self.sharpnesses.append(np.array(sharpnesses))

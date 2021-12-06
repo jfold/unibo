@@ -80,7 +80,7 @@ class CalibrationPlots(object):
         plt.title(title)
         plt.legend()
 
-    def plot_y_calibration(self):
+    def plot_y_calibration(self, name: str = ""):
         # Target (y) calibration
         fig = plt.figure()
         plt.plot(
@@ -96,10 +96,10 @@ class CalibrationPlots(object):
         plt.xlabel(r"$p$")
         plt.legend()
         plt.ylabel(r"$\mathbb{E}[ \mathbb{I} \{ \mathbf{y} \leq F^{-1}(p) \} ]$")
-        fig.savefig(self.savepth + "calibration-y.pdf")
+        fig.savefig(self.savepth + f"calibration-y{name}.pdf")
         plt.close()
 
-    def plot_f_calibration(self):
+    def plot_f_calibration(self, name: str = ""):
         # Mean (f) calibration
         fig = plt.figure()
         plt.plot(self.summary["f_p_array"], self.summary["f_p_array"], "--")
@@ -114,11 +114,12 @@ class CalibrationPlots(object):
         plt.xlabel(r"$p$")
         plt.ylabel(r"$\mathbb{E}[ \mathbb{I} \{ \mathbf{f} \leq F^{-1}(p) \} ]$")
         plt.show()
-        fig.savefig(self.savepth + "calibration-f.pdf")
+        fig.savefig(self.savepth + f"calibration-f{name}.pdf")
         plt.close()
 
-    def plot_sharpness_histogram(self, n_bins: int = 50):
+    def plot_sharpness_histogram(self, n_bins: int = 50, name: str = ""):
         fig = plt.figure()
+
         plt.hist(
             self.summary["sharpness"],
             bins=n_bins,
@@ -126,6 +127,7 @@ class CalibrationPlots(object):
             + "{:.2e}".format(self.summary["mean_sharpness"]),
             alpha=0.6,
         )
+
         if "hist_sharpness" in self.summary:
             plt.hist(
                 self.summary["hist_sharpness"],
@@ -134,17 +136,17 @@ class CalibrationPlots(object):
                 + "{:.2e}".format(self.summary["mean_hist_sharpness"]),
                 alpha=0.6,
             )
-        plt.annotate(
-            "True",
-            xy=(self.ne_true, 0),
-            xytext=(self.ne_true, -(self.n_test / 100)),
-            arrowprops=dict(facecolor="black", shrink=0.05),
-        )
-        left, right = plt.xlim()
+        if self.ne_true is not np.nan:
+            plt.annotate(
+                "True",
+                xy=(self.ne_true, 0),
+                xytext=(self.ne_true, -(self.n_test / 100)),
+                arrowprops=dict(facecolor="black", shrink=0.05),
+            )
         plt.legend()
         plt.xlabel("Negative Entropy")
         plt.ylabel("Count")
-        fig.savefig(self.savepth + "sharpness-histogram.pdf")
+        fig.savefig(self.savepth + f"sharpness-histogram{name}.pdf")
         plt.close()
 
 

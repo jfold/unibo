@@ -23,22 +23,23 @@ class Experiment(object):
             + self.calibration.__str__
         )
 
-    def run_bo(self):
-        for e in tqdm(range(self.n_evals), leave=False):
-            #self.optimizer.surrogate.fit(self.dataset.data.X, self.dataset.data.y)
-            x_new = self.optimizer.bo_iter(self.dataset)
-            self.dataset.add_X_sample_y(x_new)
-            self.calibration.analyze(
-                self.optimizer.surrogate_model, self.dataset, save_settings=f"---epoch-{e+1}"
-            )
-
     def run_calibraion_demo(self):
         """Samples all datapoints uniformly"""
-        self.dataset.add_X_sample_y(
-            self.dataset.data.sample_X(self.n_train - self.n_initial)
+        self.dataset.add_X_get_y(
+            self.dataset.data.sample_X(self.n_evals - self.n_initial)
         )
-        self.optimizer.init_fit_surrogate(self.dataset)
+        self.optimizer.fit_surrogate(self.dataset)
         self.calibration.analyze(self.optimizer.surrogate_model, self.dataset)
+
+    def run(self):
+        for e in tqdm(range(self.n_evals), leave=False):
+            x_new, _ = self.optimizer.bo_iter(self.dataset)
+            self.dataset.add_X_get_y(x_new)
+            self.calibration.analyze(
+                self.optimizer.surrogate_model,
+                self.dataset,
+                save_settings=f"---epoch-{e+1}",
+            )
 
 
 if __name__ == "__main__":

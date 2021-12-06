@@ -9,7 +9,7 @@ class Dataset(ABC):
         super().__init__()
 
     @abstractmethod
-    def add_X_sample_y(self, x_new: np.array):
+    def add_X_get_y(self, x_new: np.array):
         pass
 
     @abstractmethod

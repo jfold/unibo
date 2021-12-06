@@ -8,25 +8,23 @@ from dataclasses import dataclass, asdict, replace
 @dataclass
 class Parameters:
     seed: bool = 0
-    #dtype = tf.float64
-    d: int = 1
-    n_test: int = 3000
-    n_train: int = 500
-    n_initial: int = 10
-    n_evals: int = 500
-    rf_cv_splits: int = 5
-    plot_it: bool = False
-    save_it: bool = True
-    csi: float = 0.0
+    d: int = 1  # number of input dimensions
+    n_test: int = 3000  # number of test samples for calibration analysis
+    n_initial: int = 10  # number of starting points
+    n_evals: int = 30  # number of BO iterations
+    rf_cv_splits: int = 5  # number of CV splits for random forest hyperparamtuning
+    vanilla: bool = False  # simplest implementation (used for test)
+    plot_it: bool = False  # whether to plot during BO loop
+    save_it: bool = True  # whether to save progress
+    csi: float = 0.0  # exploration parameter for BO
     data_location: str = "datasets.verifications.verification"  # "datasets.benchmarks.benchmark"
-    data_class: str = "VerificationData"  # "Benchmark"
-    problem: str = ""  # "Alpine01"
-    minmax: str = "minimization"
+    data_class: str = "VerificationData"  # dataclass name
+    problem: str = ""  # "Alpine01" # subproblem name
+    maximization: bool = False
     snr: float = 10.0
-    K: int = 1
-    vanilla: bool = False
-    surrogate: str = "RF"
-    acquisition: str = "EI"
+    K: int = 1  # number of terms in sum for VerificationData
+    surrogate: str = "RF"  # surrogate function name
+    acquisition: str = "EI"  # acquisition function name
     savepth: str = os.getcwd() + "/results/"
     experiment: str = ""
 
@@ -44,12 +42,14 @@ class Parameters:
             os.mkdir(self.savepth)
             self.save()
 
-    def update(self, kwargs):
+    def update(self, kwargs, save=False):
         for key, value in kwargs.items():
             if hasattr(self, key):
                 setattr(self, key, value)
             else:
                 raise ValueError(f"Parameter {key} not found")
+        if save:
+            self.save()
 
     def save(self):
         json_dump = json.dumps(asdict(self))

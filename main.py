@@ -31,10 +31,9 @@ def run():
         except:
             if "main.py" not in args:
                 print("Trouble with " + arg)
-    parameters.update(kwargs)
-    parameters.save()
+    parameters.update(kwargs, save=True)
     experiment = Experiment(parameters)
-    experiment.run_bo()
+    experiment.run()
     print("FINISHED EXPERIMENT")
     print("------------------------------------")
 

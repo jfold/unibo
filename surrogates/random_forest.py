@@ -1,21 +1,32 @@
 from dataclasses import asdict
-from typing import Tuple
-from base.surrogate import Surrogate
+from botorch.posteriors.posterior import Posterior
+from src.dataset import Dataset
 from src.parameters import Parameters
 from imports.general import *
 from imports.ml import *
 from sklearn.model_selection import GridSearchCV
 from sklearn.ensemble import RandomForestRegressor
+from botorch.models.utils import validate_input_scaling
 
 
-class RandomForest(Surrogate):
+class RandomForest(BatchedMultiOutputGPyTorchModel):
     """Random forest surrogate class. """
 
     def __init__(
-        self, parameters: Parameters, cv_splits: int = 5, name: str = "RF",
+        self, parameters: Parameters, dataset: Dataset, name: str = "RF",
     ):
         self.__dict__.update(asdict(parameters))
-        self.cv_splits = cv_splits
+        self.name = name
+        # torch stuff ...
+        self._modules = {}
+        self._backward_hooks = {}
+        self._forward_hooks = {}
+        self._forward_pre_hooks = {}
+        self.set_hyperparameter_space()
+        self._set_dimensions(train_X=dataset.data.X, train_Y=dataset.data.y)
+        self.fit(X_train=dataset.data.X, y_train=dataset.data.y)
+
+    def set_hyperparameter_space(self):
         if self.vanilla:
             self.rf_params_grid = {
                 "n_estimators": [10],
@@ -32,7 +43,12 @@ class RandomForest(Surrogate):
                 ],
                 "max_features": ["auto", "sqrt"],
             }
-        self.name = name
+
+    def forward(self, x: Tensor) -> MultivariateNormal:
+        mean_x, covar_x = self.predict(x)
+        mean_x = torch.tensor(mean_x.squeeze())
+        covar_x = torch.tensor(np.diag(covar_x.squeeze()))
+        return MultivariateNormal(mean_x, covar_x)
 
     def fit(self, X_train: np.ndarray, y_train: np.ndarray):
         """Fits random forest model with hyperparameter tuning
@@ -53,7 +69,7 @@ class RandomForest(Surrogate):
         grid_search = GridSearchCV(
             estimator=RandomForestRegressor(),
             param_grid=self.rf_params_grid,
-            cv=self.cv_splits,
+            cv=self.rf_cv_splits,
             n_jobs=-1,
             verbose=0,
         ).fit(X_train, y_train.squeeze())
@@ -62,12 +78,12 @@ class RandomForest(Surrogate):
     def predict(
         self, X_test: np.ndarray, stabilizer: float = 1e-8
     ) -> Tuple[np.ndarray, np.ndarray]:
-        """Calculates mean (prediction) and variance (uncertainty)
-        Args:
-            X_test [np.ndarray]: input data
-        Returns:
-            [tuple] [(np.ndarray,np.ndarray)]: predictive mean and variance
-        """
+        """Calculates mean (prediction) and variance (uncertainty)"""
+        X_test = (
+            X_test.cpu().detach().numpy().squeeze()
+            if torch.is_tensor(X_test)
+            else X_test.squeeze()
+        )
         mu_predictive = self.model.predict(X_test)
         sigma_predictive = self.calculate_y_std(X_test) + stabilizer
         return (mu_predictive[:, np.newaxis], sigma_predictive[:, np.newaxis])
@@ -86,13 +102,7 @@ class RandomForest(Surrogate):
     def histogram_sharpness(
         self, X: np.ndarray, n_bins: int = 50
     ) -> Tuple[np.ndarray, np.ndarray]:
-        """[Calculates sharpness (negative entropy) from histogram]
-
-        Args:
-            X (np.ndarray): [data]
-
-        Returns:
-            tuple[np.ndarray, np.ndarray]: [description]
+        """Calculates sharpness (negative entropy) from histogram
         """
         predictions = self.tree_predictions(X)
         nentropies = []

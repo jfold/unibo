@@ -5,18 +5,15 @@ from surrogates.random_forest import *
 
 class ModelsTest(unittest.TestCase):
     def test_RandomForest(self) -> None:
-        parameters = Parameters({"n_train": 90, "n_test": 10, "D": 2})
-        X, y = make_regression(n_samples=100, n_features=2)
-        X = (X - np.nanmean(X, axis=0)) / np.nanstd(X, axis=0)
-        y = (y - np.nanmean(y, axis=0)) / np.nanstd(y, axis=0)
-        y = y[:, np.newaxis]
-        rf = RandomForest(parameters)
-        rf.fit(X, y)
-        mu, std = rf.predict(X)
-        nentropies, mean_nentropy = rf.histogram_sharpness(X)
+        parameters = Parameters({"n_evals": 90, "n_test": 10, "d": 2, "vanilla": True})
+        dataset = Dataset(parameters)
+        rf = RandomForest(parameters, dataset)
+        X_test, y_test = dataset.sample_testset(n_samples=100)
+        mu, std = rf.predict(X_test)
+        nentropies, mean_nentropy = rf.histogram_sharpness(X_test)
         assert isinstance(rf.model, RandomForestRegressor)
-        assert isinstance(mu, np.ndarray) and mu.shape == y.shape
-        assert isinstance(std, np.ndarray) and std.shape == y.shape
+        assert isinstance(mu, np.ndarray) and mu.shape == y_test.shape
+        assert isinstance(std, np.ndarray) and std.shape == y_test.shape
         assert isinstance(nentropies, np.ndarray)
         assert isinstance(mean_nentropy, float) and np.isfinite(mean_nentropy)
 

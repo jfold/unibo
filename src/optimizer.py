@@ -1,74 +1,68 @@
-from base.surrogate import Surrogate
+from botorch import acquisition
 from src.dataset import Dataset
 from src.parameters import *
-import torch
+from torch import Tensor
 import botorch
 from surrogates.random_forest import RandomForest
+from surrogates.bayesian_neural_network import BayesianNeuralNetwork
 from botorch.optim import optimize_acqf
 from gpytorch.mlls import ExactMarginalLogLikelihood
+from botorch.acquisition.analytic import (
+    AnalyticAcquisitionFunction,
+    ConstrainedExpectedImprovement,
+    ExpectedImprovement,
+    NoisyExpectedImprovement,
+    PosteriorMean,
+    ProbabilityOfImprovement,
+    UpperConfidenceBound,
+)
 
 
+# TODO: Check what happens if gradients are not available in model.
+# TODO: Check what to do with BNNs. Have people done BoTorch with this already?
 class Optimizer(object):
-    """TODO: Optimizer wrapper for botorch"""
-
-    #def __init__(self, parameters: Parameters) -> None:
-    #    self.__dict__.update(asdict(parameters))
-    #    self.surrogate = RandomForest(parameters)
+    """Optimizer class"""
 
     def __init__(self, parameters: Parameters) -> None:
-            self.__dict__.update(asdict(parameters))
+        self.__dict__.update(asdict(parameters))
+        self.parameters = parameters
+        self.is_fitted = False
 
-    #"""TODO: Implement sampling function for getting some random starting points
-    #based on the problem we are doing - solved by dataset sampling function?"""
-    #def sample_start_x(self, n):
-    #    x_start = [0]
-
-    #def expected_improvement(self, y_min, mus, sigmas):
-    #    locs = (mus - y_min - self.csi) / (sigmas + 1e-9)
-    #    standard_norm_dist = tfp.distributions.Normal(loc=0, scale=1)
-    #    return standard_norm_dist.cdf(locs)
-
-    #def next_sample(self, dataset: Dataset) -> np.array:
-    #    X_candidates = dataset.data.sample_X(n_samples=self.n_test)
-    #    mu_posterior, sigma_posterior = self.surrogate.predict(X_candidates)
-    #    ei = self.expected_improvement(
-    #        np.min(dataset.data.y), mu_posterior, sigma_posterior
-    #    ).numpy()
-    #    idx = np.argmin(ei)
-    #    x_new = X_candidates[[idx], :]
-    #    return x_new
-
-    #Parameters requires something specifying number of BO iterations?
-    #Parameters requires something specifying number of starting points?
-
-    def init_fit_surrogate(self, dataset: Dataset):
-        #TODO: Consider computational cost of if statements and object
-        #creation here.
+    def fit_surrogate(self, dataset: Dataset) -> None:
         if self.surrogate == "GP":
-            self.surrogate_model = botorch.models.SingleTaskGP(dataset.data.X, dataset.data.Y)
-            self.likelihood = ExactMarginalLogLikelihood(gp.likelihood, gp)
-            botorch.fit.fit_gpytorch_model(mll)
+            self.surrogate_model = botorch.models.SingleTaskGP(
+                dataset.data.X, dataset.data.y
+            )
+            self.likelihood = ExactMarginalLogLikelihood(
+                self.surrogate_model.likelihood, self.surrogate_model
+            )
+            botorch.fit.fit_gpytorch_model(self.likelihood)
+            self.is_fitted = True
         elif self.surrogate == "RF":
-            self.surrogate_model = RandomForest(parameters)
-            self.surrogate_model.fit(dataset.data.X, dataset.data.Y)
+            self.surrogate_model = RandomForest(self.parameters, dataset)
+            self.is_fitted = True
+        elif self.surrogate == "BNN":
+            self.surrogate_model = BayesianNeuralNetwork(self.parameters, dataset)
+            raise NotImplementedError()
 
-
-    def bo_iter(self, dataset: Dataset):
-        #For every iteration of BO we must create a new model and fit it to
-        #the data - if statement to select between surrogates
-
-        #TODO: Optimize by not calling np.min, but rather keeping track of lowest f
-        #so far - perhaps as memberdata in dataset?
-        init_fit_surrogate(dataset)
+    def construct_acquisition_function(self, dataset: Dataset):
+        if not self.is_fitted:
+            raise ValueError("Surrogate has not been fitted!")
 
         if self.acquisition == "EI":
-            self.acquisiton_function = botorch.acquisiton.analytic.ExpectedImprovement(self.surrogate_model, best_f = np.min(dataset.data.Y))
+            self.acquisition_function = ExpectedImprovement(
+                self.surrogate_model, best_f=dataset.y_opt
+            )
         elif self.acquisition == "UCB":
-            self.acquisition_function = botorch.acquisition.analytic.UpperConfidenceBoundExpectedImprovement(self.surrogate_model, best_f = np.min(dataset.data.Y))
+            self.acquisition_function = UpperConfidenceBound(
+                self.surrogate_model, best_f=dataset.y_opt
+            )
 
-        #TODO: Dataset needs a bounds parameter specifying which values x can take.
-        #TODO: Check what happens if gradients are not available in model.
-        #TODO: Check what to do with BNNs. Have people done BoTorch with this already?
-        candidate, acq_value = optimize_acqf(self.acquisition_function, bounds=dataset.bounds, q=1, num_restarts=5, raw_samples=20)
-        #Typecheck candidate here
-        return candidate
+    def bo_iter(self, dataset: Dataset) -> Tensor:
+        self.fit_surrogate(dataset)
+        self.construct_acquisition_function(dataset)
+        X_test, _ = dataset.sample_testset(self.n_test)
+        X_test_torch = torch.tensor(np.expand_dims(X_test, 1))
+        acquisition_values = self.acquisition_function(X_test_torch)
+        i_choice = np.argmax(acquisition_values)
+        return X_test[[i_choice], :], acquisition_values[i_choice]

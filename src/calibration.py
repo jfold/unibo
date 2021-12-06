@@ -1,13 +1,10 @@
 from dataclasses import asdict
 import json
-
 from numpy.lib.npyio import save
 from imports.general import *
 from imports.ml import *
 from src.parameters import Parameters
-from surrogates.random_forest import RandomForest
 from visualizations.scripts.calibrationplots import CalibrationPlots
-from base.surrogate import Surrogate
 from base.dataset import Dataset
 
 
@@ -17,14 +14,7 @@ class Calibration(CalibrationPlots):
     def __init__(self, parameters: Parameters) -> None:
         super().__init__()
         self.__dict__.update(asdict(parameters))
-        self.summary_init()
-
-    def summary_init(self):
         self.summary = {}
-        self.settings = self.surrogate
-        # str.join(
-        #     "--", [str(key) + "-" + str(val) for key, val in self.summary.items()]
-        # ).replace(".", "-")
 
     def check_gaussian_sharpness(self, mus: np.ndarray, sigmas: np.ndarray):
         """Calculates the sharpness (negative entropy) of the gaussian distributions 
@@ -34,15 +24,13 @@ class Calibration(CalibrationPlots):
             sigmas (np.ndarray): predictive standard deviation
             name (str): model name
         """
-        sharpness = -tfp.distributions.Normal(mus, sigmas).entropy()
-        mean_sharpness = tf.reduce_mean(sharpness)
-        self.summary.update(
-            {"sharpness": sharpness.numpy(), "mean_sharpness": mean_sharpness.numpy(),}
+        sharpness = np.array(
+            [-norm.entropy(mus[i], sigmas[i]) for i in range(mus.shape[0])]
         )
+        mean_sharpness = np.mean(sharpness)
+        self.summary.update({"sharpness": sharpness, "mean_sharpness": mean_sharpness})
 
-    def check_histogram_sharpness(
-        self, model: Surrogate, X: np.ndarray, n_bins: int = 50
-    ):
+    def check_histogram_sharpness(self, model: Model, X: np.ndarray, n_bins: int = 50):
         """Calculates the sharpness (negative entropy) of the histogram distributions 
         calculated from input X
         Args:
@@ -79,18 +67,20 @@ class Calibration(CalibrationPlots):
             n_bins (int, optional): number of bins dividing the calibration curve. 
             Defaults to 50.
         """
-        p = np.linspace(0.01, 0.99, n_bins)
-        norm_dists = tfp.distributions.Normal(loc=0, scale=sigmas)
-        fractiles = norm_dists.quantile(0.5 - p / 2)
-        lb_indicators = mus + fractiles < f
-        ub_indicators = f < mus - fractiles
-        indicators = tf.logical_and(lb_indicators, ub_indicators)
-        calibrations = tf.reduce_mean(tf.cast(indicators, dtype=tf.float32), axis=0)
+        p_array = np.linspace(0.01, 0.99, n_bins)
+        calibrations = np.full((n_bins,), np.nan)
+        for i_p, p in enumerate(p_array):
+            fractiles = [norm.ppf(0.5 - p / 2, loc=0, scale=sig) for sig in sigmas]
+            lb_indicators = mus + fractiles < f
+            ub_indicators = f < mus - fractiles
+            indicators = np.logical_and(lb_indicators, ub_indicators)
+            calibrations[i_p] = np.mean(indicators)
+
         self.summary.update(
             {
-                "f_p_array": p,
+                "f_p_array": p_array,
                 "f_calibration": calibrations,
-                "f_calibration_mse": np.mean((p - calibrations) ** 2),
+                "f_calibration_mse": np.mean((p_array - calibrations) ** 2),
             }
         )
 
@@ -98,25 +88,21 @@ class Calibration(CalibrationPlots):
         self, mus: np.ndarray, sigmas: np.ndarray, y: np.ndarray, n_bins: int = 50,
     ):
         """Calculates the calibration of the target (y).
-
-        Args:
-            mus (np.ndarray): predictive mean
-            sigmas (np.ndarray): predictive std 
-            f (np.ndarray): underlying mean function
-            name (str): model name
-            n_bins (int, optional): number of bins dividing the calibration curve. 
-            Defaults to 50.
-        """
-        p = np.linspace(0, 1, n_bins)
-        norm_dists = tfp.distributions.Normal(loc=mus, scale=sigmas)
         # eq. (3) in "Accurate Uncertainties for Deep Learning Using Calibrated Regression"
-        indicators = y <= norm_dists.quantile(p)
-        calibrations = np.mean(indicators, axis=0)
+        """
+        p_array = np.linspace(0, 1, n_bins)
+        calibrations = np.full((n_bins,), np.nan)
+        for i_p, p in enumerate(p_array):
+            indicators = y <= [
+                norm.ppf(p, loc=mu, scale=sig) for mu, sig in zip(mus, sigmas)
+            ]
+            calibrations[i_p] = np.mean(indicators)
+
         self.summary.update(
             {
-                "y_p_array": p,
+                "y_p_array": p_array,
                 "y_calibration": calibrations,
-                "y_calibration_mse": np.mean((calibrations - p) ** 2),
+                "y_calibration_mse": np.mean((calibrations - p_array) ** 2),
             }
         )
 
@@ -132,9 +118,13 @@ class Calibration(CalibrationPlots):
             y (np.ndarray): [description]
             name (str): [description]
         """
-        norm_dists = tfp.distributions.Normal(loc=mus, scale=sigmas)
-        log_cdfs = norm_dists.log_cdf(y)
-        elpd = tf.reduce_mean(log_cdfs).numpy()
+        log_cdfs = np.array(
+            [
+                norm.logcdf(y[i], loc=mus[i], scale=sigmas[i])
+                for i in range(sigmas.shape[0])
+            ]
+        )
+        elpd = np.mean(log_cdfs)
         self.summary.update({"elpd": elpd})
 
     def nmse(self, y: np.ndarray, predictions: np.ndarray):
@@ -158,21 +148,15 @@ class Calibration(CalibrationPlots):
             f.write(json_dump)
 
     def analyze(
-        self, surrogate: Surrogate, dataset: Dataset, save_settings: str = "",
+        self, surrogate: Model, dataset: Dataset, save_settings: str = "",
     ):
         """Calculates calibration, sharpness, expected log predictive density and 
         normalized mean square error functions for the "surrogate" on a testset
         drawn from "dataset".
-
-        Args:
-            surrogate (Surrogate): Surrogate object
-            dataset (Dataset): Dataset object
-            save_settings (str, optional): Extra string suffix for naming. Defaults to "".
         """
         X_test, y_test = dataset.sample_testset()
         self.ne_true = dataset.data.ne_true
         mu_test, sigma_test = surrogate.predict(X_test)
-        name = f"{surrogate.name}{save_settings}"
         self.check_y_calibration(mu_test, sigma_test, y_test)
         self.check_gaussian_sharpness(
             mu_test, sigma_test,
@@ -189,15 +173,16 @@ class Calibration(CalibrationPlots):
         # )
 
         if self.plot_it and self.save_it:
+            name = f"{save_settings}"
             if self.d == 1:
                 self.plot_predictive(
                     dataset, X_test, y_test, mu_test, sigma_test,
                 )
-            self.plot_y_calibration()
-            self.plot_sharpness_histogram()
+            self.plot_y_calibration(name=name)
+            self.plot_sharpness_histogram(name=name)
 
         # Save
         if self.save_it:
             self.save(save_settings)
-            print("Successfully saved with settings:", self.settings)
+            print(f"Successfully saved with settings: {self.surrogate}")
 

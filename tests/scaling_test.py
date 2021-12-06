@@ -32,11 +32,11 @@ class ScalingTest(unittest.TestCase):
                 "data_class": "VerificationData",
                 "plot_it": True,
                 "vanilla": True,
-                "n_evals": 10,
+                "n_evals": 3,
             }
             parameters = Parameters(kwargs, mkdir=True)
             experiment = Experiment(parameters)
-            experiment.run_bo()
+            experiment.run()
             savepths.append(parameters.savepth)
 
 
