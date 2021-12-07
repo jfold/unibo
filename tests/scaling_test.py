@@ -18,7 +18,7 @@ class ScalingTest(unittest.TestCase):
             }
             parameters = Parameters(kwargs, mkdir=True)
             experiment = Experiment(parameters)
-            experiment.run_calibraion_demo()
+            experiment.run_calibration_demo()
             savepths.append(parameters.savepth)
 
     def test_bayesian_opt(self) -> None:
