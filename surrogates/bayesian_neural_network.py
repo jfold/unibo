@@ -7,43 +7,18 @@ from imports.ml import *
 
 
 class BayesianNeuralNetwork(BatchedMultiOutputGPyTorchModel):
-    """Random forest surrogate class. """
+    """Bayesian Neural Network (BNN) surrogate class. """
 
     def __init__(
-        self, parameters: Parameters, dataset: Dataset, name: str = "BNN",
+        self, parameters: Parameters, dataset: Dataset,
     ):
-        self.__dict__.update(asdict(parameters))
-        raise NotImplementedError()
-        self.fit(X_train=dataset.data.X, y_train=dataset.data.y)
-
-    def posterior(
-        self,
-        X: Tensor,
-        output_indices: Optional[List[int]] = None,
-        observation_noise: bool = False,
-        **kwargs: Any
-    ) -> Posterior:
-        return super().posterior(
-            X,
-            output_indices=output_indices,
-            observation_noise=observation_noise,
-            **kwargs
-        )
-
-    def batch_shape(self) -> torch.Size:
-        pass
-
-    def train(self, mode: bool = True) -> Model:
-        pass
-
-    def fit(self, X_train: np.ndarray, y_train: np.ndarray):
-        """Fits model 
-        """
-        raise NotImplementedError()
+        self.name = parameters.surrogate
+        self.model = None
 
     def predict(
         self, X_test: np.ndarray, stabilizer: float = 1e-8
     ) -> Tuple[np.ndarray, np.ndarray]:
-        """Calculates mean (prediction) and variance (uncertainty)
-        """
-        raise NotImplementedError()
+        """Calculates mean (prediction) and variance (uncertainty)"""
+        X_test = torch.tensor(X_test)
+        posterior = None
+        return None, None
