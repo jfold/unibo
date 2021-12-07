@@ -24,10 +24,10 @@ class Experiment(object):
         )
 
     def run_calibration_demo(self):
-        """Samples all datapoints uniformly"""
-        self.dataset.add_X_get_y(
-            self.dataset.data.sample_X(self.n_evals - self.n_initial)
-        )
+        X = self.dataset.data.sample_X(self.n_evals)
+        self.dataset.add_X_get_y(X)
+        print(self.dataset.data.X.shape)
+        print(self.dataset.data.y.shape)
         self.optimizer.fit_surrogate(self.dataset)
         self.calibration.analyze(self.optimizer.surrogate_object, self.dataset)
 

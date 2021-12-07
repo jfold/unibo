@@ -32,4 +32,12 @@ class GaussianProcess(object):
         sigma_predictive = (
             np.sqrt(posterior.variance.cpu().detach().numpy()) + stabilizer
         ).squeeze()
-        return (mu_predictive[:, np.newaxis], sigma_predictive[:, np.newaxis])
+        mu_predictive = (
+            mu_predictive[:, np.newaxis] if mu_predictive.ndim == 1 else mu_predictive
+        )
+        sigma_predictive = (
+            sigma_predictive[:, np.newaxis]
+            if sigma_predictive.ndim == 1
+            else sigma_predictive
+        )
+        return mu_predictive, sigma_predictive

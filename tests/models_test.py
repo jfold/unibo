@@ -23,7 +23,7 @@ class ModelsTest(unittest.TestCase):
         model = GaussianProcess(parameters, dataset)
         print(model)
 
-    def test_BayesiaNeuralNetwork(self) -> None:
+    def _test_BayesiaNeuralNetwork(self) -> None:
         raise NotImplementedError()
 
 

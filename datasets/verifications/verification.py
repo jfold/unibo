@@ -13,6 +13,8 @@ class VerificationData(object):
         self.seed = parameters.seed
         self.n_test = parameters.n_test
         np.random.seed(self.seed)
+        self.lbs = [-1 for b in range(self.d)]
+        self.ubs = [1 for b in range(self.d)]
         self.init_model()
         self.X = self.sample_X(parameters.n_initial)
         self.y = self.get_y(self.X)
@@ -43,6 +45,6 @@ class VerificationData(object):
         return y
 
     def sample_X(self, n_samples: int = 1) -> np.array:
-        X = np.random.uniform(low=-1, high=1, size=(n_samples, self.d))
+        X = np.random.uniform(low=self.lbs, high=self.ubs, size=(n_samples, self.d))
         return X
 

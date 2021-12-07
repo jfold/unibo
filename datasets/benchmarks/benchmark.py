@@ -13,6 +13,7 @@ class Benchmark(object):
     def __init__(self, parameters: Parameters):
         self.d = parameters.d
         self.seed = parameters.seed
+        np.random.seed(self.seed)
         self.ne_true = np.nan
         self.benchmarks = test_funcs
         all_problems = inspect.getmembers(self.benchmarks)
@@ -26,7 +27,6 @@ class Benchmark(object):
                     self.benchmark_tags.update({name: obj(dim=2).classifiers})
                 except:
                     pass
-        np.random.seed(self.seed)
         self.lbs = [b[0] for b in self.problem.bounds]
         self.ubs = [b[1] for b in self.problem.bounds]
         self.X = self.sample_X(parameters.n_initial)
@@ -40,7 +40,8 @@ class Benchmark(object):
         y_new = []
         for x in X:
             y_new.append(self.problem.evaluate(x))
-        return np.array(y_new)
+        y_arr = np.array(y_new)
+        return y_arr[:, np.newaxis]
 
     def __str__(self):
         return str(self.problem)

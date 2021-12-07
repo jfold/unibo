@@ -11,7 +11,7 @@ class Parameters:
     d: int = 1  # number of input dimensions
     n_test: int = 3000  # number of test samples for calibration analysis
     n_initial: int = 10  # number of starting points
-    n_evals: int = 30  # number of BO iterations
+    n_evals: int = 20  # number of BO iterations
     rf_cv_splits: int = 5  # number of CV splits for random forest hyperparamtuning
     vanilla: bool = False  # simplest implementation (used for test)
     plot_it: bool = False  # whether to plot during BO loop
@@ -19,7 +19,7 @@ class Parameters:
     csi: float = 0.0  # exploration parameter for BO
     data_location: str = "datasets.verifications.verification"  # "datasets.benchmarks.benchmark"
     data_class: str = "VerificationData"  # dataclass name
-    problem: str = ""  # "Alpine01" # subproblem name
+    problem: str = "Alpine01"  # "Alpine01" # subproblem name
     maximization: bool = False
     snr: float = 10.0
     K: int = 1  # number of terms in sum for VerificationData
