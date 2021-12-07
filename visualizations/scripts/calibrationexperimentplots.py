@@ -42,40 +42,41 @@ class Figures(object):
 
     def calibration(self):
         fig = plt.figure()
-        plt.plot(
-            self.p_axis, self.p_axis, "--", label="Perfectly calibrated",
-        )
-        for i, calibrations in enumerate(self.calibrations):
-            if calibrations.shape[0] < 2:
-                continue
-
-            mean_calibration = np.nanmean(calibrations, axis=0)
-            std_calibration = np.nanstd(calibrations, axis=0)
+        if hasattr(self, "p_axis"):
             plt.plot(
-                self.p_axis,
-                mean_calibration,
-                "o",
-                label=r"$\mathcal{" + self.names[i] + "}$ ",
+                self.p_axis, self.p_axis, "--", label="Perfectly calibrated",
             )
-            eb = plt.errorbar(
-                self.p_axis,
-                mean_calibration,
-                yerr=std_calibration,
-                # color="green",
-                capsize=4,
-                alpha=0.5,
-            )
-            eb[-1][0].set_linestyle("--")
-        plt.legend()
-        plt.xlabel(r"$p$")
-        plt.ylabel(r"$\mathcal{C}_{\mathbf{y}}$")
-        plt.tight_layout()
-        settings = str.join(
-            "--", [str(key) + "-" + str(val) for key, val in self.settings.items()]
-        ).replace(".", "-")
-        settings = "default" if settings == "" else settings
-        fig.savefig(f"{self.savepth}calibration---{settings}.pdf")
-        plt.close()
+            for i, calibrations in enumerate(self.calibrations):
+                if calibrations.shape[0] < 2:
+                    continue
+
+                mean_calibration = np.nanmean(calibrations, axis=0)
+                std_calibration = np.nanstd(calibrations, axis=0)
+                plt.plot(
+                    self.p_axis,
+                    mean_calibration,
+                    "o",
+                    label=r"$\mathcal{" + self.names[i] + "}$ ",
+                )
+                eb = plt.errorbar(
+                    self.p_axis,
+                    mean_calibration,
+                    yerr=std_calibration,
+                    # color="green",
+                    capsize=4,
+                    alpha=0.5,
+                )
+                eb[-1][0].set_linestyle("--")
+            plt.legend()
+            plt.xlabel(r"$p$")
+            plt.ylabel(r"$\mathcal{C}_{\mathbf{y}}$")
+            plt.tight_layout()
+            settings = str.join(
+                "--", [str(key) + "-" + str(val) for key, val in self.settings.items()]
+            ).replace(".", "-")
+            settings = "default" if settings == "" else settings
+            fig.savefig(f"{self.savepth}calibration---{settings}.pdf")
+            plt.close()
 
     def plot_bo():
         pth = "./calibration_results/"
