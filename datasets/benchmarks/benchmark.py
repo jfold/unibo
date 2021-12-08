@@ -6,7 +6,7 @@ from imports.ml import *
 
 
 class Benchmark(object):
-    """ 
+    """ Benchmark dataset for bayesian optimization
     ##### http://infinity77.net/global_optimization/test_functions.html#multidimensional-test-functions-index
     """
 

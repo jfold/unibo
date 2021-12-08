@@ -22,7 +22,7 @@ data = {
 }
 kwargs = {
     "savepth": os.getcwd() + "/results/tests/",
-    "n_evals": 2,
+    "n_evals": 30,
     "plot_it": True,
     "vanilla": True,
 }
