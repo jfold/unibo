@@ -39,7 +39,7 @@ class CalibrationPlots(object):
 
         fig = plt.figure()
         plt.plot(dataset.data.X, dataset.data.y, "*", label="Train")
-        plt.plot(X_test, y_test, "*", label="Test", alpha=0.4)
+        plt.plot(X_test, y_test, "*", label="Test", alpha=0.2)
         plt.plot(
             X_test, mu, "--", color="black", label=r"$\mathcal{M}_{\mu}$", linewidth=1,
         )

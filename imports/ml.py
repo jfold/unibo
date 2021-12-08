@@ -18,3 +18,7 @@ matplotlib.rcParams["axes.grid"] = True
 matplotlib.rcParams["font.size"] = 14
 matplotlib.rcParams["figure.figsize"] = (10, 6)
 matplotlib.rcParams["savefig.bbox"] = "tight"
+matplotlib.rcParams["axes.prop_cycle"] = matplotlib.cycler(
+    color=["r", "k", "c"], marker=["s", "o", "v"]
+)
+

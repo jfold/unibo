@@ -6,7 +6,7 @@ from imports.general import *
 from imports.ml import *
 
 
-class BayesianNeuralNetwork(BatchedMultiOutputGPyTorchModel):
+class BayesianNeuralNetwork(object):
     """Bayesian Neural Network (BNN) surrogate class. """
 
     def __init__(self, parameters: Parameters, dataset: Dataset, name: str = "BNN"):
@@ -21,12 +21,22 @@ class BayesianNeuralNetwork(BatchedMultiOutputGPyTorchModel):
                 prior_mu=0, prior_sigma=0.1, in_features=100, out_features=1
             ),
         )
+        self.model.num_outputs = 1
         self.mse_loss = nn.MSELoss()
         self.kl_loss = bnn.BKLLoss(reduction="mean", last_layer_only=False)
         self.kl_weight = 0.01
         self.optimizer = optim.Adam(self.model.parameters(), lr=0.01)
+        self.fit(X_train=dataset.data.X, y_train=dataset.data.y)
 
-    def train(self, X_train: np.ndarray, y_train: np.ndarray, n_epochs: int = 1000):
+    def forward(self, x: Tensor) -> MultivariateNormal:
+        mean_x, covar_x = self.predict(x)
+        mean_x = torch.tensor(mean_x.squeeze())
+        covar_x = torch.tensor(np.diag(covar_x.squeeze()))
+        return MultivariateNormal(mean_x, covar_x)
+
+    def fit(self, X_train: np.ndarray, y_train: np.ndarray, n_epochs: int = 1000):
+        X_train = torch.tensor(X_train, dtype=torch.float32)
+        y_train = torch.tensor(y_train, dtype=torch.float32)
         for step in range(n_epochs):
             pre = self.model(X_train)
             mse = self.mse_loss(pre, y_train)
@@ -41,10 +51,20 @@ class BayesianNeuralNetwork(BatchedMultiOutputGPyTorchModel):
         self, X_test: np.ndarray, stabilizer: float = 1e-8, n_ensemble: int = 100
     ) -> Tuple[np.ndarray, np.ndarray]:
         """Calculates mean (prediction) and variance (uncertainty)"""
-        X_test = torch.tensor(X_test)
+        X_test = torch.tensor(X_test, dtype=torch.float32)
         predictions = np.full((n_ensemble, X_test.shape[0]), np.nan)
         for n in range(n_ensemble):
-            predictions[n, :] = self.model(X_test).cpu().detach().numpy()
+            predictions[n, :] = self.model(X_test).cpu().detach().numpy().squeeze()
         mu_predictive = np.nanmean(predictions, axis=0)
-        sigma_predictive = np.nanstd(predictions, axis=0)
+        sigma_predictive = np.nanstd(predictions, axis=0) + stabilizer
+
+        mu_predictive = (
+            mu_predictive[:, np.newaxis] if mu_predictive.ndim == 1 else mu_predictive
+        )
+        sigma_predictive = (
+            sigma_predictive[:, np.newaxis]
+            if sigma_predictive.ndim == 1
+            else sigma_predictive
+        )
+
         return mu_predictive, sigma_predictive
