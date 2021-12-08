@@ -9,16 +9,42 @@ from imports.ml import *
 class BayesianNeuralNetwork(BatchedMultiOutputGPyTorchModel):
     """Bayesian Neural Network (BNN) surrogate class. """
 
-    def __init__(
-        self, parameters: Parameters, dataset: Dataset,
-    ):
-        self.name = parameters.surrogate
-        self.model = None
+    def __init__(self, parameters: Parameters, dataset: Dataset, name: str = "BNN"):
+        self.name = name
+        self.d = parameters.d
+        self.model = nn.Sequential(
+            bnn.BayesLinear(
+                prior_mu=0, prior_sigma=0.1, in_features=self.d, out_features=100
+            ),
+            nn.ReLU(),
+            bnn.BayesLinear(
+                prior_mu=0, prior_sigma=0.1, in_features=100, out_features=1
+            ),
+        )
+        self.mse_loss = nn.MSELoss()
+        self.kl_loss = bnn.BKLLoss(reduction="mean", last_layer_only=False)
+        self.kl_weight = 0.01
+        self.optimizer = optim.Adam(self.model.parameters(), lr=0.01)
+
+    def train(self, X_train: np.ndarray, y_train: np.ndarray, n_epochs: int = 1000):
+        for step in range(n_epochs):
+            pre = self.model(X_train)
+            mse = self.mse_loss(pre, y_train)
+            kl = self.kl_loss(self.model)
+            cost = mse + self.kl_weight * kl
+
+            self.optimizer.zero_grad()
+            cost.backward()
+            self.optimizer.step()
 
     def predict(
-        self, X_test: np.ndarray, stabilizer: float = 1e-8
+        self, X_test: np.ndarray, stabilizer: float = 1e-8, n_ensemble: int = 100
     ) -> Tuple[np.ndarray, np.ndarray]:
         """Calculates mean (prediction) and variance (uncertainty)"""
         X_test = torch.tensor(X_test)
-        posterior = None
-        return None, None
+        predictions = np.full((n_ensemble, X_test.shape[0]), np.nan)
+        for n in range(n_ensemble):
+            predictions[n, :] = self.model(X_test).cpu().detach().numpy()
+        mu_predictive = np.nanmean(predictions, axis=0)
+        sigma_predictive = np.nanstd(predictions, axis=0)
+        return mu_predictive, sigma_predictive

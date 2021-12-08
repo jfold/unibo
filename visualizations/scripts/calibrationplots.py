@@ -1,10 +1,15 @@
+from dataclasses import asdict
 from imports.general import *
 from imports.ml import *
 from base.dataset import Dataset
+from src.parameters import Parameters
 
 
 class CalibrationPlots(object):
     """Calibration experiment class """
+
+    def __init__(self, parameters: Parameters):
+        self.__dict__.update(asdict(parameters))
 
     def plot_xy(self, dataset: Dataset):
         assert self.d == 1
@@ -34,7 +39,7 @@ class CalibrationPlots(object):
 
         fig = plt.figure()
         plt.plot(dataset.data.X, dataset.data.y, "*", label="Train")
-        plt.plot(X_test, y_test, "*", label="Test", alpha=0.1)
+        plt.plot(X_test, y_test, "*", label="Test", alpha=0.4)
         plt.plot(
             X_test, mu, "--", color="black", label=r"$\mathcal{M}_{\mu}$", linewidth=1,
         )
