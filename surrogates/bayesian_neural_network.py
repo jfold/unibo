@@ -6,25 +6,26 @@ from imports.general import *
 from imports.ml import *
 
 
-class BayesianNeuralNetwork(object):
+class BayesianNeuralNetwork(BatchedMultiOutputGPyTorchModel):
     """Bayesian Neural Network (BNN) surrogate class. """
 
     def __init__(self, parameters: Parameters, dataset: Dataset, name: str = "BNN"):
+        super().__init__()
         self.name = name
         self.d = parameters.d
         self.model = nn.Sequential(
             bnn.BayesLinear(
-                prior_mu=0, prior_sigma=0.1, in_features=self.d, out_features=100
+                prior_mu=0, prior_sigma=1.0, in_features=self.d, out_features=100
             ),
             nn.ReLU(),
             bnn.BayesLinear(
-                prior_mu=0, prior_sigma=0.1, in_features=100, out_features=1
+                prior_mu=0, prior_sigma=1.0, in_features=100, out_features=1
             ),
         )
-        self.model.num_outputs = 1
         self.mse_loss = nn.MSELoss()
         self.kl_loss = bnn.BKLLoss(reduction="mean", last_layer_only=False)
-        self.kl_weight = 0.01
+        self.kl_weight = 1.00
+        self._set_dimensions(train_X=dataset.data.X, train_Y=dataset.data.y)
         self.optimizer = optim.Adam(self.model.parameters(), lr=0.01)
         self.fit(X_train=dataset.data.X, y_train=dataset.data.y)
 
@@ -42,7 +43,6 @@ class BayesianNeuralNetwork(object):
             mse = self.mse_loss(pre, y_train)
             kl = self.kl_loss(self.model)
             cost = mse + self.kl_weight * kl
-
             self.optimizer.zero_grad()
             cost.backward()
             self.optimizer.step()

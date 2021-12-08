@@ -4,9 +4,9 @@ import time
 
 # Test domain:
 surrogates = [
+    "BNN",
     "GP",
     "RF",
-    "BNN",
 ]
 dims = [1]
 seeds = list(range(1))
@@ -22,17 +22,10 @@ data = {
 }
 kwargs = {
     "savepth": os.getcwd() + "/results/tests/",
-    "n_evals": 10,
+    "n_evals": 2,
     "plot_it": True,
     "vanilla": True,
 }
-
-# t_0 = time.time() # consider timing
-# test_result = []
-# with open(
-#     self.savepth + f"scores{parameters.save_settings}.json", "w"
-# ) as f:
-#     f.write(json_dump)
 
 
 class MainTest(unittest.TestCase):

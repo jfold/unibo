@@ -10,6 +10,8 @@ class CalibrationPlots(object):
 
     def __init__(self, parameters: Parameters):
         self.__dict__.update(asdict(parameters))
+        self.color = plot_settings[parameters.surrogate]["c"]
+        self.marker = plot_settings[parameters.surrogate]["m"]
 
     def plot_xy(self, dataset: Dataset):
         assert self.d == 1
