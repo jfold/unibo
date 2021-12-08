@@ -11,14 +11,14 @@ surrogates = [
 dims = [1]
 seeds = list(range(1))
 data = {
-    # "Benchmark": {
-    #     "location": "datasets.benchmarks.benchmark",
-    #     "problems": ["Alpine01"],
-    # },
-    "VerificationData": {
-        "location": "datasets.verifications.verification",
-        "problems": ["Default"],
+    "Benchmark": {
+        "location": "datasets.benchmarks.benchmark",
+        "problems": ["Alpine01"],
     },
+    # "VerificationData": {
+    #     "location": "datasets.verifications.verification",
+    #     "problems": ["Default"],
+    # },
 }
 kwargs = {
     "savepth": os.getcwd() + "/results/tests/",
@@ -30,12 +30,25 @@ kwargs = {
 
 class MainTest(unittest.TestCase):
     def test_toy_bo_calibration(self) -> None:
-        for surrogate in surrogates:
-            kwargs_ = kwargs
-            kwargs_.update({"surrogate": surrogate})
-            parameters = Parameters(kwargs_, mkdir=True)
-            experiment = Experiment(parameters)
-            experiment.run()
+        for seed in seeds:
+            for d in dims:
+                for surrogate in surrogates:
+                    for data_name, info in data.items():
+                        for problem in info["problems"]:
+                            kwargs_ = kwargs
+                            kwargs_.update(
+                                {
+                                    "seed": seed,
+                                    "d": d,
+                                    "surrogate": surrogate,
+                                    "data_class": data_name,
+                                    "data_location": info["location"],
+                                    "problem": problem,
+                                }
+                            )
+                            parameters = Parameters(kwargs_, mkdir=True)
+                            experiment = Experiment(parameters)
+                            experiment.run()
 
     def test_toy_calibration(self) -> None:
         kwargs_ = kwargs
