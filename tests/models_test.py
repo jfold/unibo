@@ -29,6 +29,9 @@ class ModelsTest(unittest.TestCase):
         plots = CalibrationPlots(parameters)
         plots.plot_predictive(dataset, X_test, y_test, mu, std)
 
+    def test_RandomForest_bo_validation(self):
+        pass
+
     def test_GaussianProcess(self) -> None:
         kwargs.update({"surrogate": "GP"})
         parameters = Parameters(kwargs, mkdir=True)
