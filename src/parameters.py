@@ -34,8 +34,7 @@ class Parameters:
             self,
             "experiment",
             datetime.now().strftime("%d%m%y-%H%M%S")
-            + "|"
-            + f"{self.surrogate}-{self.acquisition}",
+            + f"|{self.surrogate}-{self.acquisition}|{self.data_class}-{self.problem}",
         )
         setattr(self, "savepth", self.savepth + self.experiment + "/")
         if mkdir and not os.path.isdir(self.savepth):

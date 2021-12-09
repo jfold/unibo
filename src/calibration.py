@@ -12,7 +12,7 @@ class Calibration(CalibrationPlots):
     """Calibration experiment class """
 
     def __init__(self, parameters: Parameters) -> None:
-        super().__init__()
+        super().__init__(parameters)
         self.__dict__.update(asdict(parameters))
         self.summary = {}
 

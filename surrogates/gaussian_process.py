@@ -12,10 +12,8 @@ from botorch.models.utils import validate_input_scaling
 class GaussianProcess(object):
     """Gaussian process wrapper surrogate class. """
 
-    def __init__(
-        self, parameters: Parameters, dataset: Dataset,
-    ):
-        self.name = parameters.surrogate
+    def __init__(self, parameters: Parameters, dataset: Dataset, name: str = "GP"):
+        self.name = name
         self.model = botorch.models.SingleTaskGP(
             torch.tensor(dataset.data.X), torch.tensor(dataset.data.y)
         )

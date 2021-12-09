@@ -40,7 +40,8 @@ class Optimizer(object):
             self.is_fitted = True
         elif self.surrogate == "BNN":
             self.surrogate_object = BayesianNeuralNetwork(self.parameters, dataset)
-            raise NotImplementedError()
+            self.surrogate_model = self.surrogate_object
+            self.is_fitted = True
         else:
             raise ValueError(f"Surrogate function {self.surrogate} not supported.")
 
