@@ -9,7 +9,7 @@ surrogates = [
     "RF",
 ]
 dims = [1]
-seeds = list(range(1))
+seeds = list(range(5))
 data = {
     "Benchmark": {
         "location": "datasets.benchmarks.benchmark",
@@ -22,7 +22,7 @@ data = {
 }
 kwargs = {
     "savepth": os.getcwd() + "/results/tests/",
-    "n_evals": 30,
+    "n_evals": 10,
     "plot_it": True,
     "vanilla": True,
 }

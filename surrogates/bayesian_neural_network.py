@@ -11,15 +11,16 @@ class BayesianNeuralNetwork(BatchedMultiOutputGPyTorchModel):
 
     def __init__(self, parameters: Parameters, dataset: Dataset, name: str = "BNN"):
         super().__init__()
+        # TODO: hyperparameter tuning: pruning?
         self.name = name
         self.d = parameters.d
         self.model = nn.Sequential(
             bnn.BayesLinear(
-                prior_mu=0, prior_sigma=1.0, in_features=self.d, out_features=100
+                prior_mu=0, prior_sigma=1.0, in_features=self.d, out_features=10
             ),
             nn.ReLU(),
             bnn.BayesLinear(
-                prior_mu=0, prior_sigma=1.0, in_features=100, out_features=1
+                prior_mu=0, prior_sigma=1.0, in_features=10, out_features=1
             ),
         )
         self.mse_loss = nn.MSELoss()
@@ -42,9 +43,9 @@ class BayesianNeuralNetwork(BatchedMultiOutputGPyTorchModel):
             pre = self.model(X_train)
             mse = self.mse_loss(pre, y_train)
             kl = self.kl_loss(self.model)
-            cost = mse + self.kl_weight * kl
+            elbo = mse + self.kl_weight * kl
             self.optimizer.zero_grad()
-            cost.backward()
+            elbo.backward()
             self.optimizer.step()
 
     def predict(
