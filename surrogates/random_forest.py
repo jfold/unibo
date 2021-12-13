@@ -29,8 +29,8 @@ class RandomForest(BatchedMultiOutputGPyTorchModel):
     def set_hyperparameter_space(self):
         if self.vanilla:
             self.rf_params_grid = {
-                "n_estimators": [10],
-                "max_depth": [5],
+                "n_estimators": [30],
+                "max_depth": [10],
             }
         else:
             self.rf_params_grid = {
@@ -56,6 +56,7 @@ class RandomForest(BatchedMultiOutputGPyTorchModel):
             X_train (np.ndarray): training input
             y_train (np.ndarray): training output
         """
+        np.random.seed(2021)
         if not self.vanilla:
             self.rf_params_grid.update(
                 {

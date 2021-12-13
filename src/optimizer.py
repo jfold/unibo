@@ -51,11 +51,11 @@ class Optimizer(object):
 
         if self.acquisition == "EI":
             self.acquisition_function = ExpectedImprovement(
-                self.surrogate_model, best_f=dataset.y_opt
+                self.surrogate_model, best_f=dataset.y_opt, maximize=self.maximization
             )
         elif self.acquisition == "UCB":
             self.acquisition_function = UpperConfidenceBound(
-                self.surrogate_model, best_f=dataset.y_opt
+                self.surrogate_model, best_f=dataset.y_opt, maximize=self.maximization
             )
         else:
             raise ValueError(f"Acquisition function {self.acquisition} not supported.")
