@@ -19,10 +19,6 @@ class Calibration(CalibrationPlots):
     def check_gaussian_sharpness(self, mus: np.ndarray, sigmas: np.ndarray):
         """Calculates the sharpness (negative entropy) of the gaussian distributions 
         with means: mus and standard deviation: sigmas
-        Args:
-            mus (np.ndarray): predictive mean
-            sigmas (np.ndarray): predictive standard deviation
-            name (str): model name
         """
         sharpness = np.array(
             [-norm.entropy(mus[i], sigmas[i]) for i in range(mus.shape[0])]
@@ -33,10 +29,6 @@ class Calibration(CalibrationPlots):
     def check_histogram_sharpness(self, model: Model, X: np.ndarray, n_bins: int = 50):
         """Calculates the sharpness (negative entropy) of the histogram distributions 
         calculated from input X
-        Args:
-            mus (np.ndarray): predictive mean
-            sigmas (np.ndarray): predictive standard deviation
-            name (str): model name
         """
         if hasattr(model, "histogram_sharpness"):
             hist_sharpness, mean_hist_sharpness = model.histogram_sharpness(
@@ -59,13 +51,6 @@ class Calibration(CalibrationPlots):
     ):
         """Calculates the calibration of underlying mean (f), hence without noise.
 
-        Args:
-            mus (np.ndarray): predictive mean
-            sigmas (np.ndarray): predictive std 
-            f (np.ndarray): underlying mean function
-            name (str): model name
-            n_bins (int, optional): number of bins dividing the calibration curve. 
-            Defaults to 50.
         """
         p_array = np.linspace(0.01, 0.99, n_bins)
         calibrations = np.full((n_bins,), np.nan)
@@ -112,11 +97,6 @@ class Calibration(CalibrationPlots):
         """Calculates expected log predictive density (elpd) using
         \mathbb{E}\left[\log p_\theta(\textbf{y}|\textbf{X})\right]  
         which essientially is "on average how likely is a new test data under the model".
-        Args:
-            mus (np.ndarray): predictions mean
-            sigmas (np.ndarray): predictions uncertainties
-            y (np.ndarray): [description]
-            name (str): [description]
         """
         log_cdfs = np.array(
             [
@@ -131,15 +111,19 @@ class Calibration(CalibrationPlots):
         """Calculates normalized mean square error by 
         nmse = \ frac{1}{N\cdot\mathbb{V}[\textbf{y}]} \sum_i (\textbf{y}-\hat{\textbf{y}})^2
         where N is the length of y
-        Args:
-            y (np.ndarray): true outputs
-            predictions (np.ndarray): model prediction (\hat{y})
-            name (string): model name
         """
         mse = np.mean((y - predictions) ** 2)
         nmse = mse / np.var(y)
         self.summary.update({"mse": mse})
         self.summary.update({"nmse": nmse})
+
+    # def regret(self):
+    #     self.summary.update({"regret": 0})
+    #     self.summary.update({"total_regret": 0})
+    #     self.summary.update({"mean_regret": 0})
+
+    # def glob_min_dist(self, surrogate: Model, dataset: Dataset):
+    #     pass
 
     def save(self, save_settings: str = ""):
         final_dict = {k: v.tolist() for k, v in self.summary.items()}

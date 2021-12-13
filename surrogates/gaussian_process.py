@@ -8,6 +8,8 @@ from imports.general import *
 from imports.ml import *
 from botorch.models.utils import validate_input_scaling
 
+# TODO: validate that GP tunes: length-scale, kernel noise and additive noise
+
 
 class GaussianProcess(object):
     """Gaussian process wrapper surrogate class. """
