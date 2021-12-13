@@ -117,13 +117,16 @@ class Calibration(CalibrationPlots):
         self.summary.update({"mse": mse})
         self.summary.update({"nmse": nmse})
 
-    # def regret(self):
-    #     self.summary.update({"regret": 0})
-    #     self.summary.update({"total_regret": 0})
-    #     self.summary.update({"mean_regret": 0})
+    def regret(self):
+        raise NotImplementedError()
+        self.summary.update({"regret": None})
+        self.summary.update({"total_regret": None})
+        self.summary.update({"mean_regret": None})
 
-    # def glob_min_dist(self, surrogate: Model, dataset: Dataset):
-    #     pass
+    def glob_min_dist(self, surrogate: Model, dataset: Dataset):
+        raise NotImplementedError()
+        self.summary.update({"x_opt_dist": None})
+        self.summary.update({"x_opt_mean_dist": None})
 
     def save(self, save_settings: str = ""):
         final_dict = {k: v.tolist() for k, v in self.summary.items()}
