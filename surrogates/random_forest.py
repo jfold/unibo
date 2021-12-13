@@ -101,6 +101,9 @@ class RandomForest(BatchedMultiOutputGPyTorchModel):
             predictions[i_e, :] = estimator.predict(X)
         return predictions
 
+    def cdf(self, dataset: Dataset):
+        raise NotImplementedError()
+
     def histogram_sharpness(
         self, X: np.ndarray, n_bins: int = 50
     ) -> Tuple[np.ndarray, np.ndarray]:

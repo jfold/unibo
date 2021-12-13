@@ -73,3 +73,6 @@ class BayesianNeuralNetwork(BatchedMultiOutputGPyTorchModel):
         )
 
         return mu_predictive, sigma_predictive
+
+    def cdf(self, dataset: Dataset):
+        raise NotImplementedError()

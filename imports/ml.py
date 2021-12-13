@@ -3,6 +3,7 @@ import matplotlib
 import matplotlib.pyplot as plt
 from scipy.stats import norm, uniform, kstest, entropy
 from sklearn.model_selection import train_test_split
+from sklearn.isotonic import IsotonicRegression
 import torch
 import botorch
 from botorch.models.model import Model
