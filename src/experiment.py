@@ -3,6 +3,7 @@ from imports.general import *
 from src.calibration import Calibration
 from src.dataset import Dataset
 from src.optimizer import Optimizer
+from src.recalibrate import Recalibrator
 from .parameters import Parameters
 
 
@@ -12,6 +13,7 @@ class Experiment(object):
         self.dataset = Dataset(parameters)
         self.optimizer = Optimizer(parameters)
         self.calibration = Calibration(parameters)
+        self.recalibration = Recalibrator(parameters)
 
     def __str__(self):
         return (
@@ -22,6 +24,13 @@ class Experiment(object):
             + "\r\n"
             + self.calibration.__str__
         )
+
+    def run_recalibration_demo(self):
+        X = self.dataset.data.sample_X(self.n_evals)
+        self.dataset.add_X_get_y(X)
+        self.optimizer.fit_surrogate(self.dataset)
+        self.calibration.analyze(self.optimizer.surrogate_object, self.dataset)
+        self.recalibration.run(self.optimizer, self.dataset, self.calibration)
 
     def run_calibration_demo(self):
         X = self.dataset.data.sample_X(self.n_evals)

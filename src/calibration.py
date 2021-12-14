@@ -16,6 +16,10 @@ class Calibration(CalibrationPlots):
         self.__dict__.update(asdict(parameters))
         self.summary = {}
 
+    def calculate_p_hat(self, F_t: np.ndarray) -> np.ndarray:
+        P_hat = np.array([np.mean(F_t <= f_t) for f_t in F_t])
+        return P_hat
+
     def check_gaussian_sharpness(self, mus: np.ndarray, sigmas: np.ndarray):
         """Calculates the sharpness (negative entropy) of the gaussian distributions 
         with means: mus and standard deviation: sigmas

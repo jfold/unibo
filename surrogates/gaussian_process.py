@@ -42,5 +42,5 @@ class GaussianProcess(object):
         )
         return mu_predictive, sigma_predictive
 
-    def cdf(self, dataset: Dataset):
+    def cdf(self, X: np.ndarray, y: np.ndarray) -> np.ndarray:
         raise NotImplementedError()
