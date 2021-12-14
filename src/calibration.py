@@ -5,7 +5,7 @@ from imports.general import *
 from imports.ml import *
 from src.parameters import Parameters
 from visualizations.scripts.calibrationplots import CalibrationPlots
-from base.dataset import Dataset
+from src.dataset import Dataset
 
 
 class Calibration(CalibrationPlots):
@@ -117,21 +117,14 @@ class Calibration(CalibrationPlots):
         self.summary.update({"mse": mse})
         self.summary.update({"nmse": nmse})
 
-    def regret(self):
-        raise NotImplementedError()
-        self.summary.update({"regret": None})
-        self.summary.update({"total_regret": None})
-        self.summary.update({"mean_regret": None})
+    def regret(self, surrogate: Model, dataset: Dataset):
+        regret = np.abs(dataset.y_opt - dataset.problem.fmin)
+        self.summary.update({"regret": regret})
 
-    def glob_min_dist(self, surrogate: Model, dataset: Dataset, return_val=False):
-        dataset.y_min
-        dataset.problem.fmin
-        dataset.problem.min_loc
-        raise NotImplementedError()
-        self.summary.update({"x_opt_dist": None})
-        self.summary.update({"x_opt_mean_dist": None})
-        if return_val:
-            return None
+    def glob_min_dist(self, surrogate: Model, dataset: Dataset):
+        squared_error = (dataset.X_opt - dataset.problem.min_loc) ** 2
+        self.summary.update({"x_opt_dist": np.sum(squared_error)})
+        self.summary.update({"x_opt_mean_dist": np.mean(squared_error)})
 
     def save(self, save_settings: str = ""):
         final_dict = {k: v.tolist() for k, v in self.summary.items()}
