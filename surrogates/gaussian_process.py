@@ -28,10 +28,10 @@ class GaussianProcess(object):
         """Calculates mean (prediction) and variance (uncertainty)"""
         X_test = torch.tensor(X_test)
         posterior = self.model.posterior(X_test, observation_noise=True)
-        mu_predictive = posterior.mean.cpu().detach().numpy().squeeze()
-        sigma_predictive = (
-            np.sqrt(posterior.variance.cpu().detach().numpy()) + stabilizer
-        ).squeeze()
+        mu_predictive = np.squeeze(posterior.mean.cpu().detach().numpy(), axis=-1)
+        sigma_predictive = np.squeeze(
+            (np.sqrt(posterior.variance.cpu().detach().numpy()) + stabilizer), axis=-1
+        )
         mu_predictive = (
             mu_predictive[:, np.newaxis] if mu_predictive.ndim == 1 else mu_predictive
         )
@@ -43,4 +43,13 @@ class GaussianProcess(object):
         return mu_predictive, sigma_predictive
 
     def cdf(self, X: np.ndarray, y: np.ndarray) -> np.ndarray:
-        raise NotImplementedError()
+        mu_predictive, sigma_predictive = self.predict(X)
+        cdf = np.array(
+            [
+                norm.cdf(
+                    y[i].squeeze(), loc=mu_predictive[i], scale=sigma_predictive[i]
+                )
+                for i in range(X.shape[0])
+            ]
+        )
+        return cdf
