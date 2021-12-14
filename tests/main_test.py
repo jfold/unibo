@@ -82,33 +82,12 @@ class MainTest(unittest.TestCase):
 
     def test_toy_recalibration(self) -> None:
         kwargs_ = kwargs
-        for seed in seeds:
-            for d in dims:
-                for surrogate in surrogates:
-                    for data_name, info in data.items():
-                        for problem in info["problems"]:
-                            kwargs_ = kwargs
-                            kwargs_.update(
-                                {
-                                    "seed": seed,
-                                    "d": d,
-                                    "surrogate": surrogate,
-                                    "data_class": data_name,
-                                    "data_location": info["location"],
-                                    "problem": problem,
-                                }
-                            )
-                            parameters = Parameters(kwargs_, mkdir=True)
-                            experiment = Experiment(parameters)
-                            experiment.run_calibration_demo()
-                            assert experiment.dataset.data.X.shape == (
-                                parameters.n_evals + parameters.n_initial,
-                                parameters.d,
-                            )
-                            assert experiment.dataset.data.y.shape == (
-                                parameters.n_evals + parameters.n_initial,
-                                1,
-                            )
+        kwargs_.update(
+            {"seed": 0, "d": 1, "surrogate": "GP",}
+        )
+        parameters = Parameters(kwargs_, mkdir=True)
+        experiment = Experiment(parameters)
+        experiment.run_recalibration_demo()
 
 
 if __name__ == "__main__":
