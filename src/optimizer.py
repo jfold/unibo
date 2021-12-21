@@ -48,14 +48,14 @@ class Optimizer(object):
     def construct_acquisition_function(self, dataset: Dataset):
         if not self.is_fitted:
             raise ValueError("Surrogate has not been fitted!")
-
+        y_opt_tensor = torch.tensor(dataset.y_opt.squeeze())
         if self.acquisition == "EI":
             self.acquisition_function = ExpectedImprovement(
-                self.surrogate_model, best_f=dataset.y_opt, maximize=self.maximization
+                self.surrogate_model, best_f=y_opt_tensor, maximize=self.maximization
             )
         elif self.acquisition == "UCB":
             self.acquisition_function = UpperConfidenceBound(
-                self.surrogate_model, best_f=dataset.y_opt, maximize=self.maximization
+                self.surrogate_model, best_f=y_opt_tensor, maximize=self.maximization
             )
         else:
             raise ValueError(f"Acquisition function {self.acquisition} not supported.")
