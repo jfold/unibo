@@ -60,14 +60,19 @@ class Optimizer(object):
         else:
             raise ValueError(f"Acquisition function {self.acquisition} not supported.")
 
-    def bo_iter(self, dataset: Dataset, test=None, model=None) -> Tensor:
-        if test is None:
-            self.fit_surrogate(dataset)
-            self.construct_acquisition_function(dataset)
-            X_test, _ = dataset.sample_testset(self.n_test)
-        else:
-            X_test = np.linspace(0,1,100)
-            Y_opt = 0.24
+    def bo_iter(self, dataset: Dataset) -> Tensor:
+        self.fit_surrogate(dataset)
+        self.construct_acquisition_function(dataset)
+        X_test, _ = dataset.sample_testset(self.n_test)
+        X_test_torch = torch.tensor(np.expand_dims(X_test, 1))
+        acquisition_values = self.acquisition_function(X_test_torch)
+        i_choice = np.argmax(acquisition_values.detach().numpy())
+        return X_test[[i_choice], :], acquisition_values[i_choice]
+
+    def bo_iter_test(self, dataset: Dataset) -> Tensor:
+        self.construct_acquisition_function(dataset)
+        X_test = np.linspace(0.1, 0.9, 100)
+        X_test = np.expand_dims(X_test, 1)
         X_test_torch = torch.tensor(np.expand_dims(X_test, 1))
         acquisition_values = self.acquisition_function(X_test_torch)
         i_choice = np.argmax(acquisition_values.detach().numpy())

@@ -8,7 +8,7 @@ import pickle
 import gpytorch
 
 train_x = np.array([0.1, 0.4, 0.6, 0.9])
-train_y = train_x-train_x**2
+train_y = 4*train_x-4*train_x**2
 print(np.max(train_y))
 n=4
 
@@ -43,9 +43,9 @@ with torch.no_grad():
     # Plot predictive means as blue line
     ax.plot(test_x, mu_predictive, 'b')
     # Shade between the lower and upper confidence bounds
-    ax.fill_between(test_x, mu_predictive-sigma_predictive/np.sqrt(n), mu_predictive+sigma_predictive/np.sqrt(n), alpha=0.5)
-    ax.set_ylim([0, 0.4])
+    ax.fill_between(test_x, mu_predictive-sigma_predictive, mu_predictive+sigma_predictive, alpha=0.5)
+    ax.set_ylim([0, 1.5])
     ax.set_xlim([0,1])
     ax.legend(['Observed Data', 'Mean', 'Confidence'])
     plt.show()
-torch.save(model.state_dict(), '../objects/BO_test_GP')
+torch.save(model.state_dict(), 'objects/BO_test_GP')

@@ -8,7 +8,7 @@ from src.optimizer import Optimizer
 from src.calibration import Calibration
 from visualizations.scripts.calibrationplots import CalibrationPlots
 
-kwargs = {"savepth": os.getcwd() + "/results/tests/", "d": 1, "vanilla": True}
+kwargs = {"savepth": os.getcwd().replace("\\", "/") + "/results/tests/", "d": 1, "vanilla": True}
 
 
 class ModelsTest(unittest.TestCase):

@@ -6,9 +6,9 @@ from imports.ml import *
 class Figures(object):
     def __init__(self, loadpths: list[str] = [], settings: Dict[str, str] = {}):
         self.loadpths = loadpths
-        self.surrogates = list(set([pth.split("|")[1] for pth in self.loadpths]))
+        self.surrogates = list(set([pth.split("_")[1] for pth in self.loadpths]))
         self.settings = settings
-        self.savepth = os.getcwd() + "/visualizations/figures/"
+        self.savepth = os.getcwd().replace("\\", "/") + "/visualizations/figures/"
 
     def load_raw(self):
         self.calibrations = []
@@ -18,7 +18,7 @@ class Figures(object):
             calibrations = []
             sharpnesses = []
             for experiment in [
-                p for p in self.loadpths if p.split("|")[1] == surrogate
+                p for p in self.loadpths if p.split("_")[1] == surrogate
             ]:
                 if os.path.isfile(experiment + "scores.json") and os.path.isfile(
                     experiment + "parameters.json"

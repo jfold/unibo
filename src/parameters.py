@@ -25,7 +25,7 @@ class Parameters:
     K: int = 1  # number of terms in sum for VerificationData
     surrogate: str = "RF"  # surrogate function name
     acquisition: str = "EI"  # acquisition function name
-    savepth: str = os.getcwd() + "/results/"
+    savepth: str = os.getcwd().replace("\\", "/") + "/results/"
     experiment: str = ""
 
     def __init__(self, kwargs: Dict = {}, mkdir: bool = False) -> None:
@@ -34,7 +34,7 @@ class Parameters:
             self,
             "experiment",
             datetime.now().strftime("%d%m%y-%H%M%S")
-            + f"|{self.surrogate}-{self.acquisition}|{self.data_class}-{self.problem}",
+            + f"_{self.surrogate}-{self.acquisition}_{self.data_class}-{self.problem}",
         )
         setattr(self, "savepth", self.savepth + self.experiment + "/")
         if mkdir and not os.path.isdir(self.savepth):
