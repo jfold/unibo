@@ -68,3 +68,12 @@ class Optimizer(object):
         acquisition_values = self.acquisition_function(X_test_torch)
         i_choice = np.argmax(acquisition_values.detach().numpy())
         return X_test[[i_choice], :], acquisition_values[i_choice]
+
+    def bo_iter_test(self, dataset: Dataset) -> Tensor:
+        self.construct_acquisition_function(dataset)
+        X_test = np.linspace(0.1, 0.9, 100)
+        X_test = np.expand_dims(X_test, 1)
+        X_test_torch = torch.tensor(np.expand_dims(X_test, 1))
+        acquisition_values = self.acquisition_function(X_test_torch)
+        i_choice = np.argmax(acquisition_values.detach().numpy())
+        return X_test[[i_choice], :], acquisition_values[i_choice]

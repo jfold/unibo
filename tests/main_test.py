@@ -4,12 +4,12 @@ import time
 
 # Test domain:
 surrogates = [
-    "BNN",
+#    "BNN",
     "GP",
-    "RF",
+#    "RF",
 ]
 dims = [1]
-seeds = list(range(5))
+seeds = list(range(2))
 data = {
     "Benchmark": {
         "location": "datasets.benchmarks.benchmark",
@@ -21,7 +21,7 @@ data = {
     # },
 }
 kwargs = {
-    "savepth": os.getcwd() + "/results/tests/",
+    "savepth": os.getcwd().replace("\\", "/") + "/results/tests/",
     "n_evals": 10,
     "plot_it": True,
     "vanilla": True,
