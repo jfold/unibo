@@ -117,12 +117,12 @@ class Calibration(CalibrationPlots):
         self.summary.update({"mse": mse})
         self.summary.update({"nmse": nmse})
 
-    def regret(self, surrogate: Model, dataset: Dataset):
-        regret = np.abs(dataset.y_opt - dataset.problem.fmin)
-        self.summary.update({"regret": regret})
+    def regret(self, dataset: Dataset):
+        regret = (dataset.y_opt - dataset.data.problem.fmin) ** 2
+        self.summary.update({"regret": np.sum(regret)})
 
-    def glob_min_dist(self, surrogate: Model, dataset: Dataset):
-        squared_error = (dataset.X_opt - dataset.problem.min_loc) ** 2
+    def glob_min_dist(self, dataset: Dataset):
+        squared_error = (dataset.X_opt - dataset.data.problem.min_loc) ** 2
         self.summary.update({"x_opt_dist": np.sum(squared_error)})
         self.summary.update({"x_opt_mean_dist": np.mean(squared_error)})
 
@@ -150,6 +150,8 @@ class Calibration(CalibrationPlots):
             mu_test, sigma_test, y_test,
         )
         self.nmse(y_test, mu_test)
+        self.regret(dataset)
+        self.glob_min_dist(dataset)
 
         # Throw out?
         # self.check_histogram_sharpness(surrogate, X_test)
@@ -161,7 +163,7 @@ class Calibration(CalibrationPlots):
             name = f"{save_settings}"
             if self.d == 1:
                 self.plot_predictive(
-                    dataset, X_test, y_test, mu_test, sigma_test,
+                    dataset, X_test, y_test, mu_test, sigma_test, name=name
                 )
             self.plot_y_calibration(name=name)
             self.plot_sharpness_histogram(name=name)
