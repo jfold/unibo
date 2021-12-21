@@ -1,7 +1,9 @@
 ### VisualStudioCode ###
 .vscode/*   
 **/.DS_Store
-results/*
+results/tests/*
+visualizations/figures/*
+visualizations/tables/*
 cluster
 **/.DS_Store
 **/__pycache__
