@@ -31,6 +31,7 @@ class CalibrationPlots(object):
         mu,
         sigma_predictive,
         n_stds: float = 3.0,
+        name: str = "",
     ):
         assert self.d == 1
         idx = np.argsort(X_test.squeeze())
@@ -56,7 +57,7 @@ class CalibrationPlots(object):
         plt.xlabel("x")
         plt.ylabel("y")
         plt.legend()
-        fig.savefig(self.savepth + "predictive.pdf")
+        fig.savefig(self.savepth + f"predictive{name}.pdf")
         plt.close()
 
     def plot_mse_sigma(self, mu, y, sigma):
