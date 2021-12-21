@@ -8,7 +8,11 @@ class Tables(object):
         self.loadpths = loadpths
         self.surrogates = list(set([pth.split("|")[1] for pth in self.loadpths]))
         self.settings = settings
-        self.savepth = os.getcwd() + "/visualizations/tables/"
+        self.savepth = (
+            os.getcwd()
+            + "/visualizations/tables/"
+            + str.join("-", [f"{key}-{val}-" for key, val in settings.items()])
+        )
 
     def load_raw(self):
         metrics = [
@@ -53,8 +57,8 @@ class Tables(object):
             data=np.nanstd(results, axis=-1), index=self.surrogates, columns=metrics
         )
 
-        self.means.to_csv(self.savepth + "means.csv")
-        self.stds.to_csv(self.savepth + "stds.csv")
+        self.means.to_csv(self.savepth + f"means.csv")
+        self.stds.to_csv(self.savepth + f"stds.csv")
 
     def generate(self):
         self.load_raw()

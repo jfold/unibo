@@ -16,7 +16,8 @@ class ResultsTest(unittest.TestCase):
         loadpths = os.listdir(os.getcwd() + "/results/tests/")
         loadpths = [os.getcwd() + "/results/tests/" + f + "/" for f in loadpths]
         loadpths = [f for f in loadpths if os.path.isdir(f)]
-        Tables(loadpths).generate()
+        Tables(loadpths, settings={"bo": True}).generate()
+        Tables(loadpths, settings={"bo": False}).generate()
 
 
 if __name__ == "__main__":
