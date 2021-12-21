@@ -26,15 +26,18 @@ class Parameters:
     surrogate: str = "RF"  # surrogate function name
     acquisition: str = "EI"  # acquisition function name
     savepth: str = os.getcwd() + "/results/"
-    experiment: str = ""
+    experiment: str = ""  # folder name
+    bo: bool = False  # performing bo to sample X or merely randomly sample X
 
     def __init__(self, kwargs: Dict = {}, mkdir: bool = False) -> None:
         self.update(kwargs)
-        setattr(
-            self,
-            "experiment",
+        folder_name = (
             datetime.now().strftime("%d%m%y-%H%M%S")
-            + f"|{self.surrogate}-{self.acquisition}|{self.data_class}-{self.problem}",
+            + f"|{self.surrogate}-{self.acquisition}|{self.data_class}-{self.problem}"
+        )
+        folder_name = folder_name + "|BO" if self.bo else folder_name
+        setattr(
+            self, "experiment", folder_name,
         )
         setattr(self, "savepth", self.savepth + self.experiment + "/")
         if mkdir and not os.path.isdir(self.savepth):
