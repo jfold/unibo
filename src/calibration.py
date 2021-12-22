@@ -94,6 +94,8 @@ class Calibration(CalibrationPlots):
                 "y_p_array": p_array,
                 "y_calibration": calibrations,
                 "y_calibration_mse": np.mean((calibrations - p_array) ** 2),
+                "y_calibration_nmse": np.mean((calibrations - p_array) ** 2)
+                / np.nanvar(p_array),
             }
         )
 

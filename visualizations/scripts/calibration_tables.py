@@ -19,6 +19,7 @@ class Tables(object):
             "nmse",
             "elpd",
             "y_calibration_mse",
+            "y_calibration_nmse",
             "mean_sharpness",
             "x_opt_mean_dist",
             "x_opt_dist",
