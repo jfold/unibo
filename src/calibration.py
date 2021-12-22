@@ -16,7 +16,9 @@ class Calibration(CalibrationPlots):
         self.__dict__.update(asdict(parameters))
         self.summary = {}
 
-    def check_gaussian_sharpness(self, mus: np.ndarray, sigmas: np.ndarray):
+    def check_gaussian_sharpness(
+        self, mus: np.ndarray, sigmas: np.ndarray, name: str = ""
+    ):
         """Calculates the sharpness (negative entropy) of the gaussian distributions 
         with means: mus and standard deviation: sigmas
         """
@@ -24,7 +26,11 @@ class Calibration(CalibrationPlots):
             [-norm.entropy(mus[i], sigmas[i]) for i in range(mus.shape[0])]
         )
         mean_sharpness = np.mean(sharpness)
-        self.summary.update({"sharpness": sharpness, "mean_sharpness": mean_sharpness})
+        self.summary.update(
+            {"mean_sharpness": mean_sharpness}  # "sharpness": sharpness,
+        )
+        if self.plot_it and self.save_it:
+            self.plot_sharpness_histogram(name=name)
 
     def check_histogram_sharpness(self, model: Model, X: np.ndarray, n_bins: int = 50):
         """Calculates the sharpness (negative entropy) of the histogram distributions 
@@ -36,7 +42,7 @@ class Calibration(CalibrationPlots):
             )
             self.summary.update(
                 {
-                    f"{model.name}_hist_sharpness": hist_sharpness,
+                    # f"{model.name}_hist_sharpness": hist_sharpness,
                     f"{model.name}_mean_hist_sharpness": mean_hist_sharpness,
                 }
             )
@@ -139,13 +145,12 @@ class Calibration(CalibrationPlots):
         normalized mean square error functions for the "surrogate" on a testset
         drawn from "dataset".
         """
+        name = f"{save_settings}"
         X_test, y_test = dataset.sample_testset()
         self.ne_true = dataset.data.ne_true
         mu_test, sigma_test = surrogate.predict(X_test)
         self.check_y_calibration(mu_test, sigma_test, y_test)
-        self.check_gaussian_sharpness(
-            mu_test, sigma_test,
-        )
+        self.check_gaussian_sharpness(mu_test, sigma_test, name)
         self.expected_log_predictive_density(
             mu_test, sigma_test, y_test,
         )
@@ -160,13 +165,11 @@ class Calibration(CalibrationPlots):
         # )
 
         if self.plot_it and self.save_it:
-            name = f"{save_settings}"
             if self.d == 1:
                 self.plot_predictive(
                     dataset, X_test, y_test, mu_test, sigma_test, name=name
                 )
             self.plot_y_calibration(name=name)
-            self.plot_sharpness_histogram(name=name)
 
         # Save
         if self.save_it:

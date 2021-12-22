@@ -125,37 +125,41 @@ class CalibrationPlots(object):
         fig.savefig(self.savepth + f"calibration-f{name}.pdf")
         plt.close()
 
-    def plot_sharpness_histogram(self, n_bins: int = 50, name: str = ""):
-        fig = plt.figure()
-
-        plt.hist(
-            self.summary["sharpness"],
-            bins=n_bins,
-            label=r"$\mathcal{M}$ | mean: "
-            + "{:.2e}".format(self.summary["mean_sharpness"]),
-            alpha=0.6,
-        )
-
-        if "hist_sharpness" in self.summary:
+    def plot_sharpness_histogram(
+        self, sharpness: np.ndarray = None, n_bins: int = 50, name: str = ""
+    ):
+        if sharpness is None and "sharpness" in self.summary:
+            fig = plt.figure()
+            sharpness = self.summary["sharpness"]
+        if sharpness is not None:
             plt.hist(
-                self.summary["hist_sharpness"],
+                sharpness,
                 bins=n_bins,
-                label=r"$\mathcal{M}$  hist | mean: "
-                + "{:.2e}".format(self.summary["mean_hist_sharpness"]),
+                label=r"$\mathcal{M}$ | mean: "
+                + "{:.2e}".format(self.summary["mean_sharpness"]),
                 alpha=0.6,
             )
-        if self.ne_true is not np.nan:
-            plt.annotate(
-                "True",
-                xy=(self.ne_true, 0),
-                xytext=(self.ne_true, -(self.n_test / 100)),
-                arrowprops=dict(facecolor="black", shrink=0.05),
-            )
-        plt.legend()
-        plt.xlabel("Negative Entropy")
-        plt.ylabel("Count")
-        fig.savefig(self.savepth + f"sharpness-histogram{name}.pdf")
-        plt.close()
+
+            if "hist_sharpness" in self.summary:
+                plt.hist(
+                    self.summary["hist_sharpness"],
+                    bins=n_bins,
+                    label=r"$\mathcal{M}$  hist | mean: "
+                    + "{:.2e}".format(self.summary["mean_hist_sharpness"]),
+                    alpha=0.6,
+                )
+            if self.ne_true is not np.nan:
+                plt.annotate(
+                    "True",
+                    xy=(self.ne_true, 0),
+                    xytext=(self.ne_true, -(self.n_test / 100)),
+                    arrowprops=dict(facecolor="black", shrink=0.05),
+                )
+            plt.legend()
+            plt.xlabel("Negative Entropy")
+            plt.ylabel("Count")
+            fig.savefig(self.savepth + f"sharpness-histogram{name}.pdf")
+            plt.close()
 
 
 class BayesianOptimizationPlots(object):
