@@ -58,8 +58,8 @@ class Tables(object):
             data=np.nanstd(results, axis=-1), index=self.surrogates, columns=metrics
         )
 
-        self.means.to_csv(self.savepth + f"means.csv")
-        self.stds.to_csv(self.savepth + f"stds.csv")
+        self.means.to_csv(self.savepth + f"means.csv", float_format="%.2e")
+        self.stds.to_csv(self.savepth + f"stds.csv", float_format="%.2e")
 
     def generate(self):
         self.load_raw()
