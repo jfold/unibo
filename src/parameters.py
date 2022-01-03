@@ -17,8 +17,8 @@ class Parameters:
     plot_it: bool = False  # whether to plot during BO loop
     save_it: bool = True  # whether to save progress
     csi: float = 0.0  # exploration parameter for BO
-    data_location: str = "datasets.verifications.verification"  # "datasets.benchmarks.benchmark"
-    data_class: str = "VerificationData"  # dataclass name
+    data_location: str = "datasets.benchmarks.benchmark"  # "datasets/benchmarks/benchmark.py"
+    data_class: str = "Benchmark"  # dataclass name
     problem: str = "Alpine01"  # "Alpine01" # subproblem name
     maximization: bool = False
     snr: float = 10.0
