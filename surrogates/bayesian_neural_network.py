@@ -16,12 +16,14 @@ class BayesianNeuralNetwork(BatchedMultiOutputGPyTorchModel):
         self.d = parameters.d
         self.model = nn.Sequential(
             bnn.BayesLinear(
-                prior_mu=0, prior_sigma=1.0, in_features=self.d, out_features=30
+                prior_mu=0, prior_sigma=0.1, in_features=self.d, out_features=10
             ),
             nn.ReLU(),
             bnn.BayesLinear(
-                prior_mu=0, prior_sigma=1.0, in_features=30, out_features=1
+                prior_mu=0, prior_sigma=0.1, in_features=10, out_features=4
             ),
+            nn.ReLU(),
+            bnn.BayesLinear(prior_mu=0, prior_sigma=0.1, in_features=4, out_features=1),
         )
         self.mse_loss = nn.MSELoss()
         self.kl_loss = bnn.BKLLoss(reduction="mean", last_layer_only=False)
