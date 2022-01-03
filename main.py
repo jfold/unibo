@@ -22,8 +22,9 @@ def run():
     parameters = Parameters(mkdir=False)
     for arg in args:
         try:
-            var = arg.split("=")[0]
-
+            var = arg.split("=")
+            print(getattr(parameters, var))
+            print(type(getattr(parameters, var)))
             if isinstance(type(getattr(parameters, var)), int):
                 val = int(arg.split("=")[1])
             elif isinstance(type(getattr(parameters, var)), bool):
@@ -33,6 +34,7 @@ def run():
             elif isinstance(type(getattr(parameters, var)), str):
                 val = arg.split("=")[1]
             else:
+                var = None
                 print("COULD NOT FIND VARIABLE:", var)
             kwargs.update({var: val})
         except:
