@@ -19,7 +19,7 @@ def run():
     print("------------------------------------")
     print("RUNNING EXPERIMENT...")
     kwargs = {}
-    parameters = Parameters()
+    parameters = Parameters(mkdir=True)
     for arg in args:
         try:
             var = arg.split("=")[0]
