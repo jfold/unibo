@@ -128,11 +128,13 @@ class Calibration(CalibrationPlots):
     def regret(self, dataset: Dataset):
         regret = np.abs(dataset.y_opt - dataset.data.problem.fmin)
         self.summary.update({"regret": np.sum(regret)})
+        self.summary.update({"y_opt": dataset.data.problem.fmin})
 
     def glob_min_dist(self, dataset: Dataset):
         squared_error = (dataset.X_opt - dataset.data.problem.min_loc) ** 2
         self.summary.update({"x_opt_dist": np.sum(squared_error)})
         self.summary.update({"x_opt_mean_dist": np.mean(squared_error)})
+        self.summary.update({"x_opt": dataset.data.problem.min_loc})
 
     def save(self, save_settings: str = ""):
         final_dict = {k: v.tolist() for k, v in self.summary.items()}
