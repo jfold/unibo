@@ -126,7 +126,7 @@ class Calibration(CalibrationPlots):
         self.summary.update({"nmse": nmse})
 
     def regret(self, dataset: Dataset):
-        regret = (dataset.y_opt - dataset.data.problem.fmin) ** 2
+        regret = np.abs(dataset.y_opt - dataset.data.problem.fmin)
         self.summary.update({"regret": np.sum(regret)})
 
     def glob_min_dist(self, dataset: Dataset):
