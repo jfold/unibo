@@ -19,7 +19,7 @@ def run():
     print("------------------------------------")
     print("RUNNING EXPERIMENT...")
     kwargs = {}
-    parameters = Parameters(mkdir=True)
+    parameters = Parameters(mkdir=False)
     for arg in args:
         try:
             var = arg.split("=")[0]
@@ -38,6 +38,7 @@ def run():
         except:
             if "main.py" not in args:
                 print("Trouble with " + arg)
+    parameters = Parameters(mkdir=True)
     parameters.update(kwargs, save=True)
     experiment = Experiment(parameters)
     experiment.run()
