@@ -23,15 +23,15 @@ def run():
     for arg in args:
         try:
             var = arg.split("=")
-            print(getattr(parameters, var))
-            print(type(getattr(parameters, var)))
-            if isinstance(type(getattr(parameters, var)), int):
+            t = parameters.__annotations__[var]
+            print(var, t)
+            if isinstance(t, int):
                 val = int(arg.split("=")[1])
-            elif isinstance(type(getattr(parameters, var)), bool):
+            elif isinstance(t, bool):
                 val = arg.split("=")[1].lower() == "true"
-            elif isinstance(type(getattr(parameters, var)), float):
+            elif isinstance(t, float):
                 val = float(arg.split("=")[1])
-            elif isinstance(type(getattr(parameters, var)), str):
+            elif isinstance(t, str):
                 val = arg.split("=")[1]
             else:
                 var = None
