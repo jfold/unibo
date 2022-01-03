@@ -19,18 +19,19 @@ class Benchmark(object):
         all_problems = inspect.getmembers(self.benchmarks)
         if parameters.problem not in [a for a, b in all_problems]:
             raise ValueError(f"Could not find problem: {parameters.problem}")
-        self.problem = getattr(self.benchmarks, parameters.problem)(dim=self.d)
         self.benchmark_tags = {}
         for name, obj in inspect.getmembers(self.benchmarks):
             if inspect.isclass(obj):
                 try:
-                    self.benchmark_tags.update({name: obj(dim=2).classifiers})
+                    self.benchmark_tags.update({name: obj(dim=self.d).classifiers})
                 except:
                     pass
-        self.lbs = [b[0] for b in self.problem.bounds]
-        self.ubs = [b[1] for b in self.problem.bounds]
-        self.X = self.sample_X(parameters.n_initial)
-        self.y = self.get_y(self.X)
+        if parameters.problem in self.benchmark_tags:
+            self.problem = getattr(self.benchmarks, parameters.problem)(dim=self.d)
+            self.lbs = [b[0] for b in self.problem.bounds]
+            self.ubs = [b[1] for b in self.problem.bounds]
+            self.X = self.sample_X(parameters.n_initial)
+            self.y = self.get_y(self.X)
 
     def sample_X(self, n_samples: int = 1) -> None:
         X = np.random.uniform(low=self.lbs, high=self.ubs, size=(n_samples, self.d))
