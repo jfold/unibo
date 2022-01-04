@@ -16,6 +16,7 @@ def run():
         args = sys.argv[-1].split("|")
     except:
         args = []
+    print("Arguments:", args)
     print("------------------------------------")
     print("RUNNING EXPERIMENT...")
     kwargs = {}
@@ -40,7 +41,6 @@ def run():
 
     parameters = Parameters(kwargs, mkdir=True)
     experiment = Experiment(parameters)
-    print("Arguments:", args)
     print("Running with:", parameters)
     experiment.run()
     print("FINISHED EXPERIMENT")
