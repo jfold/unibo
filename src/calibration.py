@@ -5,7 +5,7 @@ from imports.general import *
 from imports.ml import *
 from src.parameters import Parameters
 from visualizations.scripts.calibrationplots import CalibrationPlots
-from base.dataset import Dataset
+from src.dataset import Dataset
 
 
 class Calibration(CalibrationPlots):
@@ -28,7 +28,11 @@ class Calibration(CalibrationPlots):
             [-norm.entropy(mus[i], sigmas[i]) for i in range(mus.shape[0])]
         )
         mean_sharpness = np.mean(sharpness)
-        self.summary.update({"sharpness": sharpness, "mean_sharpness": mean_sharpness})
+        self.summary.update(
+            {"mean_sharpness": mean_sharpness}  # "sharpness": sharpness,
+        )
+        if self.plot_it and self.save_it:
+            self.plot_sharpness_histogram(name=name)
 
     def check_histogram_sharpness(self, model: Model, X: np.ndarray, n_bins: int = 50):
         """Calculates the sharpness (negative entropy) of the histogram distributions 
@@ -40,7 +44,7 @@ class Calibration(CalibrationPlots):
             )
             self.summary.update(
                 {
-                    f"{model.name}_hist_sharpness": hist_sharpness,
+                    # f"{model.name}_hist_sharpness": hist_sharpness,
                     f"{model.name}_mean_hist_sharpness": mean_hist_sharpness,
                 }
             )
@@ -92,6 +96,8 @@ class Calibration(CalibrationPlots):
                 "y_p_array": p_array,
                 "y_calibration": calibrations,
                 "y_calibration_mse": np.mean((calibrations - p_array) ** 2),
+                "y_calibration_nmse": np.mean((calibrations - p_array) ** 2)
+                / np.nanvar(p_array),
             }
         )
 
@@ -121,13 +127,16 @@ class Calibration(CalibrationPlots):
         self.summary.update({"mse": mse})
         self.summary.update({"nmse": nmse})
 
-    # def regret(self):
-    #     self.summary.update({"regret": 0})
-    #     self.summary.update({"total_regret": 0})
-    #     self.summary.update({"mean_regret": 0})
+    def regret(self, dataset: Dataset):
+        regret = np.abs(dataset.y_opt - dataset.data.problem.fmin)
+        self.summary.update({"regret": np.sum(regret)})
+        self.summary.update({"y_opt": np.array(dataset.data.problem.fmin)})
 
-    # def glob_min_dist(self, surrogate: Model, dataset: Dataset):
-    #     pass
+    def glob_min_dist(self, dataset: Dataset):
+        squared_error = (dataset.X_opt - dataset.data.problem.min_loc) ** 2
+        self.summary.update({"x_opt_dist": np.sum(squared_error)})
+        self.summary.update({"x_opt_mean_dist": np.mean(squared_error)})
+        self.summary.update({"x_opt": np.array(dataset.data.problem.min_loc)})
 
     def save(self, save_settings: str = ""):
         final_dict = {k: v.tolist() for k, v in self.summary.items()}
@@ -142,17 +151,18 @@ class Calibration(CalibrationPlots):
         normalized mean square error functions for the "surrogate" on a testset
         drawn from "dataset".
         """
+        name = f"{save_settings}"
         X_test, y_test = dataset.sample_testset()
         self.ne_true = dataset.data.ne_true
         mu_test, sigma_test = surrogate.predict(X_test)
         self.check_y_calibration(mu_test, sigma_test, y_test)
-        self.check_gaussian_sharpness(
-            mu_test, sigma_test,
-        )
+        self.check_gaussian_sharpness(mu_test, sigma_test, name)
         self.expected_log_predictive_density(
             mu_test, sigma_test, y_test,
         )
         self.nmse(y_test, mu_test)
+        self.regret(dataset)
+        self.glob_min_dist(dataset)
 
         # Throw out?
         # self.check_histogram_sharpness(surrogate, X_test)
@@ -161,16 +171,13 @@ class Calibration(CalibrationPlots):
         # )
 
         if self.plot_it and self.save_it:
-            name = f"{save_settings}"
             if self.d == 1:
                 self.plot_predictive(
-                    dataset, X_test, y_test, mu_test, sigma_test,
+                    dataset, X_test, y_test, mu_test, sigma_test, name=name
                 )
             self.plot_y_calibration(name=name)
-            self.plot_sharpness_histogram(name=name)
 
         # Save
         if self.save_it:
             self.save(save_settings)
-            print(f"Successfully saved with settings: {self.surrogate}")
 

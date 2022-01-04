@@ -39,14 +39,21 @@ class Experiment(object):
         self.calibration.analyze(self.optimizer.surrogate_object, self.dataset)
 
     def run(self):
-        for e in tqdm(range(self.n_evals), leave=False):
-            x_new, _ = self.optimizer.bo_iter(self.dataset)
-            self.dataset.add_X_get_y(x_new)
-            self.calibration.analyze(
-                self.optimizer.surrogate_object,
-                self.dataset,
-                save_settings=f"---epoch-{e+1}",
-            )
+        if self.bo:
+            for e in tqdm(range(self.n_evals), leave=False):
+                save_settings = f"---epoch-{e+1}" if e < self.n_evals - 1 else ""
+                x_new, _ = self.optimizer.bo_iter(self.dataset)
+                self.dataset.add_X_get_y(x_new)
+                self.calibration.analyze(
+                    self.optimizer.surrogate_object,
+                    self.dataset,
+                    save_settings=save_settings,
+                )
+        else:
+            X = self.dataset.data.sample_X(self.n_evals)
+            self.dataset.add_X_get_y(X)
+            self.optimizer.fit_surrogate(self.dataset)
+            self.calibration.analyze(self.optimizer.surrogate_object, self.dataset)
 
 
 if __name__ == "__main__":

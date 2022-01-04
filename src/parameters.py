@@ -17,8 +17,8 @@ class Parameters:
     plot_it: bool = False  # whether to plot during BO loop
     save_it: bool = True  # whether to save progress
     csi: float = 0.0  # exploration parameter for BO
-    data_location: str = "datasets.verifications.verification"  # "datasets.benchmarks.benchmark"
-    data_class: str = "VerificationData"  # dataclass name
+    data_location: str = "datasets.benchmarks.benchmark"  # "datasets/benchmarks/benchmark.py"
+    data_class: str = "Benchmark"  # dataclass name
     problem: str = "Alpine01"  # "Alpine01" # subproblem name
     maximization: bool = False
     snr: float = 10.0
@@ -26,15 +26,18 @@ class Parameters:
     surrogate: str = "RF"  # surrogate function name
     acquisition: str = "EI"  # acquisition function name
     savepth: str = os.getcwd() + "/results/"
-    experiment: str = ""
+    experiment: str = ""  # folder name
+    bo: bool = False  # performing bo to sample X or merely randomly sample X
 
     def __init__(self, kwargs: Dict = {}, mkdir: bool = False) -> None:
         self.update(kwargs)
-        setattr(
-            self,
-            "experiment",
+        folder_name = (
             datetime.now().strftime("%d%m%y-%H%M%S")
-            + f"|{self.surrogate}-{self.acquisition}|{self.data_class}-{self.problem}",
+            + f"|{self.surrogate}-{self.acquisition}|{self.data_class}-{self.problem}"
+        )
+        folder_name = folder_name + "|BO" if self.bo else folder_name
+        setattr(
+            self, "experiment", folder_name,
         )
         setattr(self, "savepth", self.savepth + self.experiment + "/")
         if mkdir and not os.path.isdir(self.savepth):

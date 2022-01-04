@@ -12,7 +12,6 @@ class Figures(object):
 
     def load_raw(self):
         self.calibrations = []
-        self.sharpnesses = []
         self.names = []
         for surrogate in self.surrogates:
             calibrations = []
@@ -31,10 +30,8 @@ class Figures(object):
                         self.p_axis = np.array(scores["y_p_array"])
                         name = f"{parameters['surrogate']}-{parameters['acquisition']}"
                         calibrations.append(np.array(scores["y_calibration"]))
-                        sharpnesses.append(np.array(scores["sharpness"]))
             self.names.append(name)
             self.calibrations.append(np.array(calibrations))
-            self.sharpnesses.append(np.array(sharpnesses))
 
     def generate(self,):
         self.load_raw()

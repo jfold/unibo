@@ -17,29 +17,31 @@ def run():
     except:
         args = []
     print("------------------------------------")
+    print("Arguments:", args)
     print("RUNNING EXPERIMENT...")
     kwargs = {}
-    parameters = Parameters()
+    parameters_temp = Parameters(mkdir=False)
     for arg in args:
-        try:
-            var = arg.split("=")[0]
+        var = arg.split("=")[0]
+        val = arg.split("=")[1]
+        par_val = getattr(parameters_temp, var)
 
-            if isinstance(type(getattr(parameters, var)), int):
-                val = int(arg.split("=")[1])
-            elif isinstance(type(getattr(parameters, var)), bool):
-                val = arg.split("=")[1].lower() == "true"
-            elif isinstance(type(getattr(parameters, var)), float):
-                val = float(arg.split("=")[1])
-            elif isinstance(type(getattr(parameters, var)), str):
-                val = arg.split("=")[1]
-            else:
-                print("COULD NOT FIND VARIABLE:", var)
-            kwargs.update({var: val})
-        except:
-            if "main.py" not in args:
-                print("Trouble with " + arg)
-    parameters.update(kwargs, save=True)
+        if isinstance(par_val, bool):
+            val = val.lower() == "true"
+        elif isinstance(par_val, int):
+            val = int(val)
+        elif isinstance(par_val, float):
+            val = float(val)
+        elif isinstance(par_val, str):
+            pass
+        else:
+            var = None
+            print("COULD NOT FIND VARIABLE:", var)
+        kwargs.update({var: val})
+
+    parameters = Parameters(kwargs, mkdir=True)
     experiment = Experiment(parameters)
+    print("Running with:", parameters)
     experiment.run()
     print("FINISHED EXPERIMENT")
     print("------------------------------------")
