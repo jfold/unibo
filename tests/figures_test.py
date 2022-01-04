@@ -1,8 +1,8 @@
 from os import mkdir
 import unittest
 from main import *
-from visualizations.scripts.calibration_tables import Tables
-from visualizations.scripts.calibrationexperimentplots import Figures
+from visualizations.scripts.tables import Tables
+from visualizations.scripts.figures import Figures
 
 
 class ResultsTest(unittest.TestCase):

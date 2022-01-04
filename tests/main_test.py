@@ -45,22 +45,23 @@ class MainTest(unittest.TestCase):
             n_problems = 1
             for problem in sorted(benchmarks):
                 if "unimodal" in benchmarks[problem]:
-                    kwargs_ = kwargs
-                    kwargs_.update(
-                        {
-                            "bo": True,
-                            "d": dim,
-                            "data_class": "Benchmark",
-                            "data_location": data["Benchmark"]["location"],
-                            "problem": problem,
-                        }
-                    )
-                    parameters = Parameters(kwargs_, mkdir=True)
-                    experiment = Experiment(parameters)
-                    experiment.run()
+                    print(problem)
                     n_problems += 1
                 if n_problems > 5:
                     break
+                kwargs_ = kwargs
+                kwargs_.update(
+                    {
+                        "bo": True,
+                        "d": dim,
+                        "data_class": "Benchmark",
+                        "data_location": data["Benchmark"]["location"],
+                        "problem": problem,
+                    }
+                )
+                parameters = Parameters(kwargs_, mkdir=True)
+                experiment = Experiment(parameters)
+                experiment.run()
 
     def test_toy_bo_calibration(self) -> None:
         for seed in seeds:
