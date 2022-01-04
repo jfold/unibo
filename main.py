@@ -38,9 +38,10 @@ def run():
             print("COULD NOT FIND VARIABLE:", var)
         kwargs.update({var: val})
 
-    parameters = Parameters(mkdir=True)
-    parameters.update(kwargs, save=True)
+    parameters = Parameters(kwargs, mkdir=True)
     experiment = Experiment(parameters)
+    print("Arguments:", args)
+    print("Running with:", parameters)
     experiment.run()
     print("FINISHED EXPERIMENT")
     print("------------------------------------")
