@@ -178,5 +178,4 @@ class Calibration(CalibrationPlots):
         # Save
         if self.save_it:
             self.save(save_settings)
-            print(f"Successfully saved with settings: {self.surrogate}")
 

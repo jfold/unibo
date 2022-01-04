@@ -21,25 +21,23 @@ def run():
     kwargs = {}
     parameters = Parameters(mkdir=False)
     for arg in args:
-        try:
-            var = arg.split("=")
-            t = parameters.__annotations__[var]
-            print(var, t)
-            if isinstance(t, int):
-                val = int(arg.split("=")[1])
-            elif isinstance(t, bool):
-                val = arg.split("=")[1].lower() == "true"
-            elif isinstance(t, float):
-                val = float(arg.split("=")[1])
-            elif isinstance(t, str):
-                val = arg.split("=")[1]
-            else:
-                var = None
-                print("COULD NOT FIND VARIABLE:", var)
-            kwargs.update({var: val})
-        except:
-            if "main.py" not in args:
-                print("Trouble with " + arg)
+        var = arg.split("=")[0]
+        val = arg.split("=")[1]
+        par_val = getattr(parameters, var)
+
+        if isinstance(par_val, bool):
+            val = val.lower() == "true"
+        elif isinstance(par_val, int):
+            val = int(val)
+        elif isinstance(par_val, float):
+            val = float(val)
+        elif isinstance(par_val, str):
+            pass
+        else:
+            var = None
+            print("COULD NOT FIND VARIABLE:", var)
+        kwargs.update({var: val})
+
     parameters = Parameters(mkdir=True)
     parameters.update(kwargs, save=True)
     experiment = Experiment(parameters)
