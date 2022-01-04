@@ -86,3 +86,6 @@ class Figures(object):
 
     def plot_bo():
         pass
+
+    def calibration_vs_epochs(self):
+        raise NotImplementedError()
