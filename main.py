@@ -20,11 +20,11 @@ def run():
     print("Arguments:", args)
     print("RUNNING EXPERIMENT...")
     kwargs = {}
-    parameters = Parameters(mkdir=False)
+    parameters_temp = Parameters(mkdir=False)
     for arg in args:
         var = arg.split("=")[0]
         val = arg.split("=")[1]
-        par_val = getattr(parameters, var)
+        par_val = getattr(parameters_temp, var)
 
         if isinstance(par_val, bool):
             val = val.lower() == "true"
