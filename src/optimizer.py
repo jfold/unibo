@@ -1,4 +1,5 @@
 from botorch import acquisition
+from acquisitions.random_search import RandomSearch
 from src.dataset import Dataset
 from src.parameters import *
 from torch import Tensor
@@ -57,6 +58,8 @@ class Optimizer(object):
             self.acquisition_function = UpperConfidenceBound(
                 self.surrogate_model, best_f=y_opt_tensor, maximize=self.maximization
             )
+        elif self.acquisition == "RS":
+            self.acquisition_function = RandomSearch()
         else:
             raise ValueError(f"Acquisition function {self.acquisition} not supported.")
 
