@@ -7,8 +7,33 @@ class Figures(object):
     def __init__(self, loadpths: list[str] = [], settings: Dict[str, str] = {}):
         self.loadpths = loadpths
         self.surrogates = list(set([pth.split("|")[1] for pth in self.loadpths]))
+        self.problems = list(set([pth.split("|")[2] for pth in self.loadpths]))
         self.settings = settings
-        self.savepth = os.getcwd() + "/visualizations/figures/"
+        self.savepth = (
+            os.getcwd()
+            + "/visualizations/figures/"
+            + str.join("-", [f"{key}-{val}-" for key, val in settings.items()])
+        )
+        self.metrics = [
+            "nmse",
+            "elpd",
+            "y_calibration_mse",
+            "y_calibration_nmse",
+            "mean_sharpness",
+            "x_opt_mean_dist",
+            "x_opt_dist",
+            "regret",
+        ]
+        self.metric_labels = [
+            "nMSE",
+            "ELPD",
+            "Calibration MSE",
+            "Calibration nMSE",
+            "Sharpness",
+            "Solution mean distance",
+            "Solution distance",
+            "Regret",
+        ]
 
     def load_raw(self):
         self.calibrations = []
@@ -88,4 +113,89 @@ class Figures(object):
         pass
 
     def calibration_vs_epochs(self):
-        raise NotImplementedError()
+        n_seeds = 10  # len(self.loadpths)
+        n_epochs = 50  # len(self.loadpths)
+        epochs = list(range(1, n_epochs + 1))
+        results = np.full(
+            (
+                len(self.problems),
+                len(self.surrogates),
+                len(self.metrics),
+                n_epochs,
+                n_seeds,
+            ),
+            np.nan,
+        )
+        for i_p, problem in enumerate(self.problems):
+            for i_s, surrogate in enumerate(self.surrogates):
+                for i_e, experiment in enumerate(
+                    [p for p in self.loadpths if surrogate in p and problem in p]
+                ):
+                    if os.path.isdir(experiment) and os.path.isfile(
+                        experiment + "parameters.json"
+                    ):
+                        with open(experiment + "parameters.json") as json_file:
+                            parameters = json.load(json_file)
+                        # Running over epochs
+                        files_in_path = [
+                            f for f in os.listdir(experiment) if "scores" in f
+                        ]
+                        for file in files_in_path:
+                            if "---epoch-" in file:
+                                epoch_idx = (
+                                    int(file.split("---epoch-")[-1].split(".json")[0])
+                                    - 1
+                                )
+                            else:
+                                epoch_idx = n_epochs - 1
+
+                            with open(experiment + file) as json_file:
+                                scores = json.load(json_file)
+
+                            if self.settings.items() <= parameters.items():
+                                for i_m, metric in enumerate(self.metrics):
+                                    results[i_p, i_s, i_m, epoch_idx, i_e] = scores[
+                                        metric
+                                    ]
+                    else:
+                        print(f"No such file: {experiment}scores.json")
+
+            for i_s, surrogate in enumerate(self.surrogates):
+                fig = plt.figure()
+                for i_m, metric in enumerate(self.metric_labels):
+                    plt.subplot(len(self.metrics), 1, i_m + 1)
+                    means = np.nanmean(results[i_p, i_s, i_m], axis=-1)
+                    stds = np.nanstd(results[i_p, i_s, i_m], axis=-1)
+                    plt.plot(epochs, means)
+                    plt.fill_between(
+                        epochs,
+                        means + 1 * stds,
+                        means - 1 * stds,
+                        color="blue",
+                        alpha=0.1,
+                        # label=r"$\mathcal{M}_{" + str(n_stds) + "\sigma}$",
+                    )
+                    plt.ylabel(metric)
+                # plt.legend()
+                plt.xlabel("Epochs")
+                plt.tight_layout()
+                settings = (
+                    str.join(
+                        "--",
+                        [
+                            str(key) + "-" + str(val)
+                            for key, val in self.settings.items()
+                        ],
+                    ).replace(".", "-")
+                    + problem
+                    + "-"
+                    + surrogate
+                )
+                settings = "all" if settings == "" else settings
+                fig.savefig(f"{self.savepth}calibration-vs-epochs---{settings}.pdf")
+                plt.close()
+
+
+if __name__ == "__main__":
+    figures = Figures()
+    figures.calibration_vs_epochs()
