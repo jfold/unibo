@@ -2,6 +2,7 @@
 .vscode/*   
 **/.DS_Store
 results/tests/*
+results/*
 visualizations/figures/*
 visualizations/tables/*
 cluster

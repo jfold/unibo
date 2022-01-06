@@ -19,6 +19,14 @@ class ResultsTest(unittest.TestCase):
         Tables(loadpths, settings={"bo": True}).generate()
         Tables(loadpths, settings={"bo": False}).generate()
 
+    def test_plots_epochs(self) -> None:
+        loadpths = os.listdir(os.getcwd() + "/results/")
+        loadpths = [
+            os.getcwd() + "/results/" + f + "/" for f in loadpths if "tests" not in f
+        ]
+        loadpths = [f for f in loadpths if os.path.isdir(f)]
+        Figures(loadpths).calibration_vs_epochs()
+
 
 if __name__ == "__main__":
     unittest.main()
