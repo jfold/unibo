@@ -106,13 +106,13 @@ class Calibration(CalibrationPlots):
         \mathbb{E}\left[\log p_\theta(\textbf{y}|\textbf{X})\right]  
         which essientially is "on average how likely is a new test data under the model".
         """
-        log_cdfs = np.array(
+        log_pdfs = np.array(
             [
-                norm.logcdf(y[i], loc=mus[i], scale=sigmas[i])
+                norm.logpdf(y[i], loc=mus[i], scale=sigmas[i])
                 for i in range(sigmas.shape[0])
             ]
         )
-        elpd = np.mean(log_cdfs)
+        elpd = np.mean(log_pdfs)
         self.summary.update({"elpd": elpd})
 
     def nmse(self, y: np.ndarray, predictions: np.ndarray):
@@ -161,12 +161,6 @@ class Calibration(CalibrationPlots):
         self.nmse(y_test, mu_test)
         self.regret(dataset)
         self.glob_min_dist(dataset)
-
-        # Throw out?
-        # self.check_histogram_sharpness(surrogate, X_test)
-        # self.check_f_calibration(
-        #     mu_test, sigma_test, dataset.data.f_test, name=name,
-        # )
 
         if self.plot_it and self.save_it:
             if self.d == 1:
