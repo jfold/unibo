@@ -11,6 +11,16 @@ class Ranking(object):
         )
         self.surrogates = ["GP", "RF", "BNN"]
         self.acquisitions = ["EI"]
+        self.metrics_arr = [
+            "nmse",
+            "elpd",
+            "y_calibration_mse",
+            "y_calibration_nmse",
+            "mean_sharpness",
+            "x_opt_mean_dist",
+            "x_opt_dist",
+            "regret",
+        ]
         self.metrics = {
             "nmse": "nMSE",
             "elpd": "ELPD",
@@ -22,7 +32,7 @@ class Ranking(object):
             "regret": "Regret",
         }
         self.ds = [2]
-        self.seeds = list(range(1, 10 + 1))
+        self.seeds = list(range(1, 20 + 1))
         self.epochs = list(range(1, 50 + 1))
         self.ranking_metrics = {
             "y_calibration_nmse": -1,
@@ -49,6 +59,12 @@ class Ranking(object):
 
     def num_of_first_and_least_last(self):
         pass
+
+    def shuffle_argsort(self, array: np.ndarray):
+        numerical_noise = np.random.uniform(0, 1e-7, size=array.shape)
+        if not (np.all(np.argsort(array + numerical_noise) == np.argsort(array))):
+            print("Tie!")
+        return np.argsort(array + numerical_noise)
 
     def extract(self):
         self.results = np.full(
@@ -97,9 +113,10 @@ class Ranking(object):
                                 i_pro, i_sur, i_acq, i_met, i_dim, i_see, i_epo
                             ] = scores[metric]
                 except:
+                    print("ERROR with:", parameters)
                     continue
 
-    def find_ranking(self):
+    def calc_ranking(self):
         self.rankings = np.full(self.results.shape, np.nan)
         for i_pro, problem in enumerate(self.problems):
             for i_acq, acquisition in enumerate(self.acquisitions):
@@ -120,14 +137,15 @@ class Ranking(object):
                             rankings = []
                             if self.ranking_metrics[metric] == 1:
                                 for score in scores:
-                                    rankings.append(score.argsort()[::-1])
+                                    rankings.append(self.shuffle_argsort(score)[::-1])
                             else:
                                 for score in scores:
-                                    rankings.append(score.argsort())
+                                    rankings.append(self.shuffle_argsort(score))
                             rankings = np.array(rankings)
                             self.rankings[
                                 i_pro, :, i_acq, i_met, i_dim, i_see, :
                             ] = rankings.T
+
         for i_sur, surrogate in enumerate(self.surrogates):
             for i_met, metric in enumerate(self.ranking_metrics.keys()):
                 mean_rank = np.nanmean(self.rankings[:, i_sur, :, i_met, :, :])
@@ -144,10 +162,41 @@ class Ranking(object):
         self.std_ranking_table = pd.DataFrame(columns=cols, index=rows)
         self.no_ranking_table = pd.DataFrame(columns=cols, index=rows)
 
+    def calc_corr_coef(self):
+        met_1 = self.metrics_arr.index("y_calibration_nmse")
+        met_2 = self.metrics_arr.index("regret")
+        print(self.rankings.shape, met_1, met_2)
+        for i_sur, surrogate in enumerate(self.surrogates):
+            x = self.rankings[:, i_sur, :, met_1, :, :].flatten()
+            y = self.rankings[:, i_sur, :, met_2, :, :].flatten()
+            print(np.sum(np.isfinite(x)), np.sum(np.isfinite(y)))
+            # pearson = np.corrcoef(x, y)
+            # mi = mutual_info_regression(x[:, np.newaxis], y)
+            # print(surrogate, pearson, mi)
+
     def run(self):
         self.extract()
         self.init_tables()
-        self.find_ranking()
+        self.calc_ranking()
+        self.calc_corr_coef()
+
+        self.mean_ranking_table.applymap("{:.4f}".format).to_csv(
+            f"{self.savepth}means.csv",
+        )
+        self.std_ranking_table.applymap("{:.4f}".format).to_csv(
+            f"{self.savepth}stds.csv"
+        )
         print(self.mean_ranking_table)
         print(self.std_ranking_table)
         print(self.no_ranking_table)
+
+
+# TODO:
+# Rank (1,2,3) som funktion af epoker for:
+# y_calibration_nmse, mean_sharpness, regret, x_opt_dist
+# I hver epoke regner vi korrelationscoefficienten (mutual information?)
+# mellem
+
+# Regret (x-axis) versus calibration error (y-axis) for halvvejs og slut: plot de 10 seeds
+
+# DONE Normaliser y inden således regret kan sammenlignes: del med største numeriske værdi
