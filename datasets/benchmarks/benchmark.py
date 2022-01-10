@@ -28,6 +28,9 @@ class Benchmark(object):
                     pass
         if parameters.problem in self.benchmark_tags:
             self.problem = getattr(self.benchmarks, parameters.problem)(dim=self.d)
+            self.y_max = np.maximum(
+                np.abs(self.problem.fmax), np.abs(self.problem.fmin)
+            )
             self.lbs = [b[0] for b in self.problem.bounds]
             self.ubs = [b[1] for b in self.problem.bounds]
             self.X = self.sample_X(parameters.n_initial)
@@ -40,7 +43,7 @@ class Benchmark(object):
     def get_y(self, X: np.ndarray) -> None:
         y_new = []
         for x in X:
-            y_new.append(self.problem.evaluate(x))
+            y_new.append(self.problem.evaluate(x) / self.y_max)
         y_arr = np.array(y_new)
         return y_arr[:, np.newaxis]
 
