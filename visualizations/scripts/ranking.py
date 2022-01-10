@@ -5,14 +5,12 @@ from imports.ml import *
 class Ranking(object):
     def __init__(self, loadpths: list[str] = [], settings: Dict[str, str] = {}):
         self.loadpths = loadpths
-        self.surrogates = list(set([pth.split("|")[1] for pth in self.loadpths]))
-        self.problems = list(set([pth.split("|")[2] for pth in self.loadpths]))
         self.settings = settings
-        self.savepth = (
-            os.getcwd()
-            + "/visualizations/tables/"
-            + str.join("-", [f"{key}-{val}-" for key, val in settings.items()])
+        self.problems = list(
+            set([pth.split("|")[2].split("-")[-1] for pth in self.loadpths])
         )
+        self.surrogates = ["GP", "RF", "BNN"]
+        self.acquisitions = ["EI"]
         self.metrics = {
             "nmse": "nMSE",
             "elpd": "ELPD",
@@ -23,66 +21,133 @@ class Ranking(object):
             "x_opt_dist": "Solution distance",
             "regret": "Regret",
         }
-        self.surrogates = ["GP", "RF", "BNN"]
-        self.acquisitions = ["EI"]
-        self.epochs = list(range(50))
         self.ds = [2]
-        self.seeds = list(range(10))
+        self.seeds = list(range(1, 10 + 1))
+        self.epochs = list(range(1, 50 + 1))
+        self.ranking_metrics = {
+            "y_calibration_nmse": -1,
+            "mean_sharpness": 1,
+            "regret": -1,
+            "x_opt_dist": -1,
+        }  # -1 indicates if small is good, 1 indicates if large is good
+        self.savepth = (
+            os.getcwd()
+            + "/visualizations/tables/"
+            + str.join("-", [f"{key}-{val}-" for key, val in settings.items()])
+        )
 
     def f_best_i(self):
         """the best seen objective value after i objective function evaluations"""
         pass
 
     def auc(self):
-        """the best seen objective value after i objective function evaluations"""
+        """aggregated score"""
         pass
 
     def borda_ranking_system(self):
         pass
 
-    def no_first_and_least_last(self):
+    def num_of_first_and_least_last(self):
         pass
 
-    def run(self):
-        surrogates = []
-        seeds = []
-        acquisitions = []
-        ds = []
-        arrays = []
-        results = np.full((100, 100, 100), np.nan)
-        for experiment in self.loadpths:
+    def extract(self):
+        self.results = np.full(
+            (
+                len(self.problems),
+                len(self.surrogates),
+                len(self.acquisitions),
+                len(self.metrics),
+                len(self.ds),
+                len(self.seeds),
+                len(self.epochs),
+            ),
+            np.nan,
+        )
+        for i_e, experiment in enumerate(p for p in self.loadpths):
             if os.path.isdir(experiment) and os.path.isfile(
                 experiment + "parameters.json"
             ):
                 with open(experiment + "parameters.json") as json_file:
                     parameters = json.load(json_file)
+
                 if not self.settings.items() <= parameters.items():
                     continue
-                seeds.append(parameters["seed"])
-                surrogates.append(parameters["surrogate"])
-                acquisitions.append(parameters["acquisition"])
-                ds.append(parameters["d"])
 
-                files_in_path = [f for f in os.listdir(experiment) if "scores" in f]
-                for file in files_in_path:
-                    with open(experiment + file) as json_file:
-                        scores = json.load(json_file)
+                try:
+                    i_pro = self.problems.index(parameters["problem"])
+                    i_see = self.seeds.index(parameters["seed"])
+                    i_sur = self.surrogates.index(parameters["surrogate"])
+                    i_acq = self.acquisitions.index(parameters["acquisition"])
+                    i_dim = self.ds.index(parameters["d"])
+                    # Running over epochs
+                    files_in_path = [f for f in os.listdir(experiment) if "scores" in f]
+                    for file in files_in_path:
+                        if "---epoch-" in file:
+                            i_epo = (
+                                int(file.split("---epoch-")[-1].split(".json")[0]) - 1
+                            )
+                        else:
+                            i_epo = len(self.epochs) - 1
 
-                    e_idx = (
-                        int(file.split("---epoch-")[-1].split(".json")[0]) - 1
-                        if "---epoch-" in file
-                        else self.n_epochs - 1
-                    )
+                        with open(experiment + file) as json_file:
+                            scores = json.load(json_file)
 
-                    for i_m, metric in enumerate(self.metrics.keys()):
-                        results[i_m, e_idx] = scores[metric]
-        arrays.append(seeds)
-        arrays.append(surrogates)
-        arrays.append(acquisitions)
-        arrays.append(ds)
-        tuples = list(zip(*arrays))
-        index = pd.MultiIndex.from_tuples(
-            tuples, names=["surrogate", "seeds", "acquisitions", "ds"]
-        )
-        for i_m, metric in enumerate(self.metrics.keys()):
-            results = pd.DataFrame(np.random.randn(8, 4), index=index)
+                        for i_met, metric in enumerate(self.metrics.keys()):
+                            self.results[
+                                i_pro, i_sur, i_acq, i_met, i_dim, i_see, i_epo
+                            ] = scores[metric]
+                except:
+                    continue
+
+    def find_ranking(self):
+        self.rankings = np.full(self.results.shape, np.nan)
+        for i_pro, problem in enumerate(self.problems):
+            for i_acq, acquisition in enumerate(self.acquisitions):
+                for i_met, metric in enumerate(self.ranking_metrics.keys()):
+                    for i_dim, d in enumerate(self.ds):
+                        for i_see, seed in enumerate(self.seeds):
+                            if np.any(  # demanding all surrogates have carried out all epochs
+                                np.isnan(
+                                    self.results[
+                                        i_pro, :, i_acq, i_met, i_dim, i_see, :
+                                    ]
+                                )
+                            ):
+                                continue
+                            scores = self.results[
+                                i_pro, :, i_acq, i_met, i_dim, i_see, :,
+                            ].T
+                            rankings = []
+                            if self.ranking_metrics[metric] == 1:
+                                for score in scores:
+                                    rankings.append(score.argsort()[::-1])
+                            else:
+                                for score in scores:
+                                    rankings.append(score.argsort())
+                            rankings = np.array(rankings)
+                            self.rankings[
+                                i_pro, :, i_acq, i_met, i_dim, i_see, :
+                            ] = rankings.T
+        for i_sur, surrogate in enumerate(self.surrogates):
+            for i_met, metric in enumerate(self.ranking_metrics.keys()):
+                mean_rank = np.nanmean(self.rankings[:, i_sur, :, i_met, :, :])
+                std_rank = np.nanstd(self.rankings[:, i_sur, :, i_met, :, :])
+                no_trials = np.sum(np.isfinite(self.rankings[:, i_sur, :, i_met, :, :]))
+                self.mean_ranking_table[metric][surrogate] = 1 + mean_rank
+                self.std_ranking_table[metric][surrogate] = 1 + std_rank
+                self.no_ranking_table[metric][surrogate] = no_trials
+
+    def init_tables(self):
+        rows = self.surrogates
+        cols = self.ranking_metrics.keys()
+        self.mean_ranking_table = pd.DataFrame(columns=cols, index=rows)
+        self.std_ranking_table = pd.DataFrame(columns=cols, index=rows)
+        self.no_ranking_table = pd.DataFrame(columns=cols, index=rows)
+
+    def run(self):
+        self.extract()
+        self.init_tables()
+        self.find_ranking()
+        print(self.mean_ranking_table)
+        print(self.std_ranking_table)
+        print(self.no_ranking_table)
