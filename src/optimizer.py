@@ -64,7 +64,7 @@ class Optimizer(object):
             raise ValueError(f"Acquisition function {self.acquisition} not supported.")
 
     def bo_iter(self, dataset: Dataset) -> Tensor:
-        self.fit_surrogate(dataset)
+        assert self.is_fitted
         self.construct_acquisition_function(dataset)
         X_test, _ = dataset.sample_testset(self.n_test)
         X_test_torch = torch.tensor(np.expand_dims(X_test, 1))
