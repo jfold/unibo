@@ -35,6 +35,10 @@ class Benchmark(object):
             self.ubs = [b[1] for b in self.problem.bounds]
             self.X = self.sample_X(parameters.n_initial)
             self.y = self.get_y(self.X)
+        else:
+            raise ValueError(
+                f"Problem {parameters.problem} does not support dimensionality {self.d}"
+            )
 
     def sample_X(self, n_samples: int = 1) -> None:
         X = np.random.uniform(low=self.lbs, high=self.ubs, size=(n_samples, self.d))
