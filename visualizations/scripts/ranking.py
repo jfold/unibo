@@ -4,6 +4,7 @@ from imports.ml import *
 
 class Ranking(object):
     def __init__(self, loadpths: list[str] = [], settings: Dict[str, str] = {}):
+        np.random.seed(2022)
         self.loadpths = loadpths
         self.settings = settings
         self.problems = list(
@@ -32,17 +33,26 @@ class Ranking(object):
             "regret": "Regret",
         }
         self.ds = [2]
-        self.seeds = list(range(1, 20 + 1))
+        self.seeds = list(range(1, 30 + 1))
         self.epochs = list(range(1, 50 + 1))
-        self.ranking_metrics = {
+        self.ranking_direction = {  # -1 indicates if small is good, 1 indicates if large is good
+            "nmse": -1,
+            "elpd": 1,
+            "y_calibration_mse": -1,
             "y_calibration_nmse": -1,
             "mean_sharpness": 1,
             "regret": -1,
             "x_opt_dist": -1,
-        }  # -1 indicates if small is good, 1 indicates if large is good
+            "x_opt_mean_dist": -1,
+        }
         self.savepth = (
             os.getcwd()
             + "/visualizations/tables/"
+            + str.join("-", [f"{key}-{val}-" for key, val in settings.items()])
+        )
+        self.figsavepth = (
+            os.getcwd()
+            + "/visualizations/figures/"
             + str.join("-", [f"{key}-{val}-" for key, val in settings.items()])
         )
 
@@ -60,13 +70,14 @@ class Ranking(object):
     def num_of_first_and_least_last(self):
         pass
 
-    def shuffle_argsort(self, array: np.ndarray):
+    def shuffle_argsort(self, array: np.ndarray) -> np.ndarray:
         numerical_noise = np.random.uniform(0, 1e-7, size=array.shape)
         if not (np.all(np.argsort(array + numerical_noise) == np.argsort(array))):
-            print("Tie!")
+            # print("Tie! Picking winner at random.")
+            pass
         return np.argsort(array + numerical_noise)
 
-    def extract(self):
+    def extract(self) -> None:
         self.results = np.full(
             (
                 len(self.problems),
@@ -116,11 +127,11 @@ class Ranking(object):
                     print("ERROR with:", parameters)
                     continue
 
-    def calc_ranking(self):
+    def calc_ranking(self) -> None:
         self.rankings = np.full(self.results.shape, np.nan)
         for i_pro, problem in enumerate(self.problems):
             for i_acq, acquisition in enumerate(self.acquisitions):
-                for i_met, metric in enumerate(self.ranking_metrics.keys()):
+                for i_met, metric in enumerate(self.ranking_direction.keys()):
                     for i_dim, d in enumerate(self.ds):
                         for i_see, seed in enumerate(self.seeds):
                             if np.any(  # demanding all surrogates have carried out all epochs
@@ -135,7 +146,7 @@ class Ranking(object):
                                 i_pro, :, i_acq, i_met, i_dim, i_see, :,
                             ].T
                             rankings = []
-                            if self.ranking_metrics[metric] == 1:
+                            if self.ranking_direction[metric] == 1:
                                 for score in scores:
                                     rankings.append(self.shuffle_argsort(score)[::-1])
                             else:
@@ -146,8 +157,12 @@ class Ranking(object):
                                 i_pro, :, i_acq, i_met, i_dim, i_see, :
                             ] = rankings.T
 
+        self.missing_experiments_per = (
+            np.sum(np.isnan(self.rankings)) / self.rankings.size
+        )
+
         for i_sur, surrogate in enumerate(self.surrogates):
-            for i_met, metric in enumerate(self.ranking_metrics.keys()):
+            for i_met, metric in enumerate(self.ranking_direction.keys()):
                 mean_rank = np.nanmean(self.rankings[:, i_sur, :, i_met, :, :])
                 std_rank = np.nanstd(self.rankings[:, i_sur, :, i_met, :, :])
                 no_trials = np.sum(np.isfinite(self.rankings[:, i_sur, :, i_met, :, :]))
@@ -155,30 +170,69 @@ class Ranking(object):
                 self.std_ranking_table[metric][surrogate] = 1 + std_rank
                 self.no_ranking_table[metric][surrogate] = no_trials
 
-    def init_tables(self):
+    def init_tables(self) -> None:
         rows = self.surrogates
-        cols = self.ranking_metrics.keys()
+        cols = self.ranking_direction.keys()
         self.mean_ranking_table = pd.DataFrame(columns=cols, index=rows)
         self.std_ranking_table = pd.DataFrame(columns=cols, index=rows)
         self.no_ranking_table = pd.DataFrame(columns=cols, index=rows)
 
-    def calc_corr_coef(self):
-        met_1 = self.metrics_arr.index("y_calibration_nmse")
-        met_2 = self.metrics_arr.index("regret")
-        print(self.rankings.shape, met_1, met_2)
-        for i_sur, surrogate in enumerate(self.surrogates):
-            x = self.rankings[:, i_sur, :, met_1, :, :].flatten()
-            y = self.rankings[:, i_sur, :, met_2, :, :].flatten()
-            print(np.sum(np.isfinite(x)), np.sum(np.isfinite(y)))
-            # pearson = np.corrcoef(x, y)
-            # mi = mutual_info_regression(x[:, np.newaxis], y)
-            # print(surrogate, pearson, mi)
+    def remove_nans(
+        self, x: np.ndarray, y: np.ndarray
+    ) -> Tuple[np.ndarray, np.ndarray]:
+        assert x.shape == y.shape
+        is_nan_idx = np.isnan(x)
+        y = y[np.logical_not(is_nan_idx)]
+        x = x[np.logical_not(is_nan_idx)]
+        is_nan_idx = np.isnan(y)
+        x = x[np.logical_not(is_nan_idx)]
+        y = y[np.logical_not(is_nan_idx)]
+        return x, y
+
+    def calc_plot_metric_dependence(
+        self, metric_1: str = "regret", metric_2: str = "y_calibration_nmse"
+    ):
+        met_1 = self.metrics_arr.index(metric_1)
+        met_2 = self.metrics_arr.index(metric_2)
+        self.metric_dependence = {}
+        # n_epochs = self.rankings.shape[-1] - 1
+        for i_p, problem in enumerate(self.problems):
+            fig = plt.figure()
+            for i_sur, surrogate in enumerate(self.surrogates):
+                x = self.rankings[:, i_sur, :, met_1, :, :, :].flatten()
+                y = self.rankings[:, i_sur, :, met_2, :, :, :].flatten()
+                x, y = self.remove_nans(x, y)
+                pearson, p_value = pearsonr(x, y)
+                mi = mutual_info_regression(x[:, np.newaxis], y)[0]
+                self.metric_dependence.update(
+                    {
+                        f"{surrogate}:linearcorr": (pearson, p_value),
+                        f"{surrogate}:mi": mi,
+                    }
+                )
+                x = self.results[:, i_sur, :, met_1, :, :, :].flatten()
+                y = self.results[:, i_sur, :, met_2, :, :, :].flatten()
+                plt.plot(
+                    x,
+                    y,
+                    "o",
+                    label=f"{surrogate} ({np.round(pearson,2)})",
+                    alpha=1 - i_sur / (i_sur + 2),
+                )
+            plt.xlabel(self.metrics[metric_1])
+            plt.ylabel(self.metrics[metric_2])
+            plt.legend()
+            m1 = metric_1.replace("_", "-")
+            m2 = metric_2.replace("_", "-")
+            fig.savefig(f"{self.figsavepth}{m1}-vs-{m2}-{problem}.pdf")
 
     def run(self):
         self.extract()
         self.init_tables()
         self.calc_ranking()
-        self.calc_corr_coef()
+        self.calc_plot_metric_dependence(
+            metric_1="regret", metric_2="y_calibration_nmse"
+        )
 
         self.mean_ranking_table.applymap("{:.4f}".format).to_csv(
             f"{self.savepth}means.csv",
@@ -188,7 +242,6 @@ class Ranking(object):
         )
         print(self.mean_ranking_table)
         print(self.std_ranking_table)
-        print(self.no_ranking_table)
 
 
 # TODO:
