@@ -33,7 +33,14 @@ class ModelsTest(unittest.TestCase):
 
     def test_visual_validate_random_search(self):
         for surrogate in ["GP", "RF", "BNN"]:
-            kwargs.update({"surrogate": surrogate, "acquisition": "RS", "d": 1})
+            kwargs.update(
+                {
+                    "surrogate": surrogate,
+                    "acquisition": "RS",
+                    "d": 1,
+                    "problem": "Csendes",
+                }
+            )
             parameters = Parameters(kwargs, mkdir=True)
             dataset = Dataset(parameters)
             optimizer = Optimizer(parameters)
@@ -96,7 +103,14 @@ class ModelsTest(unittest.TestCase):
 
     def test_visual_validate_bo_iter(self):
         for surrogate in ["GP", "RF", "BNN"]:
-            kwargs.update({"surrogate": surrogate, "acquisition": "EI", "d": 1})
+            kwargs.update(
+                {
+                    "surrogate": surrogate,
+                    "acquisition": "EI",
+                    "d": 1,
+                    "problem": "Csendes",
+                }
+            )
             parameters = Parameters(kwargs, mkdir=True)
             dataset = Dataset(parameters)
             optimizer = Optimizer(parameters)
