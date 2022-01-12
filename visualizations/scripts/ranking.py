@@ -190,17 +190,18 @@ class Ranking(object):
         return x, y
 
     def calc_plot_metric_dependence(
-        self, metric_1: str = "regret", metric_2: str = "y_calibration_nmse"
+        self, metric_1: str = "regret", metric_2: str = "y_calibration_mse"
     ):
+        rho = r"$\rho$"
         met_1 = self.metrics_arr.index(metric_1)
         met_2 = self.metrics_arr.index(metric_2)
         self.metric_dependence = {}
-        # n_epochs = self.rankings.shape[-1] - 1
+        n_epoch = int((self.rankings.shape[-1] - 1) / 2)
         for i_p, problem in enumerate(self.problems):
             fig = plt.figure()
             for i_sur, surrogate in enumerate(self.surrogates):
-                x = self.rankings[:, i_sur, :, met_1, :, :, :].flatten()
-                y = self.rankings[:, i_sur, :, met_2, :, :, :].flatten()
+                x = self.rankings[i_p, i_sur, :, met_1, :, :, n_epoch].flatten()
+                y = self.rankings[i_p, i_sur, :, met_2, :, :, n_epoch].flatten()
                 x, y = self.remove_nans(x, y)
                 pearson, p_value = pearsonr(x, y)
                 mi = mutual_info_regression(x[:, np.newaxis], y)[0]
@@ -210,18 +211,20 @@ class Ranking(object):
                         f"{surrogate}:mi": mi,
                     }
                 )
-                x = self.results[:, i_sur, :, met_1, :, :, :].flatten()
-                y = self.results[:, i_sur, :, met_2, :, :, :].flatten()
+                x = self.results[i_p, i_sur, :, met_1, :, :, :].flatten()
+                y = self.results[i_p, i_sur, :, met_2, :, :, :].flatten()
                 plt.plot(
                     x,
                     y,
                     "o",
-                    label=f"{surrogate} ({np.round(pearson,2)})",
+                    label=f"{surrogate} ({rho}={np.round(pearson,2)},mi={np.round(mi,2)})",
                     alpha=1 - i_sur / (i_sur + 2),
                 )
             plt.xlabel(self.metrics[metric_1])
             plt.ylabel(self.metrics[metric_2])
             plt.legend()
+            plt.xscale("log")
+            # plt.yscale("log")
             m1 = metric_1.replace("_", "-")
             m2 = metric_2.replace("_", "-")
             fig.savefig(f"{self.figsavepth}{m1}-vs-{m2}-{problem}.pdf")
@@ -233,6 +236,7 @@ class Ranking(object):
         self.calc_plot_metric_dependence(
             metric_1="regret", metric_2="y_calibration_nmse"
         )
+        self.calc_plot_metric_dependence(metric_1="regret", metric_2="elpd")
 
         self.mean_ranking_table.applymap("{:.4f}".format).to_csv(
             f"{self.savepth}means.csv",

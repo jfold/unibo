@@ -154,6 +154,7 @@ class Calibration(CalibrationPlots):
         name = f"{save_settings}"
         X_test, y_test = dataset.sample_testset()
         self.ne_true = dataset.data.ne_true
+        self.y_max = dataset.data.y_max
         mu_test, sigma_test = surrogate.predict(X_test)
         self.check_y_calibration(mu_test, sigma_test, y_test)
         self.check_gaussian_sharpness(mu_test, sigma_test, name)
