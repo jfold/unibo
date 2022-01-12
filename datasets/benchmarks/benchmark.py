@@ -40,11 +40,11 @@ class Benchmark(object):
                 f"Problem {parameters.problem} does not support dimensionality {self.d}"
             )
 
-    def sample_X(self, n_samples: int = 1) -> None:
+    def sample_X(self, n_samples: int = 1) -> np.ndarray:
         X = np.random.uniform(low=self.lbs, high=self.ubs, size=(n_samples, self.d))
         return X
 
-    def get_y(self, X: np.ndarray) -> None:
+    def get_y(self, X: np.ndarray) -> np.ndarray:
         y_new = []
         for x in X:
             y_new.append(self.problem.evaluate(x) / self.y_max)
