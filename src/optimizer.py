@@ -66,6 +66,6 @@ class Optimizer(object):
         self.construct_acquisition_function(dataset)
         X_test, _ = dataset.sample_testset(self.n_test)
         X_test_torch = torch.tensor(np.expand_dims(X_test, 1))
-        acquisition_values = self.acquisition_function(X_test_torch)
-        i_choice = np.argmax(acquisition_values.detach().numpy())
+        acquisition_values = self.acquisition_function(X_test_torch).detach().numpy()
+        i_choice = np.argmax(acquisition_values)
         return X_test[[i_choice], :], acquisition_values[i_choice]
