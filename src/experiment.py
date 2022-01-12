@@ -23,7 +23,7 @@ class Experiment(object):
             + self.calibration.__str__
         )
 
-    def run(self):
+    def run(self) -> None:
         if self.bo:
             self.optimizer.fit_surrogate(self.dataset)
             self.calibration.analyze(

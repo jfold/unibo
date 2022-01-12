@@ -34,19 +34,17 @@ class Optimizer(object):
         if self.surrogate == "GP":
             self.surrogate_object = GaussianProcess(self.parameters, dataset)
             self.surrogate_model = self.surrogate_object.model
-            self.is_fitted = True
         elif self.surrogate == "RF":
             self.surrogate_object = RandomForest(self.parameters, dataset)
             self.surrogate_model = self.surrogate_object
-            self.is_fitted = True
         elif self.surrogate == "BNN":
             self.surrogate_object = BayesianNeuralNetwork(self.parameters, dataset)
             self.surrogate_model = self.surrogate_object
-            self.is_fitted = True
         else:
             raise ValueError(f"Surrogate function {self.surrogate} not supported.")
+        self.is_fitted = True
 
-    def construct_acquisition_function(self, dataset: Dataset):
+    def construct_acquisition_function(self, dataset: Dataset) -> None:
         if not self.is_fitted:
             raise ValueError("Surrogate has not been fitted!")
         y_opt_tensor = torch.tensor(dataset.y_opt.squeeze())
@@ -63,7 +61,7 @@ class Optimizer(object):
         else:
             raise ValueError(f"Acquisition function {self.acquisition} not supported.")
 
-    def bo_iter(self, dataset: Dataset) -> Tensor:
+    def bo_iter(self, dataset: Dataset) -> Dict[np.ndarray, np.ndarray]:
         assert self.is_fitted
         self.construct_acquisition_function(dataset)
         X_test, _ = dataset.sample_testset(self.n_test)

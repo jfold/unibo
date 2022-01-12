@@ -1,5 +1,4 @@
 import json
-from typing import Dict
 from imports.general import *
 from imports.ml import *
 from dataclasses import dataclass, asdict, replace
@@ -44,7 +43,7 @@ class Parameters:
             os.mkdir(self.savepth)
             self.save()
 
-    def update(self, kwargs, save=False):
+    def update(self, kwargs, save=False) -> None:
         for key, value in kwargs.items():
             if hasattr(self, key):
                 setattr(self, key, value)
@@ -53,7 +52,7 @@ class Parameters:
         if save:
             self.save()
 
-    def save(self):
+    def save(self) -> None:
         json_dump = json.dumps(asdict(self))
         with open(self.savepth + "parameters.json", "w") as f:
             f.write(json_dump)
