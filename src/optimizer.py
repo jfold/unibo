@@ -4,6 +4,7 @@ from src.dataset import Dataset
 from src.parameters import *
 from torch import Tensor
 import botorch
+from surrogates.dummy_surrogate import DummySurrogate
 from surrogates.gaussian_process import GaussianProcess
 from gpytorch.mlls import ExactMarginalLogLikelihood
 from surrogates.random_forest import RandomForest
@@ -39,6 +40,9 @@ class Optimizer(object):
             self.surrogate_model = self.surrogate_object
         elif self.surrogate == "BNN":
             self.surrogate_object = BayesianNeuralNetwork(self.parameters, dataset)
+            self.surrogate_model = self.surrogate_object
+        elif self.surrogate == "DS":
+            self.surrogate_object = DummySurrogate(self.parameters, dataset)
             self.surrogate_model = self.surrogate_object
         else:
             raise ValueError(f"Surrogate function {self.surrogate} not supported.")

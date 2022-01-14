@@ -4,6 +4,8 @@ import matplotlib.pyplot as plt
 from scipy.stats import norm, uniform, kstest, entropy, pearsonr
 from sklearn.model_selection import train_test_split
 from sklearn.feature_selection import mutual_info_regression
+from sklearn.neighbors import NearestNeighbors as KNNsklearn
+from sklearn.linear_model import LinearRegression
 import torch
 import botorch
 from botorch.models.model import Model
