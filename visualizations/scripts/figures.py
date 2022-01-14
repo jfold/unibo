@@ -198,6 +198,40 @@ class Figures(object):
     def bo_2d_contour(self):
         pass
 
+    # fig = plt.figure()
+    # for i_m, metric in enumerate(self.metric_labels):
+    #     plt.subplot(len(self.metrics), 1, i_m + 1)
+    #     means = np.nanmean(results[i_p, i_s, i_m], axis=-1)
+    #     stds = np.nanstd(results[i_p, i_s, i_m], axis=-1)
+    #     plt.plot(epochs, means)
+    #     plt.fill_between(
+    #         epochs,
+    #         means + 1 * stds,
+    #         means - 1 * stds,
+    #         color="blue",
+    #         alpha=0.1,
+    #         # label=r"$\mathcal{M}_{" + str(n_stds) + "\sigma}$",
+    #     )
+    #     plt.ylabel(metric)
+    # # plt.legend()
+    # plt.xlabel("Epochs")
+    # plt.tight_layout()
+    # settings = (
+    #     str.join(
+    #         "--",
+    #         [
+    #             str(key) + "-" + str(val)
+    #             for key, val in self.settings.items()
+    #         ],
+    #     ).replace(".", "-")
+    #     + problem
+    #     + "-"
+    #     + surrogate
+    # )
+    # settings = "all" if settings == "" else settings
+    # fig.savefig(f"{self.savepth}calibration-vs-epochs---{settings}.pdf")
+    # plt.close()
+
 
 if __name__ == "__main__":
     figures = Figures()
