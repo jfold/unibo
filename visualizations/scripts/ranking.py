@@ -189,6 +189,23 @@ class Ranking(object):
         y = y[np.logical_not(is_nan_idx)]
         return x, y
 
+    def remove_extremes(
+        self, x: np.ndarray, y: np.ndarray
+    ) -> Tuple[np.ndarray, np.ndarray]:
+        assert x.shape == y.shape
+        print(y.shape)
+        remove_idx = y > np.quantile(y, 0.95)
+        print("MAX", np.quantile(y, 0.95), np.sum(remove_idx))
+        y = y[np.logical_not(remove_idx)]
+        x = x[np.logical_not(remove_idx)]
+        remove_idx = y < np.quantile(y, 0.05)
+        print(y.shape)
+        print("MIN", np.quantile(y, 0.05), np.sum(remove_idx))
+        x = x[np.logical_not(remove_idx)]
+        y = y[np.logical_not(remove_idx)]
+        print(y.shape)
+        return x, y
+
     def calc_plot_metric_dependence(
         self, metric_1: str = "regret", metric_2: str = "y_calibration_mse"
     ):
@@ -196,13 +213,14 @@ class Ranking(object):
         met_1 = self.metrics_arr.index(metric_1)
         met_2 = self.metrics_arr.index(metric_2)
         self.metric_dependence = {}
-        n_epoch = int((self.rankings.shape[-1] - 1) / 2)
+        n_epoch = int((self.results.shape[-1] - 1) / 2)
         for i_p, problem in enumerate(self.problems):
             fig = plt.figure()
             for i_sur, surrogate in enumerate(self.surrogates):
-                x = self.rankings[i_p, i_sur, :, met_1, :, :, n_epoch].flatten()
-                y = self.rankings[i_p, i_sur, :, met_2, :, :, n_epoch].flatten()
+                x = self.results[i_p, i_sur, :, met_1, :, :, :].flatten()
+                y = self.results[i_p, i_sur, :, met_2, :, :, :].flatten()
                 x, y = self.remove_nans(x, y)
+                x, y = self.remove_extremes(x, y)
                 pearson, p_value = pearsonr(x, y)
                 mi = mutual_info_regression(x[:, np.newaxis], y)[0]
                 self.metric_dependence.update(
@@ -211,8 +229,6 @@ class Ranking(object):
                         f"{surrogate}:mi": mi,
                     }
                 )
-                x = self.results[i_p, i_sur, :, met_1, :, :, :].flatten()
-                y = self.results[i_p, i_sur, :, met_2, :, :, :].flatten()
                 plt.plot(
                     x,
                     y,
@@ -223,7 +239,7 @@ class Ranking(object):
             plt.xlabel(self.metrics[metric_1])
             plt.ylabel(self.metrics[metric_2])
             plt.legend()
-            plt.xscale("log")
+            # plt.xscale("log")
             # plt.yscale("log")
             m1 = metric_1.replace("_", "-")
             m2 = metric_2.replace("_", "-")
@@ -234,7 +250,7 @@ class Ranking(object):
         self.init_tables()
         self.calc_ranking()
         self.calc_plot_metric_dependence(
-            metric_1="regret", metric_2="y_calibration_nmse"
+            metric_1="regret", metric_2="y_calibration_mse"
         )
         self.calc_plot_metric_dependence(metric_1="regret", metric_2="elpd")
 
