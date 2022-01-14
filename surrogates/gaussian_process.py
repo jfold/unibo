@@ -14,6 +14,7 @@ class GaussianProcess(object):
 
     def __init__(self, parameters: Parameters, dataset: Dataset, name: str = "GP"):
         self.name = name
+        self.change_std = parameters.change_std
         self.model = botorch.models.SingleTaskGP(
             torch.tensor(dataset.data.X), torch.tensor(dataset.data.y)
         )
