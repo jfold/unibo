@@ -14,8 +14,8 @@ class Dataset(object):
         self.summary = {
             "problem": self.problem,
             "d": self.d,
-            "x_lbs": self.data.problem.lbs,
-            "x_ubs": self.data.problem.ubs,
+            "x_lbs": self.data.lbs,
+            "x_ubs": self.data.ubs,
         }
         self.update_solution()
 
