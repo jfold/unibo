@@ -193,32 +193,29 @@ class Ranking(object):
         self, x: np.ndarray, y: np.ndarray
     ) -> Tuple[np.ndarray, np.ndarray]:
         assert x.shape == y.shape
-        print(y.shape)
         remove_idx = y > np.quantile(y, 0.95)
-        print("MAX", np.quantile(y, 0.95), np.sum(remove_idx))
         y = y[np.logical_not(remove_idx)]
         x = x[np.logical_not(remove_idx)]
         remove_idx = y < np.quantile(y, 0.05)
-        print(y.shape)
-        print("MIN", np.quantile(y, 0.05), np.sum(remove_idx))
         x = x[np.logical_not(remove_idx)]
         y = y[np.logical_not(remove_idx)]
-        print(y.shape)
         return x, y
 
     def calc_plot_metric_dependence(
-        self, metric_1: str = "regret", metric_2: str = "y_calibration_mse"
+        self,
+        metric_1: str = "regret",
+        metric_2: str = "y_calibration_mse",
+        n_epoch: int = -1,
     ):
         rho = r"$\rho$"
         met_1 = self.metrics_arr.index(metric_1)
         met_2 = self.metrics_arr.index(metric_2)
         self.metric_dependence = {}
-        n_epoch = int((self.results.shape[-1] - 1) / 2)
         for i_p, problem in enumerate(self.problems):
             fig = plt.figure()
             for i_sur, surrogate in enumerate(self.surrogates):
-                x = self.results[i_p, i_sur, :, met_1, :, :, :].flatten()
-                y = self.results[i_p, i_sur, :, met_2, :, :, :].flatten()
+                x = self.results[i_p, i_sur, :, met_1, :, :, n_epoch].flatten()
+                y = self.results[i_p, i_sur, :, met_2, :, :, n_epoch].flatten()
                 x, y = self.remove_nans(x, y)
                 x, y = self.remove_extremes(x, y)
                 pearson, p_value = pearsonr(x, y)
@@ -239,18 +236,21 @@ class Ranking(object):
             plt.xlabel(self.metrics[metric_1])
             plt.ylabel(self.metrics[metric_2])
             plt.legend()
-            # plt.xscale("log")
-            # plt.yscale("log")
+            plt.xscale("log")
             m1 = metric_1.replace("_", "-")
             m2 = metric_2.replace("_", "-")
-            fig.savefig(f"{self.figsavepth}{m1}-vs-{m2}-{problem}.pdf")
+            fig.savefig(
+                f"{self.figsavepth}{m1}-vs-{m2}-{problem}-epoch-{n_epoch}.pdf".replace(
+                    ",", "-"
+                )
+            )
 
     def run(self):
         self.extract()
         self.init_tables()
         self.calc_ranking()
         self.calc_plot_metric_dependence(
-            metric_1="regret", metric_2="y_calibration_mse"
+            metric_1="regret", metric_2="y_calibration_mse", n_epoch=range(50)
         )
         self.calc_plot_metric_dependence(metric_1="regret", metric_2="elpd")
 
@@ -269,7 +269,3 @@ class Ranking(object):
 # y_calibration_nmse, mean_sharpness, regret, x_opt_dist
 # I hver epoke regner vi korrelationscoefficienten (mutual information?)
 # mellem
-
-# Regret (x-axis) versus calibration error (y-axis) for halvvejs og slut: plot de 10 seeds
-
-# DONE Normaliser y inden således regret kan sammenlignes: del med største numeriske værdi
