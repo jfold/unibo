@@ -16,6 +16,8 @@ class Dataset(object):
             "d": self.d,
             "x_lbs": self.data.lbs,
             "x_ubs": self.data.ubs,
+            "f_min": self.data.problem.fmin,
+            "f_max": self.data.problem.fmax,
         }
         self.update_solution()
 
