@@ -1,5 +1,6 @@
 from dataclasses import asdict
 from botorch.posteriors.posterior import Posterior
+from numpy.lib.twodim_base import fliplr
 from src.dataset import Dataset
 from src.parameters import Parameters
 from imports.general import *
@@ -15,10 +16,11 @@ class DummySurrogate(BatchedMultiOutputGPyTorchModel):
     variance: average distance to training points"""
 
     def __init__(
-        self, parameters: Parameters, dataset: Dataset, name: str = "RF",
+        self, parameters: Parameters, dataset: Dataset, name: str = "DS",
     ):
         self.__dict__.update(asdict(parameters))
         self.name = name
+        self.n_neighbors = 5
         # torch stuff ...
         self._modules = {}
         self._backward_hooks = {}
@@ -38,12 +40,36 @@ class DummySurrogate(BatchedMultiOutputGPyTorchModel):
         return MultivariateNormal(mean_x, covar_x)
 
     def fit(self, X_train: np.ndarray, y_train: np.ndarray):
-        pass
+        self.X_train = X_train
+        self.y_train = y_train
+        self.knn = KNNsklearn(n_neighbors=self.n_neighbors, radius=np.inf).fit(X_train)
+        self.model = self.knn
 
     def predict(
         self, X_test: np.ndarray, stabilizer: float = 1e-8
     ) -> Tuple[np.ndarray, np.ndarray]:
-        pass
+        X_test = (
+            X_test.cpu().detach().numpy().squeeze()
+            if torch.is_tensor(X_test)
+            else X_test.squeeze()
+        )
+        X_test = X_test[:, np.newaxis] if X_test.ndim == 1 else X_test
+        mean_x = []
+        var_x = []
+        for i in range(X_test.shape[0]):
+            x_test = X_test[[i], :]
+            neigh_dist, neigh_ind = self.knn.kneighbors(
+                x_test, self.n_neighbors, return_distance=True
+            )
+            neigh_ind = neigh_ind.squeeze()
+            neigh_dist = neigh_dist.squeeze()
+            lr = LinearRegression().fit(
+                self.X_train[neigh_ind, :], self.y_train[neigh_ind, :],
+            )
+            mean_x.append(lr.predict(x_test).squeeze())
+            var_x.append(np.exp(np.min(neigh_dist)) + stabilizer)
+
+        return np.array(mean_x)[:, np.newaxis], np.array(var_x)[:, np.newaxis]
 
     def calculate_y_std(self, X: np.ndarray) -> np.ndarray:
         predictions = None

@@ -1,6 +1,7 @@
 from os import mkdir
 import unittest
 from imports.ml import *
+from surrogates.dummy_surrogate import DummySurrogate
 from surrogates.gaussian_process import GaussianProcess
 from surrogates.random_forest import *
 from surrogates.bayesian_neural_network import BayesianNeuralNetwork
@@ -12,25 +13,6 @@ kwargs = {"savepth": os.getcwd() + "/results/tests/", "d": 1, "vanilla": True}
 
 
 class ModelsTest(unittest.TestCase):
-    def test_RandomForest(self) -> None:
-        kwargs.update({"surrogate": "RF"})
-        parameters = Parameters(kwargs, mkdir=True)
-        dataset = Dataset(parameters)
-        model = RandomForest(parameters, dataset)
-        X_test, y_test = dataset.sample_testset(
-            n_samples=parameters.n_evals + parameters.n_initial
-        )
-        mu, std = model.predict(X_test)
-        nentropies, mean_nentropy = model.histogram_sharpness(X_test)
-        assert isinstance(model.model, RandomForestRegressor)
-        assert isinstance(mu, np.ndarray) and mu.shape == y_test.shape
-        assert isinstance(std, np.ndarray) and std.shape == y_test.shape
-        assert isinstance(nentropies, np.ndarray)
-        assert isinstance(mean_nentropy, float) and np.isfinite(mean_nentropy)
-
-        plots = CalibrationPlots(parameters)
-        plots.plot_predictive(dataset, X_test, y_test, mu, std)
-
     def test_visual_validate_random_search(self):
         for surrogate in ["GP", "RF", "BNN"]:
             kwargs.update(
@@ -141,7 +123,7 @@ class ModelsTest(unittest.TestCase):
         plt.close()
 
     def test_visual_validate_bo_iter(self):
-        for surrogate in ["GP", "RF", "BNN"]:
+        for surrogate in ["DS", "GP", "RF", "BNN"]:
             kwargs.update(
                 {
                     "surrogate": surrogate,
@@ -200,8 +182,16 @@ class ModelsTest(unittest.TestCase):
         plots.plot_predictive(dataset, X_test, y_test, mu, std)
 
     def test_DummySurrogate(self) -> None:
-        kwargs.update({"surrogate": "DS"})
-        pass
+        kwargs.update({"surrogate": "DS", "d": 2})
+        parameters = Parameters(kwargs, mkdir=True)
+        dataset = Dataset(parameters)
+        model = DummySurrogate(parameters, dataset)
+        X_test, y_test = dataset.sample_testset(
+            n_samples=parameters.n_evals + parameters.n_evals
+        )
+        mu, std = model.predict(X_test)
+        assert isinstance(mu, np.ndarray) and mu.shape == y_test.shape
+        assert isinstance(std, np.ndarray) and std.shape == y_test.shape
 
     def test_BayesiaNeuralNetwork(self) -> None:
         kwargs.update({"surrogate": "BNN"})
@@ -215,6 +205,25 @@ class ModelsTest(unittest.TestCase):
         assert isinstance(model.model, nn.Sequential)
         assert isinstance(mu, np.ndarray) and mu.shape == y_test.shape
         assert isinstance(std, np.ndarray) and std.shape == y_test.shape
+
+        plots = CalibrationPlots(parameters)
+        plots.plot_predictive(dataset, X_test, y_test, mu, std)
+
+    def test_RandomForest(self) -> None:
+        kwargs.update({"surrogate": "RF"})
+        parameters = Parameters(kwargs, mkdir=True)
+        dataset = Dataset(parameters)
+        model = RandomForest(parameters, dataset)
+        X_test, y_test = dataset.sample_testset(
+            n_samples=parameters.n_evals + parameters.n_initial
+        )
+        mu, std = model.predict(X_test)
+        nentropies, mean_nentropy = model.histogram_sharpness(X_test)
+        assert isinstance(model.model, RandomForestRegressor)
+        assert isinstance(mu, np.ndarray) and mu.shape == y_test.shape
+        assert isinstance(std, np.ndarray) and std.shape == y_test.shape
+        assert isinstance(nentropies, np.ndarray)
+        assert isinstance(mean_nentropy, float) and np.isfinite(mean_nentropy)
 
         plots = CalibrationPlots(parameters)
         plots.plot_predictive(dataset, X_test, y_test, mu, std)
