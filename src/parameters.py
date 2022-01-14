@@ -6,7 +6,7 @@ from dataclasses import dataclass, asdict, replace
 
 @dataclass
 class Parameters:
-    seed: bool = 0
+    seed: bool = 0  # random seed
     d: int = 1  # number of input dimensions
     n_test: int = 3000  # number of test samples for calibration analysis
     n_initial: int = 10  # number of starting points
