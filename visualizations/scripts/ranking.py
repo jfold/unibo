@@ -250,9 +250,9 @@ class Ranking(object):
         self.init_tables()
         self.calc_ranking()
         self.calc_plot_metric_dependence(
-            metric_1="regret", metric_2="y_calibration_mse", n_epoch=range(50)
+            metric_1="regret", metric_2="y_calibration_mse", n_epoch=-1
         )
-        self.calc_plot_metric_dependence(metric_1="regret", metric_2="elpd")
+        self.calc_plot_metric_dependence(metric_1="regret", metric_2="elpd", n_epoch=-1)
 
         self.mean_ranking_table.applymap("{:.4f}".format).to_csv(
             f"{self.savepth}means.csv",
@@ -269,3 +269,17 @@ class Ranking(object):
 # y_calibration_nmse, mean_sharpness, regret, x_opt_dist
 # I hver epoke regner vi korrelationscoefficienten (mutual information?)
 # mellem
+
+# 1)
+# Contour plot i 2D -> init som punkter + epokevalg som tal
+# 2)
+# 3x1 subplot plot:
+# Contour plot i 2D + punkter op til en specifik iteration
+# posterior middel for en specifik iteration
+# posterior varians for en specifik iteration
+# acquisition for en specifik iteration
+# 3)
+# Inkluder GP med ændret std
+# 4) Mikkel
+# Generer data fra en GP med kendte hyperparametre
+
