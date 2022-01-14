@@ -11,7 +11,12 @@ class Dataset(object):
         module = importlib.import_module(parameters.data_location)
         data_class = getattr(module, parameters.data_class)
         self.data = data_class(parameters)
-        self.summary = {"problem": self.problem, "d": self.d}
+        self.summary = {
+            "problem": self.problem,
+            "d": self.d,
+            "x_lbs": self.data.problem.lbs,
+            "x_ubs": self.data.problem.ubs,
+        }
         self.update_solution()
 
     def update_solution(self) -> None:

@@ -195,6 +195,9 @@ class Figures(object):
                 fig.savefig(f"{self.savepth}calibration-vs-epochs---{settings}.pdf")
                 plt.close()
 
+    def bo_2d_contour(self):
+        pass
+
 
 if __name__ == "__main__":
     figures = Figures()
