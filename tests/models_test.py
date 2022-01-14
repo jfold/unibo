@@ -199,6 +199,10 @@ class ModelsTest(unittest.TestCase):
         plots = CalibrationPlots(parameters)
         plots.plot_predictive(dataset, X_test, y_test, mu, std)
 
+    def test_DummySurrogate(self) -> None:
+        kwargs.update({"surrogate": "DS"})
+        pass
+
     def test_BayesiaNeuralNetwork(self) -> None:
         kwargs.update({"surrogate": "BNN"})
         parameters = Parameters(kwargs, mkdir=True)
