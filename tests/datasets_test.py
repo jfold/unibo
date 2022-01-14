@@ -22,7 +22,8 @@ def check_dataset_attr(obj):
 
 class DatasetsTest(unittest.TestCase):
     def test_benchmark(self) -> None:
-        n_evals = 2
+        n_evals = 3000
+        kwargs.update({"problem": "Adjiman", "d": 2})
         parameters = Parameters(kwargs)
         data = Benchmark(parameters)
         check_dataset_attr(data)
