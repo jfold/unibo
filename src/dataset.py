@@ -11,6 +11,7 @@ class Dataset(object):
         module = importlib.import_module(parameters.data_location)
         data_class = getattr(module, parameters.data_class)
         self.data = data_class(parameters)
+        self.summary = {"problem": self.problem, "d": self.d}
         self.update_solution()
 
     def update_solution(self) -> None:
@@ -19,6 +20,22 @@ class Dataset(object):
         )
         self.y_opt = self.data.y[[self.opt_idx], :]
         self.X_opt = self.data.X[[self.opt_idx], :]
+        self.summary.update(
+            {
+                "n_initial": int(self.n_initial),
+                "X": self.data.X.tolist(),
+                "y": self.data.y.tolist(),
+                "opt_idx": int(self.opt_idx),
+                "X_opt": self.X_opt.tolist(),
+                "y_opt": self.y_opt.tolist(),
+            }
+        )
+
+    def save(self, save_settings: str = "") -> None:
+        print(self.summary)
+        json_dump = json.dumps(self.summary)
+        with open(self.savepth + f"dataset{save_settings}.json", "w") as f:
+            f.write(json_dump)
 
     def add_X_get_y(self, x_new: np.array) -> None:
         self.data.X = np.append(self.data.X, x_new, axis=0)
