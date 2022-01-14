@@ -8,14 +8,13 @@ from imports.general import *
 from imports.ml import *
 from botorch.models.utils import validate_input_scaling
 
-# TODO: validate that GP tunes: length-scale, kernel noise and additive noise
-
 
 class GaussianProcess(object):
     """Gaussian process wrapper surrogate class. """
 
     def __init__(self, parameters: Parameters, dataset: Dataset, name: str = "GP"):
         self.name = name
+        self.change_std = parameters.change_std
         self.model = botorch.models.SingleTaskGP(
             torch.tensor(dataset.data.X), torch.tensor(dataset.data.y)
         )
@@ -40,4 +39,6 @@ class GaussianProcess(object):
             if sigma_predictive.ndim == 1
             else sigma_predictive
         )
+        if self.change_std:
+            sigma_predictive *= 0.1
         return mu_predictive, sigma_predictive

@@ -29,22 +29,7 @@ class DummySurrogate(BatchedMultiOutputGPyTorchModel):
         self.fit(X_train=dataset.data.X, y_train=dataset.data.y)
 
     def set_hyperparameter_space(self):
-        if self.vanilla:
-            self.rf_params_grid = {
-                "n_estimators": [30],
-                "max_depth": [10],
-            }
-        else:
-            self.rf_params_grid = {
-                "n_estimators": [10, 100, 1000],
-                "max_depth": [5, 10, 20],
-                "max_samples": [
-                    int(self.n_initial / 4),
-                    int(self.n_initial / 2),
-                    int((3 / 4) * self.n_initial),
-                ],
-                "max_features": ["auto", "sqrt"],
-            }
+        pass
 
     def forward(self, x: Tensor) -> MultivariateNormal:
         mean_x, covar_x = self.predict(x)
@@ -53,44 +38,12 @@ class DummySurrogate(BatchedMultiOutputGPyTorchModel):
         return MultivariateNormal(mean_x, covar_x)
 
     def fit(self, X_train: np.ndarray, y_train: np.ndarray):
-        """Fits random forest model with hyperparameter tuning
-        Args:
-            X_train (np.ndarray): training input
-            y_train (np.ndarray): training output
-        """
-        np.random.seed(2021)
-        if not self.vanilla:
-            self.rf_params_grid.update(
-                {
-                    "max_samples": [
-                        int(X_train.shape[0] / 4),
-                        int(X_train.shape[0] / 2),
-                        int((3 / 4) * X_train.shape[0]),
-                    ],
-                }
-            )
-        grid_search = GridSearchCV(
-            estimator=RandomForestRegressor(),
-            param_grid=self.rf_params_grid,
-            cv=self.rf_cv_splits,
-            n_jobs=-1,
-            verbose=0,
-        ).fit(X_train, y_train.squeeze())
-        self.model = grid_search.best_estimator_
+        pass
 
     def predict(
         self, X_test: np.ndarray, stabilizer: float = 1e-8
     ) -> Tuple[np.ndarray, np.ndarray]:
-        """Calculates mean (prediction) and variance (uncertainty)"""
-        X_test = (
-            X_test.cpu().detach().numpy().squeeze()
-            if torch.is_tensor(X_test)
-            else X_test.squeeze()
-        )
-        X_test = X_test[:, np.newaxis] if X_test.ndim == 1 else X_test
-        mu_predictive = self.model.predict(X_test)
-        sigma_predictive = self.calculate_y_std(X_test) + stabilizer
-        return (mu_predictive[:, np.newaxis], sigma_predictive[:, np.newaxis])
+        pass
 
     def calculate_y_std(self, X: np.ndarray) -> np.ndarray:
         predictions = None

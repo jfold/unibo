@@ -31,13 +31,19 @@ class ModelsTest(unittest.TestCase):
         plots = CalibrationPlots(parameters)
         plots.plot_predictive(dataset, X_test, y_test, mu, std)
 
-    def test_visual_validate_bo_iter(self):
+    def test_visual_validate_random_search(self):
         for surrogate in ["GP", "RF", "BNN"]:
-            kwargs.update({"surrogate": surrogate, "acquisition": "EI", "d": 1})
+            kwargs.update(
+                {
+                    "surrogate": surrogate,
+                    "acquisition": "RS",
+                    "d": 1,
+                    "problem": "Csendes",
+                }
+            )
             parameters = Parameters(kwargs, mkdir=True)
             dataset = Dataset(parameters)
             optimizer = Optimizer(parameters)
-            calibration = Calibration(parameters)
             X_test, y_test = dataset.sample_testset(n_samples=500)
 
             idx = np.argsort(X_test.squeeze())
@@ -62,9 +68,7 @@ class ModelsTest(unittest.TestCase):
                 fig, ax1 = plt.subplots()
                 ax2 = ax1.twinx()
                 # acquisition
-                ax1.plot(
-                    X_test, ei, "-", color="blue", label="Acquisition",
-                )
+                ax1.plot(X_test, ei, "-", color="blue", label="Acquisition", alpha=0.3)
                 # predictive
                 ax2.plot(
                     X_test,
@@ -96,6 +100,87 @@ class ModelsTest(unittest.TestCase):
                 plt.legend()
                 fig.savefig(parameters.savepth + f"epoch---{e}.pdf")
                 plt.close()
+
+    def plot_1d(self, save_settings: str = ""):
+        fig, ax1 = plt.subplots()
+        ax2 = ax1.twinx()
+        # acquisition
+        ax1.plot(
+            self.X_test, self.ei, "-", color="blue", label="Acquisition",
+        )
+        # predictive
+        ax2.plot(
+            self.X_test,
+            self.mus,
+            "--",
+            color="black",
+            label=r"$\mathcal{M}_{\mu}$",
+            linewidth=1,
+        )
+        ax2.fill_between(
+            self.X_test,
+            self.mus + 3 * self.sigmas,
+            self.mus - 3 * self.sigmas,
+            color="blue",
+            alpha=0.1,
+            label=r"$\mathcal{M}_{" + str(3) + "\sigma}$",
+        )
+        # data
+        ax2.plot(self.X_test, self.y_test, "*", color="red", label="Test", alpha=0.2)
+        ax2.plot(
+            self.dataset.data.X, self.dataset.data.y, "*", color="blue", label="Train"
+        )
+        ax1.set_ylabel("Acquistion value", color="blue")
+        ax2.set_ylabel("y")
+        x_new = self.X_test[[np.argmax(self.ei)], np.newaxis]
+        y_new = self.dataset.data.get_y(x_new)
+        ax2.plot(x_new, y_new, "*", color="black", label="New")
+        self.dataset.add_X_get_y(x_new)
+        plt.legend()
+        fig.savefig(f"{self.parameters.savepth}predictive{save_settings}.pdf")
+        plt.close()
+
+    def test_visual_validate_bo_iter(self):
+        for surrogate in ["GP", "RF", "BNN"]:
+            kwargs.update(
+                {
+                    "surrogate": surrogate,
+                    "acquisition": "EI",
+                    "d": 1,
+                    "problem": "Csendes",
+                }
+            )
+            self.parameters = Parameters(kwargs, mkdir=True)
+            self.dataset = Dataset(self.parameters)
+            self.optimizer = Optimizer(self.parameters)
+            X_test, y_test = self.dataset.sample_testset(n_samples=500)
+
+            idx = np.argsort(X_test.squeeze())
+            self.X_test = X_test[idx].squeeze()
+            self.y_test = y_test[idx].squeeze()
+            self.X_test_torch = torch.tensor(
+                np.expand_dims(self.X_test[:, np.newaxis], 1)
+            )
+
+            self.optimizer.fit_surrogate(self.dataset)
+            self.dataset.save(save_settings="---epoch-0")
+            n_epocs = 10
+            for e in range(n_epocs):
+                save_settings = f"---epoch-{e+1}" if e < n_epocs - 1 else ""
+                x_new, _ = self.optimizer.bo_iter(self.dataset)
+                self.dataset.add_X_get_y(x_new)
+                self.optimizer.fit_surrogate(self.dataset)
+                self.ei = (
+                    self.optimizer.acquisition_function(self.X_test_torch)
+                    .detach()
+                    .numpy()
+                    .squeeze()
+                )
+                mus, sigmas = self.optimizer.surrogate_object.predict(self.X_test_torch)
+                self.mus = mus.squeeze()
+                self.sigmas = sigmas.squeeze()
+                self.plot_1d(save_settings)
+            self.dataset.save()
 
     def test_GaussianProcess(self) -> None:
         kwargs.update({"surrogate": "GP"})

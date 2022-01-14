@@ -1,6 +1,7 @@
 from os import mkdir
 import unittest
 from main import *
+from visualizations.scripts.ranking import Ranking
 from visualizations.scripts.tables import Tables
 from visualizations.scripts.figures import Figures
 
@@ -26,6 +27,14 @@ class ResultsTest(unittest.TestCase):
         ]
         loadpths = [f for f in loadpths if os.path.isdir(f)]
         Figures(loadpths).calibration_vs_epochs()
+
+    def test_ranking(self) -> None:
+        loadpths = os.listdir(os.getcwd() + "/results/")
+        loadpths = [
+            os.getcwd() + "/results/" + f + "/" for f in loadpths if "tests" not in f
+        ]
+        loadpths = [f for f in loadpths if os.path.isdir(f)]
+        Ranking(loadpths).run()
 
 
 if __name__ == "__main__":
