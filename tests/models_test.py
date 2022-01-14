@@ -179,7 +179,8 @@ class ModelsTest(unittest.TestCase):
                 mus, sigmas = self.optimizer.surrogate_object.predict(self.X_test_torch)
                 self.mus = mus.squeeze()
                 self.sigmas = sigmas.squeeze()
-                self.plot_1d(save_settings)
+                if self.parameters.d == 1:
+                    self.plot_1d(save_settings)
             self.dataset.save()
 
     def test_GaussianProcess(self) -> None:
