@@ -3,6 +3,9 @@ import unittest
 from datasets.benchmarks.benchmark import Benchmark
 from datasets.verifications.verification import VerificationData
 from main import *
+from datasets.GP.gp import GPSampler
+import matplotlib.pyplot as plt
+import torch
 
 kwargs = {
     "savepth": os.getcwd() + "/results/tests/",
@@ -59,6 +62,23 @@ class DatasetsTest(unittest.TestCase):
         y = data.get_y(X)
         assert X.shape == (n_evals, parameters.d)
         assert y.shape == (n_evals, 1)
+
+    def test_GP_sampler(self) -> None:
+        n_evals = 2
+        parameters = Parameters(kwargs)
+        parameters.problem = "GP"
+        data = GPSampler(parameters)
+        check_dataset_attr(data)
+        X = data.sample_X(n_samples=n_evals)
+        y = data.get_y(X)
+        print(y)
+        assert X.shape == (n_evals, parameters.d)
+        assert y.shape == (n_evals, 1)
+        if parameters.d == 1:
+            test_x = torch.linspace(-1, 1, 200).double()
+            y = data.get_y(test_x)
+            plt.plot(test_x, y)
+            plt.show()
 
 
 if __name__ == "__main__":
