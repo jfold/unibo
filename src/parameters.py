@@ -32,8 +32,8 @@ class Parameters:
     def __init__(self, kwargs: Dict = {}, mkdir: bool = False) -> None:
         self.update(kwargs)
         folder_name = (
-            datetime.now().strftime("%d%m%y-%H%M%S")
-            + f"|{self.surrogate}-{self.acquisition}|{self.data_class}-{self.problem}"
+            # datetime.now().strftime("%d%m%y-%H%M%S") +
+            f"{self.data_class}-{self.problem}({self.d})|{self.surrogate}-{self.acquisition}|seed-{self.seed}"
         )
         folder_name = folder_name + "|BO" if self.bo else folder_name
         setattr(
