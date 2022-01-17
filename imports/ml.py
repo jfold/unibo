@@ -26,10 +26,10 @@ matplotlib.rcParams["savefig.bbox"] = "tight"
 # matplotlib.rcParams["axes.prop_cycle"] = matplotlib.cycler(
 #     color=["r", "k", "c"], marker=["s", "o", "v"]
 # )
-plot_settings = {
+ps = {
     "GP": {"c": "r", "m": "s"},
     "RF": {"c": "k", "m": "o"},
     "BNN": {"c": "c", "m": "v"},
-    "DS": {"c": "b", "m": "*"},
+    "DS": {"c": "black", "m": "*"},
 }
 

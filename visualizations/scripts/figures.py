@@ -1,4 +1,6 @@
 from typing import Dict
+
+from scipy.stats.stats import energy_distance
 from imports.general import *
 from imports.ml import *
 from src.parameters import Parameters
@@ -8,14 +10,12 @@ class Figures(object):
     def __init__(self, loadpths: list[str] = [], settings: Dict[str, str] = {}):
         self.loadpths = loadpths
         self.settings = settings
-        self.problems = list(
-            set([pth.split("|")[2].split("-")[-1] for pth in self.loadpths])
-        )
         self.savepth = (
             os.getcwd()
             + "/visualizations/figures/"
             + str.join("-", [f"{key}-{val}-" for key, val in settings.items()])
         )
+        self.problems = ["Ackley", "Adjiman", "BartelsConn", "Brent", "Brown"]
         self.surrogates = ["GP", "RF", "BNN", "DS"]
         self.acquisitions = ["EI"]
         self.metrics_arr = [
@@ -40,17 +40,8 @@ class Figures(object):
         }
         self.ds = [2]
         self.seeds = list(range(1, 10 + 1))
-        self.epochs = list(range(1, 50 + 1))
-        self.ranking_direction = {  # -1 indicates if small is good, 1 indicates if large is good
-            "nmse": -1,
-            "elpd": 1,
-            "y_calibration_mse": -1,
-            "y_calibration_nmse": -1,
-            "mean_sharpness": 1,
-            "regret": -1,
-            "x_opt_dist": -1,
-            "x_opt_mean_dist": -1,
-        }
+        self.epochs = list(range(1, 90 + 1))
+        self.bos = [True, False]
 
     def load_raw(self):
         self.calibrations = []
@@ -322,8 +313,8 @@ class Figures(object):
                 plt.scatter(
                     x_1_init, x_2_init, marker=".", color="black",
                 )
-                x_1_bo = X[n_initial : n_initial + n_epochs, 0]
-                x_2_bo = X[n_initial : n_initial + n_epochs, 1]
+                x_1_bo = X[n_initial : n_initial + n_epoch, 0]
+                x_2_bo = X[n_initial : n_initial + n_epoch, 1]
                 for i in range(len(x_1_bo)):
                     plt.text(x_1_bo[i], x_2_bo[i], str(i + 1))
 
@@ -333,7 +324,85 @@ class Figures(object):
 
                 fig.savefig(
                     f"{self.savepth}bo-iters--{parameters.problem}-{parameters.surrogate}"
-                    + f"--n-epochs-{n_epochs}--seed-{seed}--d-{parameters.d}.pdf"
+                    + f"--n-epochs-{n_epoch}--seed-{seed}--d-{parameters.d}.pdf"
                 )
                 plt.close()
+
+    def bo_regret_vs_no_bo_calibration(self, epoch: int = 89, avg: bool = False):
+        self.results = np.full(
+            (
+                len(self.problems),
+                len(self.surrogates),
+                len(self.acquisitions),
+                len(self.ds),
+                len(self.seeds),
+                len(self.bos),
+            ),
+            np.nan,
+        )
+        for experiment in self.loadpths:
+            if (
+                os.path.isdir(experiment)
+                and os.path.isfile(f"{experiment}parameters.json")
+                and os.path.isfile(f"{experiment}scores.json")
+            ):
+                with open(f"{experiment}parameters.json") as json_file:
+                    parameters = json.load(json_file)
+
+                i_pro = self.problems.index(parameters["problem"])
+                i_sur = self.surrogates.index(parameters["surrogate"])
+                i_acq = self.acquisitions.index(parameters["acquisition"])
+                i_dim = self.ds.index(parameters["d"])
+                i_see = self.seeds.index(parameters["seed"])
+
+                if parameters["bo"]:
+                    with open(f"{experiment}scores---epoch-{epoch}.json") as json_file:
+                        scores = json.load(json_file)
+                    self.results[i_pro, i_sur, i_acq, i_dim, i_see, 0] = scores[
+                        "regret"
+                    ]
+                else:
+                    with open(f"{experiment}scores.json") as json_file:
+                        scores = json.load(json_file)
+                    self.results[i_pro, i_sur, i_acq, i_dim, i_see, 1] = scores[
+                        "y_calibration_mse"
+                    ]
+
+        for i_dim, dim in enumerate(self.ds):
+            for i_pro, problem in enumerate(self.problems):
+                if not np.any(  # demanding all surrogates have carried out all epochs
+                    np.isnan(self.results[i_pro, :, :, i_dim, :, :])
+                ):
+                    fig = plt.figure()
+                    for i_sur, surrogate in enumerate(self.surrogates):
+                        x = (
+                            np.mean(
+                                self.results[i_pro, i_sur, :, i_dim, :, 0], axis=-1
+                            ).squeeze()
+                            if avg
+                            else self.results[i_pro, i_sur, :, i_dim, :, 0].flatten()
+                        )
+                        y = (
+                            np.mean(
+                                self.results[i_pro, i_sur, :, i_dim, :, 1], axis=-1
+                            ).squeeze()
+                            if avg
+                            else self.results[i_pro, i_sur, :, i_dim, :, 1].flatten()
+                        )
+                        plt.scatter(
+                            x,
+                            y,
+                            color=ps[surrogate]["c"],
+                            marker=ps[surrogate]["m"],
+                            label=f"{surrogate}",
+                        )
+                    plt.xlabel("Regret")
+                    plt.ylabel("Calibration MSE")
+                    # plt.xlim([0, 2])
+                    plt.xscale("log")
+                    # plt.yscale("log")
+                    plt.legend()
+                    fig.savefig(
+                        f"{self.savepth}regret-vs-no-bo-calibration|{problem}({dim})|epoch={epoch}|avg={avg}.pdf"
+                    )
 

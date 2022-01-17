@@ -42,9 +42,22 @@ class ResultsTest(unittest.TestCase):
             os.getcwd() + "/results/" + f + "/" for f in loadpths if "tests" not in f
         ]
         loadpths = [f for f in loadpths if os.path.isdir(f)]
-        figures = Figures(loadpths)
-        figures.bo_2d_contour(n_epochs=20, seed=2)
+        figures = Figures(loadpths, {"surrogate": "GP"})
+        for seed in range(1, 11):
+            figures.bo_2d_contour(n_epochs=50, seed=seed)
         # figures.bo_2d_contour(n_epochs=10, seed=1)
+
+    def test_bo_regret_vs_no_bo_calibration(self) -> None:
+        loadpths = os.listdir(os.getcwd() + "/results/")
+        loadpths = [
+            os.getcwd() + "/results/" + f + "/" for f in loadpths if "tests" not in f
+        ]
+        loadpths = [f for f in loadpths if os.path.isdir(f)]
+        figures = Figures(loadpths)
+        figures.bo_regret_vs_no_bo_calibration(epoch=89, avg=False)
+        figures.bo_regret_vs_no_bo_calibration(epoch=89, avg=True)
+        figures.bo_regret_vs_no_bo_calibration(epoch=50, avg=False)
+        figures.bo_regret_vs_no_bo_calibration(epoch=50, avg=True)
 
 
 if __name__ == "__main__":
