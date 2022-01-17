@@ -6,6 +6,7 @@ results/*
 visualizations/figures/*
 visualizations/tables/*
 cluster
+**/TODO.txt
 **/.DS_Store
 **/__pycache__
 CodeChart.drawio
