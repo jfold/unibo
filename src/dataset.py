@@ -19,6 +19,8 @@ class Dataset(object):
             "f_min": self.data.problem.fmin,
             "f_max": self.data.problem.fmax,
         }
+        self.actual_improvement = None
+        self.expected_improvement = None
         self.update_solution()
 
     def update_solution(self) -> None:
@@ -47,9 +49,8 @@ class Dataset(object):
         self.data.X = np.append(self.data.X, x_new, axis=0)
         y_new = self.data.get_y(x_new)
         self.data.y = np.append(self.data.y, y_new, axis=0)
-        self.actual_improvement = self.y_opt - y_new
-        if not acq_val is None:
-            self.expected_improvement = acq_val
+        self.actual_improvement = y_new - self.y_opt
+        self.expected_improvement = acq_val
         self.update_solution()
 
     def sample_testset(self, n_samples: int = None) -> Dict[np.ndarray, np.ndarray]:

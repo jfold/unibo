@@ -122,8 +122,8 @@ class Calibration(CalibrationPlots):
     def improvement(self, dataset: Dataset):
         self.summary.update(
             {
-                "expected_improvement": dataset.expected_improvement,
-                "actual_improvement": dataset.actual_improvement,
+                "expected_improvement": np.array(dataset.expected_improvement),
+                "actual_improvement": np.array(dataset.actual_improvement),
             }
         )
 
@@ -165,7 +165,7 @@ class Calibration(CalibrationPlots):
         X_test, y_test = dataset.sample_testset()
         self.ne_true = dataset.data.ne_true
         self.y_max = dataset.data.y_max
-        mu_test, sigma_test = surrogate.surrogate_object.predict(X_test)
+        mu_test, sigma_test = surrogate.predict(X_test)
         self.check_y_calibration(mu_test, sigma_test, y_test)
         self.check_gaussian_sharpness(mu_test, sigma_test, name)
         self.expected_log_predictive_density(
