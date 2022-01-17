@@ -265,17 +265,3 @@ class Ranking(object):
         print(self.mean_ranking_table)
         print(self.std_ranking_table)
 
-
-# 2)
-# 2x2 subplot plot:
-# Contour plot i 2D + punkter op til en specifik iteration
-# posterior middel for en specifik iteration
-# posterior varians for en specifik iteration
-# acquisition for en specifik iteration
-# 4) Mikkel
-# Generer data fra en GP med kendte hyperparametre
-
-# 0) Actual improvement vs. expected improvement
-# 1) Ved 100 træningspunkter over flere seeds, hvor godt kalibreret er model X på dataset Y i gns
-# 2) Ved de samme problemer + surrogater laves nu BO, hvor vi gemmer total regret + last regret
-# 4x4
