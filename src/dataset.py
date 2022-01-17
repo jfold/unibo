@@ -43,12 +43,13 @@ class Dataset(object):
         with open(self.savepth + f"dataset{save_settings}.json", "w") as f:
             f.write(json_dump)
 
-    def add_X_get_y(self, x_new: np.ndarray, acq_val: np.ndarray) -> None:
+    def add_X_get_y(self, x_new: np.ndarray, acq_val: np.ndarray = None) -> None:
         self.data.X = np.append(self.data.X, x_new, axis=0)
         y_new = self.data.get_y(x_new)
         self.data.y = np.append(self.data.y, y_new, axis=0)
         self.actual_improvement = self.y_opt - y_new
-        self.expected_improvement = acq_val
+        if not acq_val is None:
+            self.expected_improvement = acq_val
         self.update_solution()
 
     def sample_testset(self, n_samples: int = None) -> Dict[np.ndarray, np.ndarray]:
