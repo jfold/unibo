@@ -16,8 +16,8 @@ class Dataset(object):
             "d": int(self.d),
             "x_lbs": self.data.lbs,
             "x_ubs": self.data.ubs,
-            "f_min": self.data.problem.fmin,
-            "f_max": self.data.problem.fmax,
+            "f_min": float(self.data.problem.fmin),
+            "f_max": float(self.data.problem.fmax),
         }
         self.actual_improvement = None
         self.expected_improvement = None
