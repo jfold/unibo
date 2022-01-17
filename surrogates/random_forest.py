@@ -37,7 +37,7 @@ class RandomForest(BatchedMultiOutputGPyTorchModel):
             self.rf_params_grid = {
                 "n_estimators": [10, 100, 1000],
                 "max_depth": [5, 10, 20],
-                "max_samples": [int(self.n_initial / 2), int(self.n_initial)],
+                # "max_samples": [int(self.n_initial / 2), int(self.n_initial)],
                 "max_features": ["auto", "sqrt"],
             }
 
@@ -53,10 +53,10 @@ class RandomForest(BatchedMultiOutputGPyTorchModel):
             X_train (np.ndarray): training input
             y_train (np.ndarray): training output
         """
-        if not self.vanilla:
-            self.rf_params_grid.update(
-                {"max_samples": [int(X_train.shape[0] / 2), int(X_train.shape[0]),]}
-            )
+        # if not self.vanilla:
+        #     self.rf_params_grid.update(
+        #         {"max_samples": [int(X_train.shape[0] / 2), int(X_train.shape[0]),]}
+        #     )
         grid_search = GridSearchCV(
             estimator=RandomForestRegressor(),
             param_grid=self.rf_params_grid,
