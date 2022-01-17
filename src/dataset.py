@@ -49,7 +49,7 @@ class Dataset(object):
         self.data.X = np.append(self.data.X, x_new, axis=0)
         y_new = self.data.get_y(x_new)
         self.data.y = np.append(self.data.y, y_new, axis=0)
-        self.actual_improvement = y_new - self.y_opt
+        self.actual_improvement = y_new - self.y_opt if self.bo else None
         self.expected_improvement = acq_val
         self.update_solution()
 
