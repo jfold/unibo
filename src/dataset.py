@@ -41,6 +41,8 @@ class Dataset(object):
         )
 
     def save(self, save_settings: str = "") -> None:
+        for k,v in self.summary.items()
+            print(k,v,type(v))
         json_dump = json.dumps(self.summary)
         with open(self.savepth + f"dataset{save_settings}.json", "w") as f:
             f.write(json_dump)
