@@ -13,7 +13,7 @@ class Dataset(object):
         self.data = data_class(parameters)
         self.summary = {
             "problem": self.problem,
-            "d": self.d,
+            "d": int(self.d),
             "x_lbs": self.data.lbs,
             "x_ubs": self.data.ubs,
             "f_min": self.data.problem.fmin,
