@@ -36,6 +36,16 @@ class ResultsTest(unittest.TestCase):
         loadpths = [f for f in loadpths if os.path.isdir(f)]
         Ranking(loadpths).run()
 
+    def test_plots_bo_2d_contour(self) -> None:
+        loadpths = os.listdir(os.getcwd() + "/results/")
+        loadpths = [
+            os.getcwd() + "/results/" + f + "/" for f in loadpths if "tests" not in f
+        ]
+        loadpths = [f for f in loadpths if os.path.isdir(f)]
+        figures = Figures(loadpths)
+        figures.bo_2d_contour(n_epochs=20, seed=2)
+        # figures.bo_2d_contour(n_epochs=10, seed=1)
+
 
 if __name__ == "__main__":
     unittest.main()
