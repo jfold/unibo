@@ -10,7 +10,7 @@ class Ranking(object):
         self.problems = list(
             set([pth.split("|")[2].split("-")[-1] for pth in self.loadpths])
         )
-        self.surrogates = ["GP", "RF", "BNN"]
+        self.surrogates = ["GP", "RF", "BNN", "DS"]
         self.acquisitions = ["EI"]
         self.metrics_arr = [
             "nmse",
@@ -250,9 +250,11 @@ class Ranking(object):
         self.init_tables()
         self.calc_ranking()
         self.calc_plot_metric_dependence(
-            metric_1="regret", metric_2="y_calibration_mse", n_epoch=-1
+            metric_1="regret", metric_2="y_calibration_mse", n_epoch=range(50)
         )
-        self.calc_plot_metric_dependence(metric_1="regret", metric_2="elpd", n_epoch=-1)
+        self.calc_plot_metric_dependence(
+            metric_1="regret", metric_2="elpd", n_epoch=range(50)
+        )
 
         self.mean_ranking_table.applymap("{:.4f}".format).to_csv(
             f"{self.savepth}means.csv",
@@ -264,22 +266,16 @@ class Ranking(object):
         print(self.std_ranking_table)
 
 
-# TODO:
-# Rank (1,2,3) som funktion af epoker for:
-# y_calibration_nmse, mean_sharpness, regret, x_opt_dist
-# I hver epoke regner vi korrelationscoefficienten (mutual information?)
-# mellem
-
-# 1)
-# Contour plot i 2D -> init som punkter + epokevalg som tal
 # 2)
-# 3x1 subplot plot:
+# 2x2 subplot plot:
 # Contour plot i 2D + punkter op til en specifik iteration
 # posterior middel for en specifik iteration
 # posterior varians for en specifik iteration
 # acquisition for en specifik iteration
-# 3)
-# Inkluder GP med ændret std
 # 4) Mikkel
 # Generer data fra en GP med kendte hyperparametre
 
+# 0) Actual improvement vs. expected improvement
+# 1) Ved 100 træningspunkter over flere seeds, hvor godt kalibreret er model X på dataset Y i gns
+# 2) Ved de samme problemer + surrogater laves nu BO, hvor vi gemmer total regret + last regret
+# 4x4
