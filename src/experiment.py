@@ -35,8 +35,8 @@ class Experiment(object):
 
             for e in tqdm(range(self.n_evals), leave=False):
                 save_settings = f"---epoch-{e+1}" if e < self.n_evals - 1 else ""
-                x_new, _ = self.optimizer.bo_iter(self.dataset)
-                self.dataset.add_X_get_y(x_new)
+                x_new, acq_val = self.optimizer.bo_iter(self.dataset)
+                self.dataset.add_X_get_y(x_new, acq_val)
                 self.optimizer.fit_surrogate(self.dataset)
                 self.calibration.analyze(
                     self.optimizer.surrogate_object,
