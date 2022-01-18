@@ -67,7 +67,7 @@ class DummySurrogate(BatchedMultiOutputGPyTorchModel):
                 self.X_train[neigh_ind, :], self.y_train[neigh_ind, :],
             )
             mean_x.append(lr.predict(x_test).squeeze())
-            var_x.append(np.exp(np.min(neigh_dist)) + stabilizer)
+            var_x.append(np.exp(0.01 * np.min(neigh_dist)) + stabilizer)
 
         return np.array(mean_x)[:, np.newaxis], np.array(var_x)[:, np.newaxis]
 

@@ -36,6 +36,26 @@ class ResultsTest(unittest.TestCase):
         loadpths = [f for f in loadpths if os.path.isdir(f)]
         Ranking(loadpths).run()
 
+    def test_plots_bo_2d_contour(self) -> None:
+        loadpths = os.listdir(os.getcwd() + "/results/")
+        loadpths = [
+            os.getcwd() + "/results/" + f + "/" for f in loadpths if "tests" not in f
+        ]
+        loadpths = [f for f in loadpths if os.path.isdir(f)]
+        figures = Figures(loadpths)  # , {"surrogate": "GP", "problem": "Adjiman"})
+        for seed in range(1, 11):
+            figures.bo_2d_contour(n_epochs=50, seed=seed)
+
+    def test_bo_regret_vs_no_bo_calibration(self) -> None:
+        loadpths = os.listdir(os.getcwd() + "/results/")
+        loadpths = [
+            os.getcwd() + "/results/" + f + "/" for f in loadpths if "tests" not in f
+        ]
+        loadpths = [f for f in loadpths if os.path.isdir(f)]
+        figures = Figures(loadpths)
+        figures.bo_regret_vs_no_bo_calibration(epoch=50, avg=False)
+        figures.bo_regret_vs_no_bo_calibration(epoch=50, avg=True)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -1,6 +1,7 @@
 import sys
 import matplotlib
 import matplotlib.pyplot as plt
+from mpl_toolkits.axes_grid1 import make_axes_locatable
 from scipy.stats import norm, uniform, kstest, entropy, pearsonr
 from sklearn.model_selection import train_test_split
 from sklearn.feature_selection import mutual_info_regression
@@ -15,6 +16,7 @@ import torch.nn as nn
 import torch.optim as optim
 import torchbnn as bnn
 
+
 matplotlib.rcParams["mathtext.fontset"] = "cm"
 matplotlib.rcParams["font.family"] = "STIXGeneral"
 matplotlib.rcParams["axes.grid"] = True
@@ -24,9 +26,10 @@ matplotlib.rcParams["savefig.bbox"] = "tight"
 # matplotlib.rcParams["axes.prop_cycle"] = matplotlib.cycler(
 #     color=["r", "k", "c"], marker=["s", "o", "v"]
 # )
-plot_settings = {
+ps = {
     "GP": {"c": "r", "m": "s"},
     "RF": {"c": "k", "m": "o"},
     "BNN": {"c": "c", "m": "v"},
+    "DS": {"c": "black", "m": "*"},
 }
 

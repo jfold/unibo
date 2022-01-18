@@ -1,8 +1,10 @@
 from dataclasses import asdict
 import json
 from numpy.lib.npyio import save
+from scipy.sparse import data
 from imports.general import *
 from imports.ml import *
+from src.optimizer import Optimizer
 from src.parameters import Parameters
 from visualizations.scripts.calibrationplots import CalibrationPlots
 from src.dataset import Dataset
@@ -117,6 +119,14 @@ class Calibration(CalibrationPlots):
         elpd = np.mean(log_pdfs)
         self.summary.update({"elpd": elpd})
 
+    def improvement(self, dataset: Dataset):
+        self.summary.update(
+            {
+                "expected_improvement": np.array(dataset.expected_improvement),
+                "actual_improvement": np.array(dataset.actual_improvement),
+            }
+        )
+
     def nmse(self, y: np.ndarray, predictions: np.ndarray) -> None:
         """Calculates normalized mean square error by 
         nmse = \ frac{1}{N\cdot\mathbb{V}[\textbf{y}]} \sum_i (\textbf{y}-\hat{\textbf{y}})^2
@@ -164,6 +174,7 @@ class Calibration(CalibrationPlots):
         self.nmse(y_test, mu_test)
         self.regret(dataset)
         self.glob_min_dist(dataset)
+        self.improvement(dataset)
 
         if self.plot_it and self.save_it:
             if self.d == 1:

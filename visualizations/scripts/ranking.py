@@ -7,10 +7,8 @@ class Ranking(object):
         np.random.seed(2022)
         self.loadpths = loadpths
         self.settings = settings
-        self.problems = list(
-            set([pth.split("|")[2].split("-")[-1] for pth in self.loadpths])
-        )
-        self.surrogates = ["GP", "RF", "BNN"]
+        self.problems = ["Ackley", "Adjiman", "BartelsConn", "Brent", "Brown"]
+        self.surrogates = ["GP", "RF", "BNN", "DS"]
         self.acquisitions = ["EI"]
         self.metrics_arr = [
             "nmse",
@@ -34,7 +32,7 @@ class Ranking(object):
         }
         self.ds = [2]
         self.seeds = list(range(1, 30 + 1))
-        self.epochs = list(range(1, 50 + 1))
+        self.epochs = list(range(1, 90 + 1))
         self.ranking_direction = {  # -1 indicates if small is good, 1 indicates if large is good
             "nmse": -1,
             "elpd": 1,
@@ -97,7 +95,10 @@ class Ranking(object):
                 with open(experiment + "parameters.json") as json_file:
                     parameters = json.load(json_file)
 
-                if not self.settings.items() <= parameters.items():
+                if (
+                    not self.settings.items() <= parameters.items()
+                    or not parameters["bo"]
+                ):
                     continue
 
                 try:
@@ -164,9 +165,11 @@ class Ranking(object):
         for i_sur, surrogate in enumerate(self.surrogates):
             for i_met, metric in enumerate(self.ranking_direction.keys()):
                 mean_rank = np.nanmean(self.rankings[:, i_sur, :, i_met, :, :])
+                median_rank = np.nanmedian(self.rankings[:, i_sur, :, i_met, :, :])
                 std_rank = np.nanstd(self.rankings[:, i_sur, :, i_met, :, :])
                 no_trials = np.sum(np.isfinite(self.rankings[:, i_sur, :, i_met, :, :]))
                 self.mean_ranking_table[metric][surrogate] = 1 + mean_rank
+                self.median_ranking_table[metric][surrogate] = 1 + median_rank
                 self.std_ranking_table[metric][surrogate] = 1 + std_rank
                 self.no_ranking_table[metric][surrogate] = no_trials
 
@@ -174,6 +177,7 @@ class Ranking(object):
         rows = self.surrogates
         cols = self.ranking_direction.keys()
         self.mean_ranking_table = pd.DataFrame(columns=cols, index=rows)
+        self.median_ranking_table = pd.DataFrame(columns=cols, index=rows)
         self.std_ranking_table = pd.DataFrame(columns=cols, index=rows)
         self.no_ranking_table = pd.DataFrame(columns=cols, index=rows)
 
@@ -250,36 +254,25 @@ class Ranking(object):
         self.init_tables()
         self.calc_ranking()
         self.calc_plot_metric_dependence(
-            metric_1="regret", metric_2="y_calibration_mse", n_epoch=-1
+            metric_1="regret", metric_2="y_calibration_mse", n_epoch=range(50)
         )
-        self.calc_plot_metric_dependence(metric_1="regret", metric_2="elpd", n_epoch=-1)
+        self.calc_plot_metric_dependence(
+            metric_1="regret", metric_2="elpd", n_epoch=range(50)
+        )
 
         self.mean_ranking_table.applymap("{:.4f}".format).to_csv(
-            f"{self.savepth}means.csv",
+            f"{self.savepth}ranking-means.csv",
         )
         self.std_ranking_table.applymap("{:.4f}".format).to_csv(
-            f"{self.savepth}stds.csv"
+            f"{self.savepth}ranking-stds.csv"
         )
+        print("MEAN:")
         print(self.mean_ranking_table)
+        # print(self.mean_ranking_table.to_latex(float_format=lambda x: "%.3f" % x))
+        print("MEDIAN:")
+        print(self.median_ranking_table)
+        # print(self.mean_ranking_table.to_latex(float_format=lambda x: "%.3f" % x))
+        print("STD:")
         print(self.std_ranking_table)
-
-
-# TODO:
-# Rank (1,2,3) som funktion af epoker for:
-# y_calibration_nmse, mean_sharpness, regret, x_opt_dist
-# I hver epoke regner vi korrelationscoefficienten (mutual information?)
-# mellem
-
-# 1)
-# Contour plot i 2D -> init som punkter + epokevalg som tal
-# 2)
-# 3x1 subplot plot:
-# Contour plot i 2D + punkter op til en specifik iteration
-# posterior middel for en specifik iteration
-# posterior varians for en specifik iteration
-# acquisition for en specifik iteration
-# 3)
-# Inkluder GP med ændret std
-# 4) Mikkel
-# Generer data fra en GP med kendte hyperparametre
+        # print(self.std_ranking_table.to_latex(float_format=lambda x: "%.2f" % x))
 
