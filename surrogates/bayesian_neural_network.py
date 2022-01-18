@@ -16,18 +16,16 @@ class BayesianNeuralNetwork(BatchedMultiOutputGPyTorchModel):
         self.d = parameters.d
         self.model = nn.Sequential(
             bnn.BayesLinear(
-                prior_mu=0, prior_sigma=0.1, in_features=self.d, out_features=10
+                prior_mu=0.1, prior_sigma=1.0, in_features=self.d, out_features=500
             ),
             nn.ReLU(),
             bnn.BayesLinear(
-                prior_mu=0, prior_sigma=0.1, in_features=10, out_features=4
+                prior_mu=0.0, prior_sigma=0.1, in_features=500, out_features=1,
             ),
-            nn.ReLU(),
-            bnn.BayesLinear(prior_mu=0, prior_sigma=0.1, in_features=4, out_features=1),
         )
         self.mse_loss = nn.MSELoss()
         self.kl_loss = bnn.BKLLoss(reduction="mean", last_layer_only=False)
-        self.kl_weight = 0.01
+        self.kl_weight = 1.0
         self._set_dimensions(train_X=dataset.data.X, train_Y=dataset.data.y)
         self.optimizer = optim.Adam(self.model.parameters(), lr=0.1)
         self.fit(X_train=dataset.data.X, y_train=dataset.data.y)
@@ -38,7 +36,7 @@ class BayesianNeuralNetwork(BatchedMultiOutputGPyTorchModel):
         covar_x = torch.tensor(np.diag(covar_x.squeeze()))
         return MultivariateNormal(mean_x, covar_x)
 
-    def fit(self, X_train: np.ndarray, y_train: np.ndarray, n_epochs: int = 3000):
+    def fit(self, X_train: np.ndarray, y_train: np.ndarray, n_epochs: int = 500):
         X_train = torch.tensor(X_train, dtype=torch.float32)
         y_train = torch.tensor(y_train, dtype=torch.float32)
         self.loss = []
@@ -53,6 +51,10 @@ class BayesianNeuralNetwork(BatchedMultiOutputGPyTorchModel):
             self.optimizer.step()
 
         self.loss.append(elbo)
+        # fig = plt.figure()
+        # plt.plot(np.log(self.loss))
+        # plt.show()
+        # raise ValueError()
 
     def predict(
         self, X_test: np.ndarray, stabilizer: float = 1e-8, n_ensemble: int = 100
