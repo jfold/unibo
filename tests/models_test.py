@@ -7,6 +7,7 @@ from surrogates.random_forest import *
 from surrogates.bayesian_neural_network import BayesianNeuralNetwork
 from src.optimizer import Optimizer
 from src.calibration import Calibration
+from src.experiment import Experiment
 from visualizations.scripts.calibrationplots import CalibrationPlots
 
 kwargs = {"savepth": os.getcwd() + "/results/tests/", "d": 1, "vanilla": True}
@@ -180,6 +181,24 @@ class ModelsTest(unittest.TestCase):
 
         plots = CalibrationPlots(parameters)
         plots.plot_predictive(dataset, X_test, y_test, mu, std)
+
+    def test_GaussianProcess_bo(self) -> None:
+        seeds = range(10)
+        for seed in seeds:
+            kwargs.update(
+                {
+                    "surrogate": "GP",
+                    "d": 2,
+                    "seed": seed,
+                    "problem": "Adjiman",
+                    "n_evals": 10,
+                    "bo": True,
+                    "savepth": os.getcwd() + "/results/",
+                }
+            )
+            parameters = Parameters(kwargs, mkdir=True)
+            experiment = Experiment(parameters)
+            experiment.run()
 
     def test_DummySurrogate(self) -> None:
         kwargs.update({"surrogate": "DS", "d": 2})

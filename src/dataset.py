@@ -3,6 +3,7 @@ from src.parameters import *
 from imports.general import *
 from datasets.verifications.verification import VerificationData
 from datasets.benchmarks.benchmark import Benchmark
+from datasets.GP.gp import GPSampler
 
 
 class Dataset(object):
