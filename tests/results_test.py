@@ -1,12 +1,20 @@
 from os import mkdir
 import unittest
 from main import *
+from visualizations.scripts.loader import Loader
 from visualizations.scripts.ranking import Ranking
 from visualizations.scripts.tables import Tables
 from visualizations.scripts.figures import Figures
 
 
 class ResultsTest(unittest.TestCase):
+    def test_loader(self) -> None:
+        loadpths = os.listdir(os.getcwd() + "/results/")
+        loadpths = [os.getcwd() + "/results/" + f + "/" for f in loadpths]
+        loadpths = [f for f in loadpths if os.path.isdir(f)]
+        loader = Loader(loadpths)
+        print(loader.data_summary)
+
     def test_plots_default(self) -> None:
         loadpths = os.listdir(os.getcwd() + "/results/tests/")
         loadpths = [os.getcwd() + "/results/tests/" + f + "/" for f in loadpths]
