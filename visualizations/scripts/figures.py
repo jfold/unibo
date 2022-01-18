@@ -216,6 +216,7 @@ class Figures(object):
                 if (
                     not self.settings.items() <= parameters.items()
                     or seed != parameters["seed"]
+                    or not parameters["bo"]
                 ):
                     continue
 
