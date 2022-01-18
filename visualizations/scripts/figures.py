@@ -240,7 +240,7 @@ class Figures(object):
 
                 fig = plt.figure()
                 ax = fig.add_subplot(111)
-                pc = ax.pcolormesh(X1, X2, y.T)
+                pc = ax.pcolormesh(X1, X2, y.T, linewidth=0, rasterized=True)
                 ax.grid(False)
                 plt.plot(
                     x_min_loc[0], x_min_loc[1], color="green", marker="o", markersize=10
