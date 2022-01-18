@@ -53,8 +53,6 @@ class ResultsTest(unittest.TestCase):
         ]
         loadpths = [f for f in loadpths if os.path.isdir(f)]
         figures = Figures(loadpths)
-        figures.bo_regret_vs_no_bo_calibration(epoch=89, avg=False)
-        figures.bo_regret_vs_no_bo_calibration(epoch=89, avg=True)
         figures.bo_regret_vs_no_bo_calibration(epoch=50, avg=False)
         figures.bo_regret_vs_no_bo_calibration(epoch=50, avg=True)
 
