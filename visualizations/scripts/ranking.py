@@ -7,42 +7,6 @@ class Ranking(object):
         np.random.seed(2022)
         self.loadpths = loadpths
         self.settings = settings
-        self.problems = ["Ackley", "Adjiman", "BartelsConn", "Brent", "Brown"]
-        self.surrogates = ["GP", "RF", "BNN", "DS"]
-        self.acquisitions = ["EI"]
-        self.metrics_arr = [
-            "nmse",
-            "elpd",
-            "y_calibration_mse",
-            "y_calibration_nmse",
-            "mean_sharpness",
-            "x_opt_mean_dist",
-            "x_opt_dist",
-            "regret",
-        ]
-        self.metrics = {
-            "nmse": "nMSE",
-            "elpd": "ELPD",
-            "y_calibration_mse": "Calibration MSE",
-            "y_calibration_nmse": "Calibration nMSE",
-            "mean_sharpness": "Sharpness",
-            "x_opt_mean_dist": "Solution mean distance",
-            "x_opt_dist": "Solution distance",
-            "regret": "Regret",
-        }
-        self.ds = [2]
-        self.seeds = list(range(1, 30 + 1))
-        self.epochs = list(range(1, 90 + 1))
-        self.ranking_direction = {  # -1 indicates if small is good, 1 indicates if large is good
-            "nmse": -1,
-            "elpd": 1,
-            "y_calibration_mse": -1,
-            "y_calibration_nmse": -1,
-            "mean_sharpness": 1,
-            "regret": -1,
-            "x_opt_dist": -1,
-            "x_opt_mean_dist": -1,
-        }
         self.savepth = (
             os.getcwd()
             + "/visualizations/tables/"

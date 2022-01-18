@@ -4,9 +4,10 @@ from scipy.stats.stats import energy_distance
 from imports.general import *
 from imports.ml import *
 from src.parameters import Parameters
+from visualizations.scripts.loader import Loader
 
 
-class Figures(object):
+class Figures(Loader):
     def __init__(self, loadpths: list[str] = [], settings: Dict[str, str] = {}):
         self.loadpths = loadpths
         self.settings = settings
@@ -15,33 +16,6 @@ class Figures(object):
             + "/visualizations/figures/"
             + str.join("-", [f"{key}-{val}-" for key, val in settings.items()])
         )
-        self.problems = ["Ackley", "Adjiman", "BartelsConn", "Brent", "Brown"]
-        self.surrogates = ["GP", "RF", "BNN", "DS"]
-        self.acquisitions = ["EI"]
-        self.metrics_arr = [
-            "nmse",
-            "elpd",
-            "y_calibration_mse",
-            "y_calibration_nmse",
-            "mean_sharpness",
-            "x_opt_mean_dist",
-            "x_opt_dist",
-            "regret",
-        ]
-        self.metrics = {
-            "nmse": "nMSE",
-            "elpd": "ELPD",
-            "y_calibration_mse": "Calibration MSE",
-            "y_calibration_nmse": "Calibration nMSE",
-            "mean_sharpness": "Sharpness",
-            "x_opt_mean_dist": "Solution mean distance",
-            "x_opt_dist": "Solution distance",
-            "regret": "Regret",
-        }
-        self.ds = [2]
-        self.seeds = list(range(1, 10 + 1))
-        self.epochs = list(range(1, 90 + 1))
-        self.bos = [True, False]
 
     def load_raw(self):
         self.calibrations = []
