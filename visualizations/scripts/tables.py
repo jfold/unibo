@@ -66,6 +66,6 @@ class Tables(Loader):
         self.load_raw()
         self.summary_table()
 
-    def surrogates_vs_metrics(self):
-        columns = 
+    # def surrogates_vs_metrics(self):
+    #     columns =
 

@@ -6,14 +6,7 @@ class Loader(object):
     def __init__(self, loadpths: list[str] = [], settings: Dict[str, str] = {}):
         self.loadpths = loadpths
         self.settings = settings
-
-        self.surrogates = ["GP", "RF", "BNN", "DS"]
-        self.acquisitions = ["EI"]
-        self.ds = [2]
-        self.seeds = list(range(1, 10 + 1))
-        self.epochs = list(range(1, 90 + 1))
-        self.bos = [True, False]
-        self.metrics = {
+        self.metric_dict = {
             "nmse": ["nMSE", -1, r"$ \mathcal{nMSE}$"],
             "elpd": ["ELPD", 1, r"$ \mathcal{ELPD}$"],
             "y_calibration_mse": [
@@ -23,7 +16,11 @@ class Loader(object):
             ],
             # "y_calibration_nmse": ["Calibration nMSE", -1,],
             "mean_sharpness": ["Sharpness", 1, r"$ \mathcal{S}$"],
-            "x_opt_mean_dist": ["Solution mean distance", -1,],
+            "x_opt_mean_dist": [
+                "Solution mean distance",
+                -1,
+                r"$ \mathbb{E}[||\textbf{x}_o - \textbf{x}_s||_2] $",
+            ],
             "x_opt_dist": [
                 "Solution distance",
                 -1,
@@ -31,9 +28,23 @@ class Loader(object):
             ],
             "regret": ["Regret", -1, r"$ \mathcal{R}$"],
         }
+        self.check_params = [
+            "seed",
+            "d",
+            "n_test",
+            "n_initial",
+            "n_evals",
+            "problem",
+            "change_std",
+            "surrogate",
+            "acquisition",
+            "bo",
+        ]
+        self.skim_data()
 
     def skim_data(self):
         self.data_settings = {}
+        self.data_summary = {k: [] for k in self.check_params}
         for i_e, experiment in enumerate(p for p in self.loadpths):
             if (
                 os.path.isdir(experiment)
@@ -48,10 +59,19 @@ class Loader(object):
                 with open(f"{experiment}dataset.json") as json_file:
                     dataset = json.load(json_file)
 
-                if not self.settings.items() <= parameters.items():
+                if not self.settings.items() <= parameters.items() or not all(
+                    param in parameters for param in self.check_params
+                ):
                     continue
 
-                self.data_settings.update({experiment: parameters})
+                self.data_settings.update(
+                    {experiment: {k: parameters[k] for k in self.check_params}}
+                )
+
+                for k in self.check_params:
+                    lst = self.data_summary[k]
+                    lst.append(parameters[k])
+                    self.data_summary.update({k: lst})
 
     def make_result_object(self):
         self.data_settings
