@@ -42,10 +42,9 @@ class ResultsTest(unittest.TestCase):
             os.getcwd() + "/results/" + f + "/" for f in loadpths if "tests" not in f
         ]
         loadpths = [f for f in loadpths if os.path.isdir(f)]
-        figures = Figures(loadpths, {"surrogate": "GP"})
+        figures = Figures(loadpths)  # , {"surrogate": "GP", "problem": "Adjiman"})
         for seed in range(1, 11):
             figures.bo_2d_contour(n_epochs=50, seed=seed)
-        # figures.bo_2d_contour(n_epochs=10, seed=1)
 
     def test_bo_regret_vs_no_bo_calibration(self) -> None:
         loadpths = os.listdir(os.getcwd() + "/results/")
