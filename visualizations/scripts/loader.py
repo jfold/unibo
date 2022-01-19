@@ -6,6 +6,13 @@ class Loader(object):
     def __init__(self, loadpths: list[str] = [], settings: Dict[str, str] = {}):
         self.loadpths = loadpths
         self.settings = settings
+        self.load_metric_dict()
+        self.load_params_tocheck()
+        self.peak_data()
+        self.load_data()
+        self.extract()
+
+    def load_metric_dict(self):
         self.metric_dict = {
             "nmse": ["nMSE", -1, r"$ \mathcal{nMSE}$"],
             "elpd": ["ELPD", 1, r"$ \mathcal{ELPD}$"],
@@ -28,6 +35,8 @@ class Loader(object):
             ],
             "regret": ["Regret", -1, r"$ \mathcal{R}$"],
         }
+
+    def load_params_tocheck(self):
         self.check_params = [
             "seed",
             "d",
@@ -40,10 +49,8 @@ class Loader(object):
             "acquisition",
             "bo",
         ]
-        self.skim_data()
-        self.make_result_object()
 
-    def skim_data(self):
+    def peak_data(self):
         self.data_settings = {}
         self.data_summary = {k: [] for k in self.check_params}
         for i_e, experiment in enumerate(p for p in self.loadpths):
@@ -70,11 +77,12 @@ class Loader(object):
                 )
 
                 for k in self.check_params:
-                    lst = self.data_summary[k]
-                    lst.append(parameters[k])
-                    self.data_summary.update({k: lst})
+                    if k in parameters.keys():
+                        lst = self.data_summary[k]
+                        lst.append(parameters[k])
+                        self.data_summary.update({k: lst})
 
-    def make_result_object(self):
+    def init_data_object(self):
         self.values = []
         self.dims = []
         self.names = []
@@ -82,49 +90,85 @@ class Loader(object):
             self.values.append(sorted(set(val)))
             self.dims.append(len(self.values[-1]))
             self.names.append(key)
-            if key == "n_evals":
-                self.values.append(list(range(int(np.max(self.values[-1])))))
-                self.dims.append(len(self.values[-1]))
-                self.names.append("epoch")
+
+        self.values.append(
+            list(range(1 + int(np.max(self.values[self.names.index("n_evals")]))))
+        )
+        self.dims.append(len(self.values[-1]))
+        self.names.append("epoch")
+
+        self.values.append(list(self.metric_dict.keys()))
+        self.dims.append(len(self.values[-1]))
+        self.names.append("metrics")
+        self.summary = {
+            self.names[i]: {"d": self.dims[i], "vals": self.values[i]}
+            for i in range(len(self.values))
+        }
         self.data = np.full(tuple(self.dims), np.nan)
 
     def load_data(self):
-        self.data_settings = {}
-        for i_e, experiment in enumerate(p for p in self.loadpths):
-            if (
-                os.path.isdir(experiment)
-                and os.path.isfile(f"{experiment}parameters.json")
-                and os.path.isfile(f"{experiment}scores.json")
-                and os.path.isfile(f"{experiment}dataset.json")
-            ):
-                with open(f"{experiment}parameters.json") as json_file:
-                    parameters = json.load(json_file)
-                with open(f"{experiment}scores.json") as json_file:
-                    scores = json.load(json_file)
-                with open(f"{experiment}dataset.json") as json_file:
-                    dataset = json.load(json_file)
+        self.init_data_object()
+        for pth, parameters in self.data_settings.items():
+            with open(f"{pth}scores.json") as json_file:
+                scores = json.load(json_file)
+            with open(f"{pth}dataset.json") as json_file:
+                dataset = json.load(json_file)
 
-                if not self.settings.items() <= parameters.items():
-                    continue
+            if not self.settings.items() <= parameters.items():
+                continue
 
-                i_pro = self.problems.index(parameters["problem"])
-                i_see = self.seeds.index(parameters["seed"])
-                i_sur = self.surrogates.index(parameters["surrogate"])
-                i_acq = self.acquisitions.index(parameters["acquisition"])
-                i_dim = self.ds.index(parameters["d"])
+            params_idx = [
+                self.values[i].index(parameters[key])
+                for i, key in enumerate(self.names)
+                if key in self.check_params
+            ]
+            data_idx = params_idx
+            data_idx.extend(
+                [None, None]
+            )  # since we have added "epoch" and "metrics" on top of parameters
 
-                # Running over epochs
-                files_in_path = [f for f in os.listdir(experiment) if "scores" in f]
-                for file in files_in_path:
-                    if "---epoch-" in file:
-                        i_epo = int(file.split("---epoch-")[-1].split(".json")[0]) - 1
-                    else:
-                        i_epo = len(self.epochs) - 1
+            # Last epoch
+            data_idx[-2] = parameters["n_evals"]
+            for metric in self.metric_dict.keys():
+                data_idx[-1] = self.values[-1].index(metric)
+                self.data[tuple(data_idx)] = scores[metric]
 
-                    with open(experiment + file) as json_file:
-                        scores = json.load(json_file)
+            # Running over epochs
+            files_in_path = [f for f in os.listdir(pth) if "scores---epoch" in f]
+            for file in files_in_path:
+                data_idx[-2] = (
+                    int(file.split("---epoch-")[-1].split(".json")[0]) - 1
+                )  # epoch index
+                with open(f"{pth}{file}") as json_file:
+                    scores_epoch_i = json.load(json_file)
+                for metric in self.metric_dict.keys():
+                    data_idx[-1] = self.values[-1].index(metric)
+                    self.data[tuple(data_idx)] = scores_epoch_i[metric]
+        self.summary.update({"missing": np.sum(np.isnan(self.data)) / self.data.size})
+        self.summary.update({"missing": np.sum(np.isnan(self.data)) / self.data.size})
 
-                    for i_met, metric in enumerate(self.metrics.keys()):
-                        self.results[
-                            i_pro, i_sur, i_acq, i_met, i_dim, i_see, i_epo
-                        ] = scores[metric]
+    def extract(self, settings: Dict[str, str] = {}) -> np.ndarray:
+        """Example: 
+        >>> extract(settings = {"bo": [True]})
+        Returns all the data where "bo" is true
+        """
+        del_idx_dict = {
+            k: {
+                "axis": self.names.index(k),
+                "idxs": self.values[self.names.index(k)],
+                "removes": [],
+            }
+            for k in settings.keys()
+        }
+        data = self.data
+        for k, vals in settings.items():
+            bool_arr = np.ones(len(del_idx_dict[k]["idxs"]), dtype=bool)
+            for val in vals:
+                del_idx = np.array(np.array(del_idx_dict[k]["idxs"]) != val, dtype=bool)
+                bool_arr = np.logical_and(bool_arr, del_idx)
+
+            idxs = list(reversed(sorted(np.argwhere(bool_arr.squeeze()).tolist())))
+            axis = del_idx_dict[k]["axis"]
+            for idx in idxs:
+                data = np.delete(data, idx, axis=axis)
+        return data
