@@ -9,40 +9,12 @@ from visualizations.scripts.loader import Loader
 
 class Figures(Loader):
     def __init__(self, loadpths: list[str] = [], settings: Dict[str, str] = {}):
-        self.loadpths = loadpths
-        self.settings = settings
+        super(Figures, self).__init__(loadpths, settings)
         self.savepth = (
             os.getcwd()
             + "/visualizations/figures/"
             + str.join("-", [f"{key}-{val}-" for key, val in settings.items()])
         )
-
-    def load_raw(self):
-        self.calibrations = []
-        self.names = []
-        for surrogate in self.surrogates:
-            calibrations = []
-            sharpnesses = []
-            for experiment in [
-                p for p in self.loadpths if p.split("|")[1] == surrogate
-            ]:
-                if os.path.isfile(experiment + "scores.json") and os.path.isfile(
-                    experiment + "parameters.json"
-                ):
-                    with open(experiment + "scores.json") as json_file:
-                        scores = json.load(json_file)
-                    with open(experiment + "parameters.json") as json_file:
-                        parameters = json.load(json_file)
-                    if self.settings.items() <= parameters.items():
-                        self.p_axis = np.array(scores["y_p_array"])
-                        name = f"{parameters['surrogate']}-{parameters['acquisition']}"
-                        calibrations.append(np.array(scores["y_calibration"]))
-            self.names.append(name)
-            self.calibrations.append(np.array(calibrations))
-
-    def generate(self,):
-        self.load_raw()
-        self.calibration()
 
     def calibration(self):
         fig = plt.figure()
