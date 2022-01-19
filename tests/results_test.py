@@ -13,7 +13,9 @@ class ResultsTest(unittest.TestCase):
         loadpths = [os.getcwd() + "/results/" + f + "/" for f in loadpths]
         loadpths = [f for f in loadpths if os.path.isdir(f)]
         loader = Loader(loadpths)
-        print(loader.data_summary)
+        print(loader.values)
+        print(loader.dims)
+        print(loader.names)
 
     def test_plots_default(self) -> None:
         loadpths = os.listdir(os.getcwd() + "/results/tests/")

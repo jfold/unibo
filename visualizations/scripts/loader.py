@@ -41,6 +41,7 @@ class Loader(object):
             "bo",
         ]
         self.skim_data()
+        self.make_result_object()
 
     def skim_data(self):
         self.data_settings = {}
@@ -74,7 +75,18 @@ class Loader(object):
                     self.data_summary.update({k: lst})
 
     def make_result_object(self):
-        self.data_settings
+        self.values = []
+        self.dims = []
+        self.names = []
+        for key, val in self.data_summary.items():
+            self.values.append(sorted(set(val)))
+            self.dims.append(len(self.values[-1]))
+            self.names.append(key)
+            if key == "n_evals":
+                self.values.append(list(range(int(np.max(self.values[-1])))))
+                self.dims.append(len(self.values[-1]))
+                self.names.append("epoch")
+        self.data = np.full(tuple(self.dims), np.nan)
 
     def load_data(self):
         self.data_settings = {}
@@ -95,7 +107,6 @@ class Loader(object):
                 if not self.settings.items() <= parameters.items():
                     continue
 
-                self.data_settings.update({experiment: parameters})
                 i_pro = self.problems.index(parameters["problem"])
                 i_see = self.seeds.index(parameters["seed"])
                 i_sur = self.surrogates.index(parameters["surrogate"])
