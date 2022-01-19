@@ -13,22 +13,20 @@ class ResultsTest(unittest.TestCase):
         loadpths = [os.getcwd() + "/results/" + f + "/" for f in loadpths]
         loadpths = [f for f in loadpths if os.path.isdir(f)]
         loader = Loader(loadpths)
-        print(loader.values)
-        print(loader.dims)
-        print(loader.names)
+        for k in loader.summary.keys():
+            print(k, loader.summary[k])
 
     def test_plots_default(self) -> None:
-        loadpths = os.listdir(os.getcwd() + "/results/tests/")
-        loadpths = [os.getcwd() + "/results/tests/" + f + "/" for f in loadpths]
+        loadpths = os.listdir(os.getcwd() + "/results/")
+        loadpths = [os.getcwd() + "/results/" + f + "/" for f in loadpths]
         loadpths = [f for f in loadpths if os.path.isdir(f)]
-        Figures(loadpths).generate()
+        figure = Figures(loadpths)  # .generate()
 
     def test_tables_default(self) -> None:
         loadpths = os.listdir(os.getcwd() + "/results/tests/")
         loadpths = [os.getcwd() + "/results/tests/" + f + "/" for f in loadpths]
         loadpths = [f for f in loadpths if os.path.isdir(f)]
-        Tables(loadpths, settings={"bo": True}).generate()
-        Tables(loadpths, settings={"bo": False}).generate()
+        figure = Tables(loadpths)  # .generate()
 
     def test_plots_epochs(self) -> None:
         loadpths = os.listdir(os.getcwd() + "/results/")
