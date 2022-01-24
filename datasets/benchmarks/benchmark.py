@@ -35,6 +35,7 @@ class Benchmark(object):
             self.ubs = [b[1] for b in self.problem.bounds]
             self.X = self.sample_X(parameters.n_initial)
             self.y = self.get_y(self.X)
+            self.noise_var = np.nanvar(self.y) / self.snr
         else:
             raise ValueError(
                 f"Problem {parameters.problem} does not support dimensionality {self.d}"
@@ -49,6 +50,11 @@ class Benchmark(object):
         for x in X:
             y_new.append(self.problem.evaluate(x) / self.y_max)
         y_arr = np.array(y_new)
+        if self.noisify:
+            noise_samples = np.random.normal(
+                loc=0, scale=np.sqrt(self.noise_var), size=y_arr.shape
+            )
+            y_arr += noise_samples
         return y_arr[:, np.newaxis]
 
     def __str__(self):
