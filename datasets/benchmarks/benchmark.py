@@ -13,6 +13,8 @@ class Benchmark(object):
     def __init__(self, parameters: Parameters):
         self.d = parameters.d
         self.seed = parameters.seed
+        self.noisify = parameters.noisify
+        self.snr = parameters.snr
         np.random.seed(self.seed)
         self.ne_true = np.nan
         self.benchmarks = test_funcs
@@ -31,6 +33,8 @@ class Benchmark(object):
             self.y_max = np.maximum(
                 np.abs(self.problem.fmax), np.abs(self.problem.fmin)
             )
+            self.f_max = self.problem.fmax/self.y_max
+            self.f_min = self.problem.fmin/self.y_max
             self.lbs = [b[0] for b in self.problem.bounds]
             self.ubs = [b[1] for b in self.problem.bounds]
             self.X = self.sample_X(parameters.n_initial)
@@ -51,6 +55,8 @@ class Benchmark(object):
             y_new.append(self.problem.evaluate(x) / self.y_max)
         y_arr = np.array(y_new)
         if self.noisify:
+            if not hasattr(self, "noise_var"):
+                self.noise_var = np.nanvar(y_arr) / self.snr
             noise_samples = np.random.normal(
                 loc=0, scale=np.sqrt(self.noise_var), size=y_arr.shape
             )

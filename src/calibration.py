@@ -138,15 +138,14 @@ class Calibration(CalibrationPlots):
         self.summary.update({"nmse": nmse})
 
     def regret(self, dataset: Dataset) -> None:
-        regret = np.abs(dataset.y_opt - dataset.data.problem.fmin)
+        y_solution = dataset.data.f_max if self.maximization else dataset.data.f_min
+        regret = np.abs(dataset.y_opt - y_solution)
         self.summary.update({"regret": np.sum(regret)})
-        self.summary.update({"y_opt": np.array(dataset.data.problem.fmin)})
 
     def glob_min_dist(self, dataset: Dataset) -> None:
-        squared_error = (dataset.X_opt - dataset.data.problem.min_loc) ** 2
+        squared_error = (dataset.X_opt - np.array(dataset.data.problem.min_loc)) ** 2
         self.summary.update({"x_opt_dist": np.sum(squared_error)})
         self.summary.update({"x_opt_mean_dist": np.mean(squared_error)})
-        self.summary.update({"x_opt": np.array(dataset.data.problem.min_loc)})
 
     def save(self, save_settings: str = "") -> None:
         final_dict = {k: v.tolist() for k, v in self.summary.items()}
