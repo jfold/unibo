@@ -46,8 +46,6 @@ class Parameters:
         if mkdir and not os.path.isdir(self.savepth):
             os.mkdir(self.savepth)
             self.save()
-        else:
-            print("Experiment already performed!")
 
     def update(self, kwargs, save=False) -> None:
         for key, value in kwargs.items():

@@ -66,9 +66,6 @@ class Figures(Loader):
             fig.savefig(f"{self.savepth}calibration---{settings}.pdf")
             plt.close()
 
-    def plot_bo():
-        pass
-
     def calibration_vs_epochs(self):
         n_seeds = 10  # len(self.loadpths)
         n_epochs = 50  # len(self.loadpths)
@@ -166,12 +163,14 @@ class Figures(Loader):
                     not self.settings.items() <= parameters.items()
                     or seed != parameters["seed"]
                     or not parameters["bo"]
+                    or not parameters["d"] == 2
                 ):
                     continue
 
                 with open(experiment + "dataset.json") as json_file:
                     dataset = json.load(json_file)
 
+                parameters["noisify"] = False
                 parameters = Parameters(parameters)
                 module = importlib.import_module(parameters.data_location)
                 data_class = getattr(module, parameters.data_class)
@@ -192,7 +191,11 @@ class Figures(Loader):
                 pc = ax.pcolormesh(X1, X2, y.T, linewidth=0, rasterized=True)
                 ax.grid(False)
                 plt.plot(
-                    x_min_loc[0], x_min_loc[1], color="green", marker="o", markersize=10
+                    x_min_loc[0],
+                    x_min_loc[1],
+                    color="green",
+                    marker="o",
+                    markersize=10,
                 )
                 fig.colorbar(pc)
 
@@ -215,66 +218,6 @@ class Figures(Loader):
                 fig.savefig(
                     f"{self.savepth}bo-iters--{parameters.problem}-{parameters.surrogate}"
                     + f"--n-epochs-{n_epochs}--seed-{seed}--d-{parameters.d}.pdf"
-                )
-                plt.close()
-
-    def bo_4x4_contour(self, n_epoch: int = 10, seed: int = 0):
-        for i_e, experiment in enumerate(p for p in self.loadpths):
-            if (
-                os.path.isdir(experiment)
-                and os.path.isfile(experiment + "parameters.json")
-                and os.path.isfile(experiment + "dataset.json")
-            ):
-                with open(experiment + "parameters.json") as json_file:
-                    parameters = json.load(json_file)
-
-                if (
-                    not self.settings.items() <= parameters.items()
-                    or seed != parameters["seed"]
-                ):
-                    continue
-
-                with open(experiment + "dataset.json") as json_file:
-                    dataset = json.load(json_file)
-
-                parameters = Parameters(parameters)
-                module = importlib.import_module(parameters.data_location)
-                data_class = getattr(module, parameters.data_class)
-                data = data_class(parameters)
-                x_lbs = dataset["x_lbs"]
-                x_ubs = dataset["x_ubs"]
-                x_1 = np.linspace(x_lbs[0], x_ubs[0], 100)
-                x_2 = np.linspace(x_lbs[1], x_ubs[1], 100)
-                X1, X2 = np.meshgrid(x_1, x_2)
-                y = np.full((100, 100), np.nan)
-                for i1, x1 in enumerate(x_1):
-                    for i2, x2 in enumerate(x_2):
-                        y[i1, i2] = data.get_y(np.array([[x1, x2]])).squeeze()
-
-                fig = plt.figure()
-                ax = fig.add_subplot(111)
-                pc = ax.pcolormesh(X1, X2, y)
-                fig.colorbar(pc)
-
-                X = np.array(dataset["X"])
-                n_initial = parameters.n_initial
-                x_1_init = X[:n_initial, 0]
-                x_2_init = X[:n_initial, 1]
-                plt.scatter(
-                    x_1_init, x_2_init, marker=".", color="black",
-                )
-                x_1_bo = X[n_initial : n_initial + n_epoch, 0]
-                x_2_bo = X[n_initial : n_initial + n_epoch, 1]
-                for i in range(len(x_1_bo)):
-                    plt.text(x_1_bo[i], x_2_bo[i], str(i + 1))
-
-                plt.xlabel(r"$x_1$")
-                plt.ylabel(r"$x_2$")
-                # plt.title(f"{parameters.problem}-{parameters.surrogate}")
-
-                fig.savefig(
-                    f"{self.savepth}bo-iters--{parameters.problem}-{parameters.surrogate}"
-                    + f"--n-epochs-{n_epoch}--seed-{seed}--d-{parameters.d}.pdf"
                 )
                 plt.close()
 
