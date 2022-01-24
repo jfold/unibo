@@ -51,7 +51,7 @@ class ResultsTest(unittest.TestCase):
             os.getcwd() + "/results/" + f + "/" for f in loadpths if "tests" not in f
         ]
         loadpths = [f for f in loadpths if os.path.isdir(f)]
-        figures = Figures(loadpths)  # , {"surrogate": "GP", "problem": "Adjiman"})
+        figures = Figures(loadpths)
         for seed in range(1, 11):
             figures.bo_2d_contour(n_epochs=50, seed=seed)
 
