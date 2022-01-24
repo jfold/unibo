@@ -13,8 +13,9 @@ class ResultsTest(unittest.TestCase):
         loadpths = [os.getcwd() + "/results/" + f + "/" for f in loadpths]
         loadpths = [f for f in loadpths if os.path.isdir(f)]
         loader = Loader(loadpths)
-        for k in loader.summary.keys():
-            print(k, loader.summary[k])
+        for k in loader.loader_summary.keys():
+            print(k, loader.loader_summary[k])
+        print(loader.data.shape)
 
     def test_plots_default(self) -> None:
         loadpths = os.listdir(os.getcwd() + "/results/")
@@ -61,8 +62,8 @@ class ResultsTest(unittest.TestCase):
         ]
         loadpths = [f for f in loadpths if os.path.isdir(f)]
         figures = Figures(loadpths)
-        figures.bo_regret_vs_no_bo_calibration(epoch=50, avg=False)
-        figures.bo_regret_vs_no_bo_calibration(epoch=50, avg=True)
+        figures.bo_regret_vs_no_bo_calibration(epoch=50, avg_names=[])
+        figures.bo_regret_vs_no_bo_calibration(epoch=50, avg_names=["seed"])
 
 
 if __name__ == "__main__":

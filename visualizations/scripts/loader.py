@@ -11,6 +11,7 @@ class Loader(object):
         self.peak_data()
         self.load_data()
         self.extract()
+        self.data_was_loaded = True if np.sum(np.isfinite(self.data)) > 0 else False
 
     def load_metric_dict(self):
         self.metric_dict = {
@@ -100,8 +101,8 @@ class Loader(object):
         self.values.append(list(self.metric_dict.keys()))
         self.dims.append(len(self.values[-1]))
         self.names.append("metrics")
-        self.summary = {
-            self.names[i]: {"d": self.dims[i], "vals": self.values[i]}
+        self.loader_summary = {
+            self.names[i]: {"d": self.dims[i], "axis": i, "vals": self.values[i]}
             for i in range(len(self.values))
         }
         self.data = np.full(tuple(self.dims), np.nan)
@@ -144,10 +145,16 @@ class Loader(object):
                 for metric in self.metric_dict.keys():
                     data_idx[-1] = self.values[-1].index(metric)
                     self.data[tuple(data_idx)] = scores_epoch_i[metric]
-        self.summary.update({"missing": np.sum(np.isnan(self.data)) / self.data.size})
-        self.summary.update({"missing": np.sum(np.isnan(self.data)) / self.data.size})
+        self.loader_summary.update(
+            {"missing": np.sum(np.isnan(self.data)) / self.data.size}
+        )
+        self.loader_summary.update(
+            {"missing": np.sum(np.isnan(self.data)) / self.data.size}
+        )
 
-    def extract(self, settings: Dict[str, str] = {}) -> np.ndarray:
+    def extract(
+        self, data: np.ndarray = None, settings: Dict[str, list] = {}
+    ) -> np.ndarray:
         """Example: 
         >>> extract(settings = {"bo": [True]})
         Returns all the data where "bo" is true
@@ -160,9 +167,10 @@ class Loader(object):
             }
             for k in settings.keys()
         }
-        data = self.data
+        data = self.data if data is None else data
         for k, vals in settings.items():
             bool_arr = np.ones(len(del_idx_dict[k]["idxs"]), dtype=bool)
+            vals = vals if type(vals) is list else [vals]
             for val in vals:
                 del_idx = np.array(np.array(del_idx_dict[k]["idxs"]) != val, dtype=bool)
                 bool_arr = np.logical_and(bool_arr, del_idx)

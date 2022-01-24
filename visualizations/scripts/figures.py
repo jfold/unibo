@@ -1,4 +1,5 @@
 from typing import Dict
+from numpy import size
 
 from scipy.stats.stats import energy_distance
 from imports.general import *
@@ -10,6 +11,8 @@ from visualizations.scripts.loader import Loader
 class Figures(Loader):
     def __init__(self, loadpths: list[str] = [], settings: Dict[str, str] = {}):
         super(Figures, self).__init__(loadpths, settings)
+        if not self.data_was_loaded:
+            raise ValueError("No data could be loaded")
         self.savepth = (
             os.getcwd()
             + "/visualizations/figures/"
@@ -275,81 +278,55 @@ class Figures(Loader):
                 )
                 plt.close()
 
-    def bo_regret_vs_no_bo_calibration(self, epoch: int = 89, avg: bool = False):
-        self.results = np.full(
-            (
-                len(self.problems),
-                len(self.surrogates),
-                len(self.acquisitions),
-                len(self.ds),
-                len(self.seeds),
-                len(self.bos),
-            ),
-            np.nan,
-        )
-        for experiment in self.loadpths:
-            if (
-                os.path.isdir(experiment)
-                and os.path.isfile(f"{experiment}parameters.json")
-                and os.path.isfile(f"{experiment}scores.json")
-            ):
-                with open(f"{experiment}parameters.json") as json_file:
-                    parameters = json.load(json_file)
-
-                i_pro = self.problems.index(parameters["problem"])
-                i_sur = self.surrogates.index(parameters["surrogate"])
-                i_acq = self.acquisitions.index(parameters["acquisition"])
-                i_dim = self.ds.index(parameters["d"])
-                i_see = self.seeds.index(parameters["seed"])
-
-                if parameters["bo"]:
-                    with open(f"{experiment}scores---epoch-{epoch}.json") as json_file:
-                        scores = json.load(json_file)
-                    self.results[i_pro, i_sur, i_acq, i_dim, i_see, 0] = scores[
-                        "regret"
-                    ]
-                else:
-                    with open(f"{experiment}scores.json") as json_file:
-                        scores = json.load(json_file)
-                    self.results[i_pro, i_sur, i_acq, i_dim, i_see, 1] = scores[
-                        "y_calibration_mse"
-                    ]
-
-        for i_dim, dim in enumerate(self.ds):
-            for i_pro, problem in enumerate(self.problems):
-                if not np.any(  # demanding all surrogates have carried out all epochs
-                    np.isnan(self.results[i_pro, :, :, i_dim, :, :])
-                ):
-                    fig = plt.figure()
-                    for i_sur, surrogate in enumerate(self.surrogates):
-                        x = (
-                            np.mean(
-                                self.results[i_pro, i_sur, :, i_dim, :, 0], axis=-1
-                            ).squeeze()
-                            if avg
-                            else self.results[i_pro, i_sur, :, i_dim, :, 0].flatten()
-                        )
-                        y = (
-                            np.mean(
-                                self.results[i_pro, i_sur, :, i_dim, :, 1], axis=-1
-                            ).squeeze()
-                            if avg
-                            else self.results[i_pro, i_sur, :, i_dim, :, 1].flatten()
-                        )
-                        plt.scatter(
-                            x,
-                            y,
-                            color=ps[surrogate]["c"],
-                            marker=ps[surrogate]["m"],
-                            label=f"{surrogate}",
-                        )
-                    plt.xlabel("Regret")
-                    plt.ylabel("Calibration MSE")
-                    # plt.xlim([0, 2])
-                    plt.xscale("log")
-                    # plt.yscale("log")
-                    plt.legend()
-                    fig.savefig(
-                        f"{self.savepth}regret-vs-no-bo-calibration|{problem}({dim})|epoch={epoch}|avg={avg}.pdf"
+    def bo_regret_vs_no_bo_calibration(
+        self, epoch: int = 89, avg_names: list[str] = []
+    ):
+        avg_dims = [self.loader_summary[name]["axis"] for name in avg_names]
+        for problem in self.loader_summary["problem"]["vals"]:
+            for dim in self.loader_summary["d"]["vals"]:
+                fig = plt.figure()
+                for surrogate in self.loader_summary["surrogate"]["vals"]:
+                    data = self.extract(
+                        settings={
+                            "metrics": "regret",
+                            "bo": True,
+                            "surrogate": surrogate,
+                            "problem": problem,
+                            "d": dim,
+                        },
                     )
+                    x = (
+                        np.nanmean(data, axis=tuple(avg_dims)).squeeze()
+                        if len(avg_dims) >= 0
+                        else data.flatten()
+                    )
+
+                    data = self.extract(
+                        settings={
+                            "metrics": "y_calibration_mse",
+                            "bo": False,
+                            "surrogate": surrogate,
+                            "problem": problem,
+                            "d": dim,
+                        },
+                    )
+                    y = (
+                        np.nanmean(data, axis=tuple(avg_dims)).squeeze()
+                        if len(avg_dims) >= 0
+                        else data.flatten()
+                    )
+                    plt.scatter(
+                        x,
+                        y,
+                        color=ps[surrogate]["c"],
+                        marker=ps[surrogate]["m"],
+                        label=f"{surrogate}",
+                    )
+                plt.xlabel("Regret")
+                plt.ylabel("Calibration MSE")
+                plt.xscale("log")
+                plt.legend()
+                fig.savefig(
+                    f"{self.savepth}regret-vs-no-bo-calibration|{problem}({dim})|epoch={epoch}|avg={avg_names}.pdf"
+                )
 
