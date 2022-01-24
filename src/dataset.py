@@ -17,7 +17,7 @@ class Dataset(object):
             "d": int(self.d),
             "x_lbs": self.data.lbs,
             "x_ubs": self.data.ubs,
-            "problem_min_problem": float(self.data.problem.min_loc),
+            "problem_min_problem": self.data.problem.min_loc.tolist(),
             "problem_min": float(self.data.problem.fmin),
             "problem_max": float(self.data.problem.fmax),
             "normalized_min": float(self.data.f_min),
