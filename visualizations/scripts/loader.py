@@ -15,24 +15,24 @@ class Loader(object):
 
     def load_metric_dict(self):
         self.metric_dict = {
-            "nmse": ["nMSE", -1, r"$ \mathcal{nMSE}$"],
-            "elpd": ["ELPD", 1, r"$ \mathcal{ELPD}$"],
+            "nmse": ["nMSE", -1, r"nMSE"],
+            "elpd": ["ELPD", 1, r"ELPD"],
             "y_calibration_mse": [
                 "Calibration MSE",
                 -1,
-                r"$ \mathbb{E}[(\mathcal{C}_{\mathbf{y}}(p) - p)^2] $",
+                r"$ \mathbb{E}[( \mathcal{C}_{\mathbf{y}}(p) - p)^2] $",
             ],
             # "y_calibration_nmse": ["Calibration nMSE", -1,],
             "mean_sharpness": ["Sharpness", 1, r"$ \mathcal{S}$"],
             "x_opt_mean_dist": [
                 "Solution mean distance",
                 -1,
-                r"$ \mathbb{E}[||\textbf{x}_o - \textbf{x}_s||_2] $",
+                r"$ \mathbb{E}[|| \mathbf{x}_o - \mathbf{x}_s ||_2] $",
             ],
             "x_opt_dist": [
                 "Solution distance",
                 -1,
-                r"$ ||\textbf{x}_o - \textbf{x}_s||_2 $",
+                r"$ || \mathbf{x}_o - \mathbf{x}_s ||_2 $",
             ],
             "regret": ["Regret", -1, r"$ \mathcal{R}$"],
         }
@@ -100,7 +100,7 @@ class Loader(object):
 
         self.values.append(list(self.metric_dict.keys()))
         self.dims.append(len(self.values[-1]))
-        self.names.append("metrics")
+        self.names.append("metric")
         self.loader_summary = {
             self.names[i]: {"d": self.dims[i], "axis": i, "vals": self.values[i]}
             for i in range(len(self.values))

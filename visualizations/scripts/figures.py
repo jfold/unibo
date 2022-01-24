@@ -66,87 +66,62 @@ class Figures(Loader):
             fig.savefig(f"{self.savepth}calibration---{settings}.pdf")
             plt.close()
 
-    def calibration_vs_epochs(self):
-        n_seeds = 10  # len(self.loadpths)
-        n_epochs = 50  # len(self.loadpths)
-        epochs = list(range(1, n_epochs + 1))
-        results = np.full(
-            (
-                len(self.problems),
-                len(self.surrogates),
-                len(self.metrics),
-                n_epochs,
-                n_seeds,
-            ),
-            np.nan,
-        )
-        for i_p, problem in enumerate(self.problems):
-            for i_s, surrogate in enumerate(self.surrogates):
-                for i_e, experiment in enumerate(
-                    [p for p in self.loadpths if surrogate in p and problem in p]
-                ):
-                    if os.path.isdir(experiment) and os.path.isfile(
-                        experiment + "parameters.json"
-                    ):
-                        with open(experiment + "parameters.json") as json_file:
-                            parameters = json.load(json_file)
-                        # Running over epochs
-                        files_in_path = [
-                            f for f in os.listdir(experiment) if "scores" in f
-                        ]
-                        for file in files_in_path:
-                            if "---epoch-" in file:
-                                epoch_idx = (
-                                    int(file.split("---epoch-")[-1].split(".json")[0])
-                                    - 1
-                                )
-                            else:
-                                epoch_idx = n_epochs - 1
-
-                            with open(experiment + file) as json_file:
-                                scores = json.load(json_file)
-
-                            if self.settings.items() <= parameters.items():
-                                for i_m, metric in enumerate(self.metrics):
-                                    results[i_p, i_s, i_m, epoch_idx, i_e] = scores[
-                                        metric
-                                    ]
-                    else:
-                        print(f"No such file: {experiment}scores.json")
-
-            for i_s, surrogate in enumerate(self.surrogates):
+    def metrics_vs_epochs(self, n_evals: int = 90, avg_names: list[str] = ["seed"]):
+        epochs = self.loader_summary["epoch"]["vals"]
+        avg_dims = tuple([self.loader_summary[name]["axis"] for name in avg_names])
+        n_avgs = np.prod([len(self.loader_summary[name]["vals"]) for name in avg_names])
+        for problem in self.loader_summary["problem"]["vals"]:
+            for d in self.loader_summary["d"]["vals"]:
                 fig = plt.figure()
-                for i_m, metric in enumerate(self.metric_labels):
-                    plt.subplot(len(self.metrics), 1, i_m + 1)
-                    means = np.nanmean(results[i_p, i_s, i_m], axis=-1)
-                    stds = np.nanstd(results[i_p, i_s, i_m], axis=-1)
-                    plt.plot(epochs, means)
-                    plt.fill_between(
-                        epochs,
-                        means + 1 * stds,
-                        means - 1 * stds,
-                        color="blue",
-                        alpha=0.1,
-                        # label=r"$\mathcal{M}_{" + str(n_stds) + "\sigma}$",
+                for i_m, metric in enumerate(self.loader_summary["metric"]["vals"]):
+                    ax = plt.subplot(
+                        len(self.loader_summary["metric"]["vals"]), 1, i_m + 1
                     )
-                    plt.ylabel(metric)
-                # plt.legend()
+                    all_means = []
+                    for surrogate in self.loader_summary["surrogate"]["vals"]:
+                        data = self.extract(
+                            settings={
+                                "problem": problem,
+                                "d": d,
+                                "surrogate": surrogate,
+                                "metric": metric,
+                                "bo": True,
+                                "n_evals": n_evals,
+                            }
+                        ).squeeze()
+                        means = np.nanmean(data, axis=avg_dims)  # .flatten()
+                        stds = np.nanstd(data, axis=avg_dims)  # .flatten()
+                        # all_means.append(means - stds / np.sqrt(n_avgs))
+                        # all_means.append(means - stds / np.sqrt(n_avgs))
+                        plt.plot(
+                            epochs,
+                            means,
+                            color=ps[surrogate]["c"],
+                            marker=ps[surrogate]["m"],
+                            label=f"${surrogate}$",
+                        )
+                        plt.fill_between(
+                            epochs,
+                            means + 1 * stds / np.sqrt(n_avgs),
+                            means - 1 * stds / np.sqrt(n_avgs),
+                            color=ps[surrogate]["c"],
+                            alpha=0.1,
+                            # label=r"$\mathcal{M}_{" + str(n_stds) + "\sigma}$",
+                        )
+                    if i_m < len(self.loader_summary["metric"]["vals"]) - 1:
+                        ax.set_xticklabels([])
+                    plt.ylabel(self.metric_dict[metric][-1])
+                    plt.xlim([epochs[0], epochs[-1]])
+                handles, labels = ax.get_legend_handles_labels()
+                fig.legend(
+                    handles,
+                    labels,
+                    loc="upper center",
+                    ncol=len(self.loader_summary["surrogate"]["vals"]),
+                )
                 plt.xlabel("Epochs")
                 plt.tight_layout()
-                settings = (
-                    str.join(
-                        "--",
-                        [
-                            str(key) + "-" + str(val)
-                            for key, val in self.settings.items()
-                        ],
-                    ).replace(".", "-")
-                    + problem
-                    + "-"
-                    + surrogate
-                )
-                settings = "all" if settings == "" else settings
-                fig.savefig(f"{self.savepth}calibration-vs-epochs---{settings}.pdf")
+                fig.savefig(f"{self.savepth}metrics-vs-epochs---{problem}({d}).pdf")
                 plt.close()
 
     def bo_2d_contour(self, n_epochs: int = 10, seed: int = 1):
@@ -176,10 +151,8 @@ class Figures(Loader):
                 data_class = getattr(module, parameters.data_class)
                 data = data_class(parameters)
                 x_min_loc = data.problem.min_loc
-                x_lbs = dataset["x_lbs"]
-                x_ubs = dataset["x_ubs"]
-                x_1 = np.linspace(x_lbs[0], x_ubs[0], 100)
-                x_2 = np.linspace(x_lbs[1], x_ubs[1], 100)
+                x_1 = np.linspace(dataset["x_lbs"][0], dataset["x_ubs"][0], 100)
+                x_2 = np.linspace(dataset["x_lbs"][1], dataset["x_ubs"][1], 100)
                 X1, X2 = np.meshgrid(x_1, x_2)
                 y = np.full((100, 100), np.nan)
                 for i1, x1 in enumerate(x_1):
@@ -213,7 +186,6 @@ class Figures(Loader):
 
                 plt.xlabel(r"$x_1$")
                 plt.ylabel(r"$x_2$")
-                # plt.title(f"{parameters.problem}-{parameters.surrogate}")
 
                 fig.savefig(
                     f"{self.savepth}bo-iters--{parameters.problem}-{parameters.surrogate}"
@@ -267,7 +239,7 @@ class Figures(Loader):
                     )
                 plt.xlabel("Regret")
                 plt.ylabel("Calibration MSE")
-                plt.xscale("log")
+                # plt.xscale("log")
                 plt.legend()
                 fig.savefig(
                     f"{self.savepth}regret-vs-no-bo-calibration|{problem}({dim})|epoch={epoch}|avg={avg_names}.pdf"
