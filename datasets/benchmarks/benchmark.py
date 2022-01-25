@@ -33,8 +33,8 @@ class Benchmark(object):
             self.y_max = np.maximum(
                 np.abs(self.problem.fmax), np.abs(self.problem.fmin)
             )
-            self.f_max = self.problem.fmax/self.y_max
-            self.f_min = self.problem.fmin/self.y_max
+            self.f_max = self.problem.fmax / self.y_max
+            self.f_min = self.problem.fmin / self.y_max
             self.lbs = [b[0] for b in self.problem.bounds]
             self.ubs = [b[1] for b in self.problem.bounds]
             self.X = self.sample_X(parameters.n_initial)
@@ -49,12 +49,12 @@ class Benchmark(object):
         X = np.random.uniform(low=self.lbs, high=self.ubs, size=(n_samples, self.d))
         return X
 
-    def get_y(self, X: np.ndarray) -> np.ndarray:
+    def get_y(self, X: np.ndarray, add_noise: bool = True) -> np.ndarray:
         y_new = []
         for x in X:
             y_new.append(self.problem.evaluate(x) / self.y_max)
         y_arr = np.array(y_new)
-        if self.noisify:
+        if self.noisify and add_noise:
             if not hasattr(self, "noise_var"):
                 self.noise_var = np.nanvar(y_arr) / self.snr
             noise_samples = np.random.normal(

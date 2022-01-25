@@ -30,8 +30,9 @@ class Dataset(object):
         self.opt_idx = (
             np.argmax(self.data.y) if self.maximization else np.argmin(self.data.y)
         )
-        self.y_opt = self.data.y[[self.opt_idx], :]
+        self.y_opt = self.data.y[[self.opt_idx], :]  # noise
         self.X_opt = self.data.X[[self.opt_idx], :]
+        # self.f_opt = self.data.y[[self.opt_idx], :]  # noise-free
         self.summary.update(
             {
                 "n_initial": int(self.n_initial),

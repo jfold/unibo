@@ -1,4 +1,5 @@
 import sys
+import random
 import matplotlib
 import matplotlib.pyplot as plt
 from mpl_toolkits.axes_grid1 import make_axes_locatable
@@ -21,7 +22,7 @@ matplotlib.rcParams["mathtext.fontset"] = "cm"
 matplotlib.rcParams["font.family"] = "STIXGeneral"
 matplotlib.rcParams["axes.grid"] = True
 matplotlib.rcParams["font.size"] = 14
-matplotlib.rcParams["figure.figsize"] = (16, 12)
+matplotlib.rcParams["figure.figsize"] = (12, 18)
 matplotlib.rcParams["savefig.bbox"] = "tight"
 # plot-settings:
 ps = {
