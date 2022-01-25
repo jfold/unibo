@@ -21,7 +21,7 @@ class Parameters:
     problem: str = "Alpine01"  # "Alpine01" # subproblem name
     maximization: bool = False
     change_std: bool = False  # manipulate predictive std
-    snr: float = 10.0
+    snr: float = 1000.0
     noisify: bool = True
     K: int = 1  # number of terms in sum for VerificationData
     surrogate: str = "RF"  # surrogate function name
