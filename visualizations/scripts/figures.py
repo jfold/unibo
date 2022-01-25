@@ -77,8 +77,8 @@ class Figures(Loader):
     def metrics_vs_epochs(
         self,
         n_evals: int = 90,
-        avg_names: list[str] = [],
-        only_surrogates: list[str] = ["GP"],
+        avg_names: list[str] = ["seed"],
+        only_surrogates: list[str] = [],  # "GP", "BNN", "DS"
     ):  # "seed"
         epochs = self.loader_summary["epoch"]["vals"]
         avg_dims = tuple([self.loader_summary[name]["axis"] for name in avg_names])
@@ -93,8 +93,12 @@ class Figures(Loader):
                     for i_s, surrogate in enumerate(
                         self.loader_summary["surrogate"]["vals"]
                     ):
-                        if surrogate not in only_surrogates:
+                        if (
+                            len(only_surrogates) > 0
+                            and surrogate not in only_surrogates
+                        ):
                             continue
+
                         data = self.extract(
                             settings={
                                 "problem": problem,
@@ -112,9 +116,6 @@ class Figures(Loader):
                             means = data
                             stds = np.zeros(means.shape)
 
-                        # if self.metric_dict[metric][-2] == "log":
-                        #     means = np.log(means)
-                        #     stds = np.log(stds)
                         for i_mean, mean in enumerate(means):
                             if i_mean == 0:
                                 plt.plot(
@@ -141,13 +142,15 @@ class Figures(Loader):
 
                     if i_m < len(self.loader_summary["metric"]["vals"]) - 1:
                         ax.set_xticklabels([])
-                    label = self.metric_dict[metric][-1]  # (
-                    #     f"log {self.metric_dict[metric][-1]}"
-                    #     if self.metric_dict[metric][-2] == "log"
-                    #     else self.metric_dict[metric][-1]
-                    # )
-                    plt.ylabel(label)
-                    plt.xlim([epochs[0], epochs[-1]])
+                    plt.ylabel(self.metric_dict[metric][-1])
+                    if len(self.metric_dict[metric][-2]) == 2:
+                        plt.ylim(
+                            [
+                                self.metric_dict[metric][-2][0],
+                                self.metric_dict[metric][-2][1],
+                            ]
+                        )
+                    plt.xlim([epochs[0] - 0.1, epochs[-1] + 0.1])
                 handles, labels = ax.get_legend_handles_labels()
                 fig.legend(
                     handles,
@@ -239,7 +242,7 @@ class Figures(Loader):
                 for surrogate in self.loader_summary["surrogate"]["vals"]:
                     data = self.extract(
                         settings={
-                            "metrics": "regret",
+                            "metric": "regret",
                             "bo": True,
                             "surrogate": surrogate,
                             "problem": problem,
@@ -254,7 +257,7 @@ class Figures(Loader):
 
                     data = self.extract(
                         settings={
-                            "metrics": "y_calibration_mse",
+                            "metric": "y_calibration_mse",
                             "bo": False,
                             "surrogate": surrogate,
                             "problem": problem,

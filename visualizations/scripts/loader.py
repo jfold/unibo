@@ -15,20 +15,20 @@ class Loader(object):
 
     def load_metric_dict(self):
         self.metric_dict = {
-            "nmse": ["nMSE", -1, "log", r"nMSE"],
-            "elpd": ["ELPD", 1, "", r"ELPD"],
+            "nmse": ["nMSE", -1, [0, 2], r"nMSE"],
+            "elpd": ["ELPD", 1, [-5, 5], r"ELPD"],
             "y_calibration_mse": [
                 "Calibration MSE",
                 -1,
-                "log",
+                [],
                 r"$ \mathbb{E}[( \mathcal{C}_{\mathbf{y}}(p) - p)^2] $",
             ],
             # "y_calibration_nmse": ["Calibration nMSE", -1,],
-            "mean_sharpness": ["Sharpness", 1, "", r"$ \mathcal{S}$"],
+            "mean_sharpness": ["Sharpness", 1, [-5, 5], r"$ \mathcal{S}$"],
             "x_opt_mean_dist": [
                 "Solution mean distance",
                 -1,
-                "log",
+                [],
                 r"$ \mathbb{E}[|| \mathbf{x}_o - \mathbf{x}_s ||_2] $",
             ],
             # "x_opt_dist": [
@@ -36,7 +36,7 @@ class Loader(object):
             #     -1,
             #     r"$ || \mathbf{x}_o - \mathbf{x}_s ||_2 $",
             # ],
-            "regret": ["Regret", -1, "log", r"$ \mathcal{R}$"],
+            "regret": ["Regret", -1, [], r"$ \mathcal{R}$"],
         }
 
     def load_params_tocheck(self):
