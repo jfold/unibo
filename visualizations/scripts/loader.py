@@ -63,6 +63,10 @@ class Loader(object):
             ):
                 with open(f"{experiment}parameters.json") as json_file:
                     parameters = json.load(json_file)
+                # parameters["n_evals"] = 90
+                # json_dump = json.dumps(parameters)
+                # with open(f"{experiment}parameters.json", "w") as f:
+                #     f.write(json_dump)
                 with open(f"{experiment}scores.json") as json_file:
                     scores = json.load(json_file)
                 with open(f"{experiment}dataset.json") as json_file:
@@ -125,11 +129,9 @@ class Loader(object):
             ]
             data_idx = params_idx
             data_idx.extend(
-                [None, None]
+                [parameters["n_evals"], None]
             )  # since we have added "epoch" and "metrics" on top of parameters
 
-            # Last epoch
-            data_idx[-2] = parameters["n_evals"]
             for metric in self.metric_dict.keys():
                 data_idx[-1] = self.values[-1].index(metric)
                 self.data[tuple(data_idx)] = scores[metric]
@@ -137,8 +139,8 @@ class Loader(object):
             # Running over epochs
             files_in_path = [f for f in os.listdir(pth) if "scores---epoch" in f]
             for file in files_in_path:
-                data_idx[-2] = (
-                    int(file.split("---epoch-")[-1].split(".json")[0]) - 1
+                data_idx[-2] = int(
+                    file.split("---epoch-")[-1].split(".json")[0]
                 )  # epoch index
                 with open(f"{pth}{file}") as json_file:
                     scores_epoch_i = json.load(json_file)
