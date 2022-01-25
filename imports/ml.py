@@ -21,12 +21,13 @@ matplotlib.rcParams["mathtext.fontset"] = "cm"
 matplotlib.rcParams["font.family"] = "STIXGeneral"
 matplotlib.rcParams["axes.grid"] = True
 matplotlib.rcParams["font.size"] = 14
-matplotlib.rcParams["figure.figsize"] = (20, 12)
+matplotlib.rcParams["figure.figsize"] = (16, 12)
 matplotlib.rcParams["savefig.bbox"] = "tight"
+# plot-settings:
 ps = {
-    "GP": {"c": "r", "m": "s"},
-    "RF": {"c": "k", "m": "o"},
-    "BNN": {"c": "c", "m": "v"},
+    "GP": {"c": "red", "m": "x"},
+    "RF": {"c": "blue", "m": "4"},
+    "BNN": {"c": "orange", "m": "v"},
     "DS": {"c": "black", "m": "*"},
 }
 

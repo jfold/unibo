@@ -19,6 +19,14 @@ class Figures(Loader):
             + str.join("-", [f"{key}-{val}-" for key, val in settings.items()])
         )
 
+    def find_extreme_idx(self, x: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
+        extreme_high_idx = x > np.quantile(x, 0.95)
+        extreme_low_idx = x < np.quantile(x, 0.05)
+        return extreme_high_idx, extreme_low_idx
+
+    def find_extreme_vals(self, x: np.ndarray, q: float = 0.05) -> Tuple[float, float]:
+        return np.quantile(x, 1 - q), np.quantile(x, q)
+
     def calibration(self):
         fig = plt.figure()
         if hasattr(self, "p_axis"):
@@ -66,7 +74,12 @@ class Figures(Loader):
             fig.savefig(f"{self.savepth}calibration---{settings}.pdf")
             plt.close()
 
-    def metrics_vs_epochs(self, n_evals: int = 90, avg_names: list[str] = ["seed"]):
+    def metrics_vs_epochs(
+        self,
+        n_evals: int = 90,
+        avg_names: list[str] = [],
+        only_surrogates: list[str] = ["GP"],
+    ):  # "seed"
         epochs = self.loader_summary["epoch"]["vals"]
         avg_dims = tuple([self.loader_summary[name]["axis"] for name in avg_names])
         n_avgs = np.prod([len(self.loader_summary[name]["vals"]) for name in avg_names])
@@ -77,8 +90,11 @@ class Figures(Loader):
                     ax = plt.subplot(
                         len(self.loader_summary["metric"]["vals"]), 1, i_m + 1
                     )
-                    all_means = []
-                    for surrogate in self.loader_summary["surrogate"]["vals"]:
+                    for i_s, surrogate in enumerate(
+                        self.loader_summary["surrogate"]["vals"]
+                    ):
+                        if surrogate not in only_surrogates:
+                            continue
                         data = self.extract(
                             settings={
                                 "problem": problem,
@@ -89,28 +105,48 @@ class Figures(Loader):
                                 "n_evals": n_evals,
                             }
                         ).squeeze()
-                        means = np.nanmean(data, axis=avg_dims)  # .flatten()
-                        stds = np.nanstd(data, axis=avg_dims)  # .flatten()
-                        # all_means.append(means - stds / np.sqrt(n_avgs))
-                        # all_means.append(means - stds / np.sqrt(n_avgs))
-                        plt.plot(
-                            epochs,
-                            means,
-                            color=ps[surrogate]["c"],
-                            marker=ps[surrogate]["m"],
-                            label=f"${surrogate}$",
-                        )
-                        plt.fill_between(
-                            epochs,
-                            means + 1 * stds / np.sqrt(n_avgs),
-                            means - 1 * stds / np.sqrt(n_avgs),
-                            color=ps[surrogate]["c"],
-                            alpha=0.1,
-                            # label=r"$\mathcal{M}_{" + str(n_stds) + "\sigma}$",
-                        )
+                        if len(avg_names) > 0:
+                            means = np.nanmean(data, axis=avg_dims)[:, np.newaxis].T
+                            stds = np.nanstd(data, axis=avg_dims)[:, np.newaxis].T
+                        else:
+                            means = data
+                            stds = np.zeros(means.shape)
+
+                        # if self.metric_dict[metric][-2] == "log":
+                        #     means = np.log(means)
+                        #     stds = np.log(stds)
+                        for i_mean, mean in enumerate(means):
+                            if i_mean == 0:
+                                plt.plot(
+                                    epochs,
+                                    mean,
+                                    color=ps[surrogate]["c"],
+                                    marker=ps[surrogate]["m"],
+                                    label=f"${surrogate}$",
+                                )
+                            else:
+                                plt.plot(
+                                    epochs,
+                                    mean,
+                                    color=ps[surrogate]["c"],
+                                    marker=ps[surrogate]["m"],
+                                )
+                            plt.fill_between(
+                                epochs,
+                                mean + 1 * stds[i_mean, :] / np.sqrt(n_avgs),
+                                mean - 1 * stds[i_mean, :] / np.sqrt(n_avgs),
+                                color=ps[surrogate]["c"],
+                                alpha=0.1,
+                            )
+
                     if i_m < len(self.loader_summary["metric"]["vals"]) - 1:
                         ax.set_xticklabels([])
-                    plt.ylabel(self.metric_dict[metric][-1])
+                    label = self.metric_dict[metric][-1]  # (
+                    #     f"log {self.metric_dict[metric][-1]}"
+                    #     if self.metric_dict[metric][-2] == "log"
+                    #     else self.metric_dict[metric][-1]
+                    # )
+                    plt.ylabel(label)
                     plt.xlim([epochs[0], epochs[-1]])
                 handles, labels = ax.get_legend_handles_labels()
                 fig.legend(
