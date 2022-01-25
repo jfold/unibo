@@ -1,4 +1,5 @@
 from os import mkdir
+from imports.ml import *
 import unittest
 from datasets.benchmarks.benchmark import Benchmark
 from datasets.verifications.verification import VerificationData
@@ -35,23 +36,25 @@ class DatasetsTest(unittest.TestCase):
         assert X.shape == (n_evals, parameters.d)
         assert y.shape == (n_evals, 1)
 
-    def test_benchmark_problem_dimensionality(self) -> None:
-        n_functions = 5
+    def test_save_unibo_benchmarks_problems(self) -> None:
         result = {}
+        random.seed(2022)
         for d in range(1, 15):
             kwargs.update({"d": d})
             parameters = Parameters(kwargs, mkdir=False)
             benchmarks = Benchmark(parameters).benchmark_tags
-            n_problems = 1
+            keys = list(benchmarks.keys())
+            random.shuffle(keys)
+            benchmarks = {key: benchmarks[key] for key in keys}
+            # benchmarks = sorted(benchmarks)
             problems = []
-            for problem in sorted(benchmarks):
+            for problem in benchmarks:
                 if "unimodal" in benchmarks[problem]:
                     problems.append(problem)
-                    n_problems += 1
-                if n_problems > n_functions:
-                    break
             result.update({d: problems})
-        print(result)
+        json_dump = json.dumps(result)
+        with open("datasets/benchmarks/unibo-problems.json", "w") as f:
+            f.write(json_dump)
 
     def test_verification(self) -> None:
         n_evals = 2

@@ -1,7 +1,7 @@
 import json
 from imports.general import *
 from imports.ml import *
-from dataclasses import dataclass, asdict, replace
+from dataclasses import dataclass, asdict
 
 
 @dataclass
@@ -19,6 +19,7 @@ class Parameters:
     data_location: str = "datasets.benchmarks.benchmark"  # "datasets/benchmarks/benchmark.py"
     data_class: str = "Benchmark"  # dataclass name
     problem: str = "Alpine01"  # "Alpine01" # subproblem name
+    problem_idx: int = -1  # if > -1 the  problem_idx'th problem is chosen for d dimensions
     maximization: bool = False
     change_std: bool = False  # manipulate predictive std
     snr: float = 1000.0
@@ -32,11 +33,16 @@ class Parameters:
 
     def __init__(self, kwargs: Dict = {}, mkdir: bool = False) -> None:
         self.update(kwargs)
+        if self.problem_idx > -1 and self.data_class == "Benchmark":
+            problem = self.find_benchmark_problem_i()
+            kwargs["problem"] = problem
+            self.update(kwargs)
+
         if mkdir and not os.path.isdir(self.savepth):
             os.mkdir(self.savepth)
         folder_name = (
             # datetime.now().strftime("%d%m%y-%H%M%S") +
-            f"{self.data_class}-{self.problem}({self.d})|{self.surrogate}-{self.acquisition}|seed-{self.seed}"
+            f"({self.d}){self.problem}|{self.surrogate}-{self.acquisition}|seed-{self.seed}"
         )
         folder_name = folder_name + "|BO" if self.bo else folder_name
         setattr(
@@ -55,6 +61,11 @@ class Parameters:
                 raise ValueError(f"Parameter {key} not found")
         if save:
             self.save()
+
+    def find_benchmark_problem_i(self) -> str:
+        with open(f"dataset/benchmarks/problems.json") as json_file:
+            problems = json.load(json_file)
+        return problems[str(self.d)][self.problem_idx]
 
     def save(self) -> None:
         json_dump = json.dumps(asdict(self))
