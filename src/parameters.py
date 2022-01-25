@@ -45,7 +45,7 @@ class Parameters:
         setattr(self, "savepth", self.savepth + self.experiment + "/")
         if mkdir and not os.path.isdir(self.savepth):
             os.mkdir(self.savepth)
-        self.save()
+            self.save()
 
     def update(self, kwargs, save=False) -> None:
         for key, value in kwargs.items():
