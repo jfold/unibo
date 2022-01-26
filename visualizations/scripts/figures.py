@@ -109,6 +109,8 @@ class Figures(Loader):
                                 "n_evals": n_evals,
                             }
                         ).squeeze()
+                        if (np.sum(np.isnan(data)) / data.size) > 0.5:
+                            continue
                         if len(avg_names) > 0:
                             means = np.nanmean(data, axis=avg_dims)[:, np.newaxis].T
                             stds = np.nanstd(data, axis=avg_dims)[:, np.newaxis].T
@@ -140,6 +142,8 @@ class Figures(Loader):
                                 alpha=0.1,
                             )
 
+                    if (np.sum(np.isnan(data)) / data.size) > 0.5:
+                        continue
                     if i_m < len(self.loader_summary["metric"]["vals"]) - 1:
                         ax.set_xticklabels([])
                     plt.ylabel(self.metric_dict[metric][-1])
@@ -151,6 +155,8 @@ class Figures(Loader):
                             ]
                         )
                     plt.xlim([epochs[0] - 0.1, epochs[-1] + 0.1])
+                if (np.sum(np.isnan(data)) / data.size) > 0.5:
+                    continue
                 handles, labels = ax.get_legend_handles_labels()
                 fig.legend(
                     handles,
