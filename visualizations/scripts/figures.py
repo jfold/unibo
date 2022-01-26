@@ -156,6 +156,7 @@ class Figures(Loader):
                         )
                     plt.xlim([epochs[0] - 0.1, epochs[-1] + 0.1])
                 if (np.sum(np.isnan(data)) / data.size) > 0.5:
+                    plt.close()
                     continue
                 handles, labels = ax.get_legend_handles_labels()
                 fig.legend(
