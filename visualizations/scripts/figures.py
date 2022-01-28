@@ -76,10 +76,9 @@ class Figures(Loader):
 
     def metrics_vs_epochs(
         self,
-        n_evals: int = 90,
         avg_names: list[str] = ["seed"],
         only_surrogates: list[str] = [],  # "GP", "BNN", "DS"
-    ):  # "seed"
+    ):
         epochs = self.loader_summary["epoch"]["vals"]
         avg_dims = tuple([self.loader_summary[name]["axis"] for name in avg_names])
         n_avgs = np.prod([len(self.loader_summary[name]["vals"]) for name in avg_names])
@@ -106,7 +105,6 @@ class Figures(Loader):
                                 "surrogate": surrogate,
                                 "metric": metric,
                                 "bo": True,
-                                "n_evals": n_evals,
                             }
                         ).squeeze()
                         if (np.sum(np.isnan(data)) / data.size) > 0.5:

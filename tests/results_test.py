@@ -45,7 +45,8 @@ class ResultsTest(unittest.TestCase):
 
     def test_ranking(self) -> None:
         loadpths = get_loadpths(os.getcwd() + "/results/")
-        Ranking(loadpths).run()
+        ranking = Ranking(loadpths)
+        ranking.rank_metrics_vs_epochs()
 
 
 if __name__ == "__main__":

@@ -1,149 +1,126 @@
 from imports.general import *
 from imports.ml import *
+from visualizations.scripts.loader import Loader
 
 
-class Ranking(object):
+class Ranking(Loader):
     def __init__(self, loadpths: list[str] = [], settings: Dict[str, str] = {}):
-        np.random.seed(2022)
-        self.loadpths = loadpths
-        self.settings = settings
-        self.savepth = (
-            os.getcwd()
-            + "/visualizations/tables/"
-            + str.join("-", [f"{key}-{val}-" for key, val in settings.items()])
-        )
-        self.figsavepth = (
+        super(Ranking, self).__init__(loadpths, settings)
+        if not self.data_was_loaded:
+            raise ValueError("No data could be loaded")
+        self.savepth_figs = (
             os.getcwd()
             + "/visualizations/figures/"
             + str.join("-", [f"{key}-{val}-" for key, val in settings.items()])
         )
-
-    def f_best_i(self):
-        """the best seen objective value after i objective function evaluations"""
-        pass
-
-    def auc(self):
-        """aggregated score"""
-        pass
-
-    def borda_ranking_system(self):
-        pass
-
-    def num_of_first_and_least_last(self):
-        pass
-
-    def shuffle_argsort(self, array: np.ndarray) -> np.ndarray:
-        numerical_noise = np.random.uniform(0, 1e-7, size=array.shape)
-        if not (np.all(np.argsort(array + numerical_noise) == np.argsort(array))):
-            # print("Tie! Picking winner at random.")
-            pass
-        return np.argsort(array + numerical_noise)
-
-    def extract(self) -> None:
-        self.results = np.full(
-            (
-                len(self.problems),
-                len(self.surrogates),
-                len(self.acquisitions),
-                len(self.metrics),
-                len(self.ds),
-                len(self.seeds),
-                len(self.epochs),
-            ),
-            np.nan,
+        self.savepth_tables = (
+            os.getcwd()
+            + "/visualizations/figures/"
+            + str.join("-", [f"{key}-{val}-" for key, val in settings.items()])
         )
-        for i_e, experiment in enumerate(p for p in self.loadpths):
-            if os.path.isdir(experiment) and os.path.isfile(
-                experiment + "parameters.json"
-            ):
-                with open(experiment + "parameters.json") as json_file:
-                    parameters = json.load(json_file)
-
-                if (
-                    not self.settings.items() <= parameters.items()
-                    or not parameters["bo"]
-                ):
-                    continue
-
-                try:
-                    i_pro = self.problems.index(parameters["problem"])
-                    i_see = self.seeds.index(parameters["seed"])
-                    i_sur = self.surrogates.index(parameters["surrogate"])
-                    i_acq = self.acquisitions.index(parameters["acquisition"])
-                    i_dim = self.ds.index(parameters["d"])
-                    # Running over epochs
-                    files_in_path = [f for f in os.listdir(experiment) if "scores" in f]
-                    for file in files_in_path:
-                        if "---epoch-" in file:
-                            i_epo = (
-                                int(file.split("---epoch-")[-1].split(".json")[0]) - 1
-                            )
-                        else:
-                            i_epo = len(self.epochs) - 1
-
-                        with open(experiment + file) as json_file:
-                            scores = json.load(json_file)
-
-                        for i_met, metric in enumerate(self.metrics.keys()):
-                            self.results[
-                                i_pro, i_sur, i_acq, i_met, i_dim, i_see, i_epo
-                            ] = scores[metric]
-                except:
-                    print("ERROR with:", parameters)
-                    continue
-
-    def calc_ranking(self) -> None:
-        self.rankings = np.full(self.results.shape, np.nan)
-        for i_pro, problem in enumerate(self.problems):
-            for i_acq, acquisition in enumerate(self.acquisitions):
-                for i_met, metric in enumerate(self.ranking_direction.keys()):
-                    for i_dim, d in enumerate(self.ds):
-                        for i_see, seed in enumerate(self.seeds):
-                            if np.any(  # demanding all surrogates have carried out all epochs
-                                np.isnan(
-                                    self.results[
-                                        i_pro, :, i_acq, i_met, i_dim, i_see, :
-                                    ]
-                                )
-                            ):
-                                continue
-                            scores = self.results[
-                                i_pro, :, i_acq, i_met, i_dim, i_see, :,
-                            ].T
-                            rankings = []
-                            if self.ranking_direction[metric] == 1:
-                                for score in scores:
-                                    rankings.append(self.shuffle_argsort(score)[::-1])
-                            else:
-                                for score in scores:
-                                    rankings.append(self.shuffle_argsort(score))
-                            rankings = np.array(rankings)
-                            self.rankings[
-                                i_pro, :, i_acq, i_met, i_dim, i_see, :
-                            ] = rankings.T
-
-        self.missing_experiments_per = (
-            np.sum(np.isnan(self.rankings)) / self.rankings.size
-        )
-
-        for i_sur, surrogate in enumerate(self.surrogates):
-            for i_met, metric in enumerate(self.ranking_direction.keys()):
-                mean_rank = np.nanmean(self.rankings[:, i_sur, :, i_met, :, :])
-                median_rank = np.nanmedian(self.rankings[:, i_sur, :, i_met, :, :])
-                std_rank = np.nanstd(self.rankings[:, i_sur, :, i_met, :, :])
-                no_trials = np.sum(np.isfinite(self.rankings[:, i_sur, :, i_met, :, :]))
-                self.mean_ranking_table[metric][surrogate] = 1 + mean_rank
-                self.median_ranking_table[metric][surrogate] = 1 + median_rank
-                self.std_ranking_table[metric][surrogate] = 1 + std_rank
-                self.no_ranking_table[metric][surrogate] = no_trials
+        self.init_tables()
 
     def init_tables(self) -> None:
-        rows = self.surrogates
-        cols = self.ranking_direction.keys()
+        rows = self.metric_dict.keys()
+        cols = self.loader_summary["surrogate"]["vals"]
         self.mean_ranking_table = pd.DataFrame(columns=cols, index=rows)
         self.median_ranking_table = pd.DataFrame(columns=cols, index=rows)
         self.std_ranking_table = pd.DataFrame(columns=cols, index=rows)
         self.no_ranking_table = pd.DataFrame(columns=cols, index=rows)
+
+    def rank_metrics_vs_epochs(
+        self,
+        avg_names: list[str] = ["seed", "problem"],
+        only_surrogates: list[str] = [],  # "GP", "BNN", "DS"
+    ):
+        avg_dims = tuple([self.loader_summary[name]["axis"] for name in avg_names])
+        n_avgs = np.prod([len(self.loader_summary[name]["vals"]) for name in avg_names])
+        rankings = np.full(self.data.shape, np.nan)
+        for problem in self.loader_summary["problem"]["vals"]:
+            for dim in self.loader_summary["d"]["vals"]:
+                for seed in self.loader_summary["seed"]["vals"]:
+                    for i_m, metric in enumerate(self.loader_summary["metric"]["vals"]):
+                        data = self.extract(
+                            settings={
+                                "problem": problem,
+                                "d": dim,
+                                "metric": metric,
+                                "bo": True,
+                                "seed": seed,
+                            }
+                        ).squeeze()
+
+                        if (np.sum(np.isnan(data)) / data.size) > 0.5:
+                            continue
+
+                        if self.metric_dict[metric][1] == 1:
+                            order = self.shuffle_argsort(data, axis=0)[::-1, :]
+                        else:
+                            order = self.shuffle_argsort(data, axis=0)
+
+                        params_idx = []
+                        for name in self.names:
+                            vals = self.loader_summary[name]["vals"]
+                            if name == "problem":
+                                val = problem
+                                params_idx.append(vals.index(val))
+                            elif name == "d":
+                                val = dim
+                                params_idx.append(vals.index(val))
+                            elif name == "seed":
+                                val = seed
+                                params_idx.append(vals.index(val))
+                            elif name == "metric":
+                                val = metric
+                                params_idx.append(vals.index(val))
+                            else:
+                                val = None
+                                params_idx.append(val)
+
+                        params_idx = tuple(params_idx)
+                        print(params_idx)
+                        print(rankings.shape)
+                        print(self.names)
+                        rankings[params_idx] = np.argsort(order, axis=0) + 1
+
+                        if i_m == len(self.loader_summary["metric"]["vals"]) - 1:
+                            raise ValueError()
+
+        epochs = self.loader_summary["epoch"]["vals"]
+        # fig = plt.figure()
+        # ax = plt.subplot(
+        #     len(self.loader_summary["metric"]["vals"]), 1, i_m + 1
+        # )
+        #     if (np.sum(np.isnan(data)) / data.size) > 0.5:
+        #         continue
+        #     if i_m < len(self.loader_summary["metric"]["vals"]) - 1:
+        #         ax.set_xticklabels([])
+        #     plt.ylabel(self.metric_dict[metric][-1])
+
+        #     plt.xlim([epochs[0] - 0.1, epochs[-1] + 0.1])
+        # if (np.sum(np.isnan(data)) / data.size) > 0.5:
+        #     plt.close()
+        #     continue
+        # handles, labels = ax.get_legend_handles_labels()
+        # fig.legend(
+        #     handles,
+        #     labels,
+        #     loc="upper center",
+        #     ncol=len(self.loader_summary["surrogate"]["vals"]),
+        # )
+        # plt.xlabel("Epochs")
+        # plt.tight_layout()
+        # fig.savefig(f"{self.savepth}metrics-vs-epochs---{problem}({d}).pdf")
+        # plt.close()
+
+    def shuffle_argsort(self, array: np.ndarray, axis: int = None) -> np.ndarray:
+        numerical_noise = np.random.uniform(0, 1e-7, size=array.shape)
+        # if not (np.all(np.argsort(array + numerical_noise) == np.argsort(array))):
+        #     # print("Tie! Picking winner at random.")
+        if axis is None:
+            return np.argsort(array + numerical_noise)
+        else:
+            return np.argsort(array + numerical_noise, axis=axis)
 
     def remove_nans(
         self, x: np.ndarray, y: np.ndarray
@@ -214,7 +191,6 @@ class Ranking(object):
             )
 
     def run(self):
-        self.extract()
         self.init_tables()
         self.calc_ranking()
         self.calc_plot_metric_dependence(
