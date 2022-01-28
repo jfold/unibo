@@ -1,6 +1,7 @@
 from imports.general import *
 from imports.ml import *
 from visualizations.scripts.loader import Loader
+from numpy.core import numeric as _nx
 
 
 class Ranking(Loader):
@@ -28,65 +29,66 @@ class Ranking(Loader):
         self.std_ranking_table = pd.DataFrame(columns=cols, index=rows)
         self.no_ranking_table = pd.DataFrame(columns=cols, index=rows)
 
-    def rank_metrics_vs_epochs(
-        self,
-        avg_names: list[str] = ["seed", "problem"],
-        only_surrogates: list[str] = [],  # "GP", "BNN", "DS"
-    ):
-        avg_dims = tuple([self.loader_summary[name]["axis"] for name in avg_names])
-        n_avgs = np.prod([len(self.loader_summary[name]["vals"]) for name in avg_names])
+    def calc_surrogate_ranks(self, bo: bool = True):
         rankings = np.full(self.data.shape, np.nan)
+        rank_axis = self.loader_summary["surrogate"]["axis"]
         for problem in self.loader_summary["problem"]["vals"]:
             for dim in self.loader_summary["d"]["vals"]:
                 for seed in self.loader_summary["seed"]["vals"]:
-                    for i_m, metric in enumerate(self.loader_summary["metric"]["vals"]):
+                    for metric in self.loader_summary["metric"]["vals"]:
                         data = self.extract(
                             settings={
                                 "problem": problem,
                                 "d": dim,
                                 "metric": metric,
-                                "bo": True,
+                                "bo": bo,
                                 "seed": seed,
                             }
-                        ).squeeze()
+                        )
 
                         if (np.sum(np.isnan(data)) / data.size) > 0.5:
                             continue
 
-                        if self.metric_dict[metric][1] == 1:
-                            order = self.shuffle_argsort(data, axis=0)[::-1, :]
-                        else:
-                            order = self.shuffle_argsort(data, axis=0)
+                        axes = {
+                            "problem": [
+                                self.loader_summary["problem"]["axis"],
+                                problem,
+                            ],
+                            "d": [self.loader_summary["d"]["axis"], dim],
+                            "seed": [self.loader_summary["seed"]["axis"], seed],
+                            "metric": [self.loader_summary["metric"]["axis"], metric],
+                            "bo": [self.loader_summary["bo"]["axis"], bo],
+                        }
 
-                        params_idx = []
-                        for name in self.names:
+                        indexer = [np.s_[:]] * data.ndim
+                        for name, lst in axes.items():
                             vals = self.loader_summary[name]["vals"]
-                            if name == "problem":
-                                val = problem
-                                params_idx.append(vals.index(val))
-                            elif name == "d":
-                                val = dim
-                                params_idx.append(vals.index(val))
-                            elif name == "seed":
-                                val = seed
-                                params_idx.append(vals.index(val))
-                            elif name == "metric":
-                                val = metric
-                                params_idx.append(vals.index(val))
-                            else:
-                                val = None
-                                params_idx.append(val)
+                            indexer[lst[0]] = np.s_[
+                                vals.index(lst[1]) : 1 + vals.index(lst[1])
+                            ]
+                        indexer = tuple(indexer)
 
-                        params_idx = tuple(params_idx)
-                        print(params_idx)
-                        print(rankings.shape)
-                        print(self.names)
-                        rankings[params_idx] = np.argsort(order, axis=0) + 1
+                        if self.metric_dict[metric][1] == 1:
+                            order = np.flip(
+                                self.shuffle_argsort(data, axis=rank_axis),
+                                axis=rank_axis,
+                            )
+                        else:
+                            order = self.shuffle_argsort(data, axis=rank_axis)
+                        ranks = np.argsort(order, axis=rank_axis) + 1
+                        rankings[indexer] = ranks
+        return rankings
 
-                        if i_m == len(self.loader_summary["metric"]["vals"]) - 1:
-                            raise ValueError()
-
+    def rank_metrics_vs_epochs(
+        self, avg_names: list[str] = ["seed", "problem"],
+    ):
+        avg_dims = tuple([self.loader_summary[name]["axis"] for name in avg_names])
+        n_avgs = np.prod([len(self.loader_summary[name]["vals"]) for name in avg_names])
         epochs = self.loader_summary["epoch"]["vals"]
+        rankings = self.calc_surrogate_ranks()
+        ranking_mean = np.nanmean(rankings, axis=avg_dims)
+        ranking_std = np.nanstd(rankings, axis=avg_dims)
+        print(ranking_mean.shape)
         # fig = plt.figure()
         # ax = plt.subplot(
         #     len(self.loader_summary["metric"]["vals"]), 1, i_m + 1

@@ -1,7 +1,6 @@
 # 1) rank som funktion af epoker henover problemer, seeds, dimensioner
 # 2) sammenlign med random som kun bruges til at plotte x-dist og regret
-# 3) regn self.noise_var på stort set
-# 3) plot sqrt(self.noise_var) sammen med regret
+# 3) regn self.noise_var på stort sæt, plot sqrt(self.noise_var) sammen med regret
 # 4) scatter-plot: actual impr., expected impr. for hver surrogat plottet for alle epoker,seeds,problemer
 # 5) gem også middelværdi for surrogaten i X[opt_idx]
-# Gem runtime for at se langsomhed
+# Gem runtime for at se hastighed
