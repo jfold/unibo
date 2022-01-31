@@ -21,10 +21,8 @@ from botorch.acquisition.analytic import (
 )
 
 
-# TODO: Check what happens if gradients are not available in model.
-# TODO: Check what to do with BNNs. Have people done BoTorch with this already?
 class Optimizer(object):
-    """Optimizer class"""
+    """# Optimizer class"""
 
     def __init__(self, parameters: Parameters) -> None:
         self.__dict__.update(asdict(parameters))
@@ -44,6 +42,9 @@ class Optimizer(object):
         elif self.surrogate == "DS":
             self.surrogate_object = DummySurrogate(self.parameters, dataset)
             self.surrogate_model = self.surrogate_object
+        elif self.surrogate == "":
+            self.surrogate_object = None
+            self.surrogate_model = None
         else:
             raise ValueError(f"Surrogate function {self.surrogate} not supported.")
         self.is_fitted = True

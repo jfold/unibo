@@ -160,29 +160,30 @@ class Calibration(CalibrationPlots):
         normalized mean square error functions for the "surrogate" on a testset
         drawn from "dataset".
         """
-        name = f"{save_settings}"
-        X_test, y_test = dataset.sample_testset()
-        self.ne_true = dataset.data.ne_true
-        self.y_max = dataset.data.y_max
-        mu_test, sigma_test = surrogate.predict(X_test)
-        self.check_y_calibration(mu_test, sigma_test, y_test)
-        self.check_gaussian_sharpness(mu_test, sigma_test, name)
-        self.expected_log_predictive_density(
-            mu_test, sigma_test, y_test,
-        )
-        self.nmse(y_test, mu_test)
-        self.regret(dataset)
-        self.glob_min_dist(dataset)
-        self.improvement(dataset)
+        if surrogate is not None:
+            name = f"{save_settings}"
+            X_test, y_test = dataset.sample_testset()
+            self.ne_true = dataset.data.ne_true
+            self.y_max = dataset.data.y_max
+            mu_test, sigma_test = surrogate.predict(X_test)
+            self.check_y_calibration(mu_test, sigma_test, y_test)
+            self.check_gaussian_sharpness(mu_test, sigma_test, name)
+            self.expected_log_predictive_density(
+                mu_test, sigma_test, y_test,
+            )
+            self.nmse(y_test, mu_test)
+            self.regret(dataset)
+            self.glob_min_dist(dataset)
+            self.improvement(dataset)
 
-        if self.plot_it and self.save_it:
-            if self.d == 1:
-                self.plot_predictive(
-                    dataset, X_test, y_test, mu_test, sigma_test, name=name
-                )
-            self.plot_y_calibration(name=name)
+            if self.plot_it and self.save_it:
+                if self.d == 1:
+                    self.plot_predictive(
+                        dataset, X_test, y_test, mu_test, sigma_test, name=name
+                    )
+                self.plot_y_calibration(name=name)
 
-        # Save
-        if self.save_it:
-            self.save(save_settings)
+            # Save
+            if self.save_it:
+                self.save(save_settings)
 

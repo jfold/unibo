@@ -1,7 +1,7 @@
 from imports.general import *
 from imports.ml import *
-from visualizations.scripts.loader import Loader
 from numpy.core import numeric as _nx
+from visualizations.scripts.loader import Loader
 
 
 class Ranking(Loader):
@@ -29,7 +29,7 @@ class Ranking(Loader):
         self.std_ranking_table = pd.DataFrame(columns=cols, index=rows)
         self.no_ranking_table = pd.DataFrame(columns=cols, index=rows)
 
-    def calc_surrogate_ranks(self, bo: bool = True):
+    def calc_surrogate_ranks(self, bo: bool = True, save: bool = True):
         rankings = np.full(self.data.shape, np.nan)
         rank_axis = self.loader_summary["surrogate"]["axis"]
         for problem in self.loader_summary["problem"]["vals"]:
@@ -77,43 +77,76 @@ class Ranking(Loader):
                             order = self.shuffle_argsort(data, axis=rank_axis)
                         ranks = np.argsort(order, axis=rank_axis) + 1
                         rankings[indexer] = ranks
+        if save:
+            with open(os.getcwd() + "/rankings.npy", "wb") as f:
+                np.save(f, rankings)
         return rankings
 
     def rank_metrics_vs_epochs(
-        self, avg_names: list[str] = ["seed", "problem"],
+        self,
+        avg_names: list[str] = ["seed", "problem", "d"],
+        settings: Dict = {"bo": True},
     ):
+        # rankings = self.calc_surrogate_ranks()
+        rankings = np.load(os.getcwd() + "/rankings.npy")
+        rankings = self.extract(rankings, settings=settings)
         avg_dims = tuple([self.loader_summary[name]["axis"] for name in avg_names])
-        n_avgs = np.prod([len(self.loader_summary[name]["vals"]) for name in avg_names])
+        n_avgs = 8 * 3
         epochs = self.loader_summary["epoch"]["vals"]
-        rankings = self.calc_surrogate_ranks()
-        ranking_mean = np.nanmean(rankings, axis=avg_dims)
-        ranking_std = np.nanstd(rankings, axis=avg_dims)
-        print(ranking_mean.shape)
-        # fig = plt.figure()
-        # ax = plt.subplot(
-        #     len(self.loader_summary["metric"]["vals"]), 1, i_m + 1
-        # )
-        #     if (np.sum(np.isnan(data)) / data.size) > 0.5:
-        #         continue
-        #     if i_m < len(self.loader_summary["metric"]["vals"]) - 1:
-        #         ax.set_xticklabels([])
-        #     plt.ylabel(self.metric_dict[metric][-1])
+        ranking_mean = np.nanmean(rankings, axis=avg_dims, keepdims=True)
+        ranking_std = np.nanstd(rankings, axis=avg_dims, keepdims=True)
+        if ranking_mean.squeeze().ndim != 3:
+            raise ValueError(
+                f"Rankings should be 3 dimensional instead of {ranking_mean.squeeze().ndim} after squeezing."
+            )
 
-        #     plt.xlim([epochs[0] - 0.1, epochs[-1] + 0.1])
-        # if (np.sum(np.isnan(data)) / data.size) > 0.5:
-        #     plt.close()
-        #     continue
-        # handles, labels = ax.get_legend_handles_labels()
-        # fig.legend(
-        #     handles,
-        #     labels,
-        #     loc="upper center",
-        #     ncol=len(self.loader_summary["surrogate"]["vals"]),
-        # )
-        # plt.xlabel("Epochs")
-        # plt.tight_layout()
-        # fig.savefig(f"{self.savepth}metrics-vs-epochs---{problem}({d}).pdf")
-        # plt.close()
+        surrogates = self.loader_summary["surrogate"]["vals"]
+        surrogate_axis = self.loader_summary["surrogate"]["axis"]
+        metrics = self.loader_summary["metric"]["vals"]
+        metric_axis = self.loader_summary["metric"]["axis"]
+
+        indexer = [np.s_[:]] * ranking_mean.ndim
+        fig = plt.figure()
+        for i_m, metric in enumerate(metrics):
+            indexer[metric_axis] = np.s_[i_m : i_m + 1]
+            ax = plt.subplot(len(metrics), 1, i_m + 1)
+            for i_s, surrogate in enumerate(surrogates):
+                indexer[surrogate_axis] = np.s_[i_s : i_s + 1]
+                means = ranking_mean[indexer].squeeze()
+                stds = ranking_std[indexer].squeeze()
+                plt.plot(
+                    epochs,
+                    means,
+                    color=ps[surrogate]["c"],
+                    marker=ps[surrogate]["m"],
+                    label=f"${surrogate}$",
+                )
+                plt.fill_between(
+                    epochs,
+                    means + 1 * stds / n_avgs,
+                    means - 1 * stds / n_avgs,
+                    color=ps[surrogate]["c"],
+                    alpha=0.1,
+                )
+
+            if i_m < len(self.loader_summary["metric"]["vals"]) - 1:
+                ax.set_xticklabels([])
+            plt.ylabel(self.metric_dict[metric][-1])
+            plt.xlim([epochs[0] - 0.1, epochs[-1] + 0.1])
+            plt.ylim([1 + 0.1, len(self.loader_summary["surrogate"]["vals"]) + 0.1])
+            plt.yticks(range(1, 1 + len(self.loader_summary["surrogate"]["vals"])))
+
+        handles, labels = ax.get_legend_handles_labels()
+        fig.legend(
+            handles,
+            labels,
+            loc="upper center",
+            ncol=len(self.loader_summary["surrogate"]["vals"]),
+        )
+        plt.xlabel("Epochs")
+        plt.tight_layout()
+        fig.savefig(f"{self.savepth_figs}metrics-vs-epochs---{settings}.pdf")
+        plt.close()
 
     def shuffle_argsort(self, array: np.ndarray, axis: int = None) -> np.ndarray:
         numerical_noise = np.random.uniform(0, 1e-7, size=array.shape)
