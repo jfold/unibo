@@ -145,7 +145,7 @@ class Ranking(Loader):
         )
         plt.xlabel("Epochs")
         plt.tight_layout()
-        fig.savefig(f"{self.savepth_figs}metrics-vs-epochs---{settings}.pdf")
+        fig.savefig(f"{self.savepth_figs}ranking-metrics-vs-epochs---{settings}.pdf")
         plt.close()
 
     def shuffle_argsort(self, array: np.ndarray, axis: int = None) -> np.ndarray:

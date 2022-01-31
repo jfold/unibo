@@ -136,7 +136,8 @@ class Loader(object):
 
             for metric in self.metric_dict.keys():
                 data_idx[-1] = self.values[-1].index(metric)
-                self.data[tuple(data_idx)] = scores[metric]
+                if metric in scores:
+                    self.data[tuple(data_idx)] = scores[metric]
 
             # Running over epochs
             files_in_path = [f for f in os.listdir(pth) if "scores---epoch" in f]
@@ -148,7 +149,8 @@ class Loader(object):
                     scores_epoch_i = json.load(json_file)
                 for metric in self.metric_dict.keys():
                     data_idx[-1] = self.values[-1].index(metric)
-                    self.data[tuple(data_idx)] = scores_epoch_i[metric]
+                    if metric in scores_epoch_i:
+                        self.data[tuple(data_idx)] = scores_epoch_i[metric]
         self.loader_summary.update(
             {"missing": np.sum(np.isnan(self.data)) / self.data.size}
         )
