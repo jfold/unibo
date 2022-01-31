@@ -14,6 +14,8 @@ class Dataset(object):
         self.data = data_class(parameters)
         self.summary = {
             "problem": self.problem,
+            "signal_var": self.data.signal_var,
+            "noise_var": self.data.noise_var,
             "d": int(self.d),
             "x_lbs": self.data.lbs,
             "x_ubs": self.data.ubs,

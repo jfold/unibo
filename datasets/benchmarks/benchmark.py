@@ -1,3 +1,4 @@
+from attr import has
 from src.parameters import Parameters
 from .evalset import test_funcs
 import inspect
@@ -37,13 +38,20 @@ class Benchmark(object):
             self.f_min = self.problem.fmin / self.y_max
             self.lbs = [b[0] for b in self.problem.bounds]
             self.ubs = [b[1] for b in self.problem.bounds]
+
+            self.signal_var = self.get_signal_var()
+            self.noise_var = self.signal_var / self.snr
             self.X = self.sample_X(parameters.n_initial)
             self.y = self.get_y(self.X)
-            self.noise_var = np.nanvar(self.y) / self.snr
         else:
             raise ValueError(
                 f"Problem {parameters.problem} does not support dimensionality {self.d}"
             )
+
+    def get_signal_var(self, n_samples: int = 3000) -> float:
+        X = self.sample_X(n_samples=n_samples)
+        y = self.get_y(X, add_noise=False)
+        return np.var(y)
 
     def sample_X(self, n_samples: int = 1) -> np.ndarray:
         X = np.random.uniform(low=self.lbs, high=self.ubs, size=(n_samples, self.d))
@@ -55,8 +63,6 @@ class Benchmark(object):
             y_new.append(self.problem.evaluate(x) / self.y_max)
         y_arr = np.array(y_new)
         if self.noisify and add_noise:
-            if not hasattr(self, "noise_var"):
-                self.noise_var = np.nanvar(y_arr) / self.snr
             noise_samples = np.random.normal(
                 loc=0, scale=np.sqrt(self.noise_var), size=y_arr.shape
             )
