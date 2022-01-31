@@ -156,10 +156,6 @@ class Calibration(CalibrationPlots):
     def analyze(
         self, surrogate: Model, dataset: Dataset, save_settings: str = "",
     ) -> None:
-        """Calculates calibration, sharpness, expected log predictive density and 
-        normalized mean square error functions for the "surrogate" on a testset
-        drawn from "dataset".
-        """
         name = f"{save_settings}"
         if surrogate is not None:
             X_test, y_test = dataset.sample_testset()

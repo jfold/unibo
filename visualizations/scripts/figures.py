@@ -1,7 +1,4 @@
-from typing import Dict
-from numpy import size
-
-from scipy.stats.stats import energy_distance
+from sklearn.utils import deprecated
 from imports.general import *
 from imports.ml import *
 from src.parameters import Parameters
@@ -244,6 +241,7 @@ class Figures(Loader):
         for problem in self.loader_summary["problem"]["vals"]:
             for dim in self.loader_summary["d"]["vals"]:
                 fig = plt.figure()
+                skip = False
                 for surrogate in self.loader_summary["surrogate"]["vals"]:
                     data = self.extract(
                         settings={
@@ -274,6 +272,10 @@ class Figures(Loader):
                         if len(avg_dims) >= 0
                         else data.flatten()
                     )
+                    # if np.any(np.isnan(x)) or np.any(np.isnan(y)):
+                    #     skip = True
+                    #     continue
+
                     plt.scatter(
                         x,
                         y,
@@ -281,6 +283,8 @@ class Figures(Loader):
                         marker=ps[surrogate]["m"],
                         label=f"{surrogate}",
                     )
+                if skip:
+                    continue
                 plt.xlabel("Regret")
                 plt.ylabel("Calibration MSE")
                 # plt.xscale("log")
