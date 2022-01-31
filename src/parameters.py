@@ -33,6 +33,7 @@ class Parameters:
 
     def __init__(self, kwargs: Dict = {}, mkdir: bool = False) -> None:
         self.update(kwargs)
+        self.acquisition = "RS" if self.surrogate == "RS" else self.acquisition
         if self.problem_idx > -1 and self.data_class == "Benchmark":
             problem = self.find_benchmark_problem_i()
             kwargs["problem"] = problem

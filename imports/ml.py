@@ -30,5 +30,6 @@ ps = {
     "RF": {"c": "blue", "m": "4"},
     "BNN": {"c": "orange", "m": "v"},
     "DS": {"c": "black", "m": "*"},
+    "RS": {"c": "palegreen", "m": "h"},
 }
 
