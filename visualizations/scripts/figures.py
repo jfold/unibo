@@ -24,6 +24,18 @@ class Figures(Loader):
     def find_extreme_vals(self, x: np.ndarray, q: float = 0.05) -> Tuple[float, float]:
         return np.quantile(x, 1 - q), np.quantile(x, q)
 
+    def remove_extremes(
+        self, x: np.ndarray, y: np.ndarray
+    ) -> Tuple[np.ndarray, np.ndarray]:
+        assert x.shape == y.shape
+        remove_idx = y > np.quantile(y, 0.95)
+        y = y[np.logical_not(remove_idx)]
+        x = x[np.logical_not(remove_idx)]
+        remove_idx = y < np.quantile(y, 0.05)
+        x = x[np.logical_not(remove_idx)]
+        y = y[np.logical_not(remove_idx)]
+        return x, y
+
     def calibration(self):
         fig = plt.figure()
         if hasattr(self, "p_axis"):
@@ -292,4 +304,49 @@ class Figures(Loader):
                 fig.savefig(
                     f"{self.savepth}regret-vs-no-bo-calibration|{problem}({dim})|epoch={epoch}|avg={avg_names}.pdf"
                 )
+
+    def exp_improv_vs_act_improv(self):
+        expected_improvements = [[] for _ in self.loader_summary["surrogate"]["vals"]]
+        actual_improvements = [[] for _ in self.loader_summary["surrogate"]["vals"]]
+        for i_e, experiment in enumerate(p for p in self.loadpths):
+            if os.path.isdir(experiment) and os.path.isfile(
+                experiment + "parameters.json"
+            ):
+                with open(experiment + "parameters.json") as json_file:
+                    parameters = json.load(json_file)
+                if not parameters["bo"] and parameters["acquisition"] != "EI":
+                    continue
+                files_in_path = [
+                    f
+                    for f in os.listdir(experiment)
+                    if "scores---epoch" in f and "scores---epoch-0" not in f
+                ]
+                idx = self.loader_summary["surrogate"]["vals"].index(
+                    parameters["surrogate"]
+                )
+                for file in files_in_path:
+                    with open(f"{experiment}{file}") as json_file:
+                        scores_epoch_i = json.load(json_file)
+                    expected_improvements[idx].append(
+                        np.array(scores_epoch_i["expected_improvement"]).squeeze()
+                    )
+                    actual_improvements[idx].append(
+                        np.array(scores_epoch_i["actual_improvement"]).squeeze()
+                    )
+        expected_improvements = [np.array(x) for x in expected_improvements]
+        actual_improvements = [np.array(x) for x in actual_improvements]
+        fig = plt.figure()
+        for i_s, surrogate in enumerate(self.loader_summary["surrogate"]["vals"]):
+            plt.scatter(
+                expected_improvements[i_s],
+                actual_improvements[i_s],
+                label=surrogate,
+                color=ps[surrogate]["c"],
+                alpha=0.7,
+            )
+        plt.xlabel("Expected Improvement")
+        plt.ylabel("Actual Improvement")
+        plt.xlim([0, 10])
+        plt.legend()
+        fig.savefig(f"{self.savepth}exp-improv-vs-act-improv.pdf")
 

@@ -52,6 +52,11 @@ class ResultsTest(unittest.TestCase):
                 avg_names=["seed", "problem"], settings={"d": d, "bo": True}
             )
 
+    def test_exp_improv_vs_act_improv(self) -> None:
+        loadpths = get_loadpths(os.getcwd() + "/results/")
+        figures = Figures(loadpths)
+        figures.exp_improv_vs_act_improv()
+
 
 if __name__ == "__main__":
     unittest.main()
