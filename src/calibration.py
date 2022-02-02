@@ -1,8 +1,10 @@
 from dataclasses import asdict
 import json
 from numpy.lib.npyio import save
+from scipy.sparse import data
 from imports.general import *
 from imports.ml import *
+from src.optimizer import Optimizer
 from src.parameters import Parameters
 from visualizations.scripts.calibrationplots import CalibrationPlots
 from src.dataset import Dataset
@@ -16,11 +18,9 @@ class Calibration(CalibrationPlots):
         self.__dict__.update(asdict(parameters))
         self.summary = {}
 
-    def calculate_p_hat(self, F_t: np.ndarray, f_t: float) -> float:
-        p_hat = np.mean(F_t <= f_t)
-        return p_hat
-
-    def check_gaussian_sharpness(self, mus: np.ndarray, sigmas: np.ndarray):
+    def check_gaussian_sharpness(
+        self, mus: np.ndarray, sigmas: np.ndarray, name: str = ""
+    ) -> None:
         """Calculates the sharpness (negative entropy) of the gaussian distributions 
         with means: mus and standard deviation: sigmas
         """
@@ -34,7 +34,9 @@ class Calibration(CalibrationPlots):
         if self.plot_it and self.save_it:
             self.plot_sharpness_histogram(name=name)
 
-    def check_histogram_sharpness(self, model: Model, X: np.ndarray, n_bins: int = 50):
+    def check_histogram_sharpness(
+        self, model: Model, X: np.ndarray, n_bins: int = 50
+    ) -> None:
         """Calculates the sharpness (negative entropy) of the histogram distributions 
         calculated from input X
         """
@@ -56,7 +58,7 @@ class Calibration(CalibrationPlots):
         f: np.ndarray,
         name: str,
         n_bins: int = 50,
-    ):
+    ) -> None:
         """Calculates the calibration of underlying mean (f), hence without noise.
 
         """
@@ -79,7 +81,7 @@ class Calibration(CalibrationPlots):
 
     def check_y_calibration(
         self, mus: np.ndarray, sigmas: np.ndarray, y: np.ndarray, n_bins: int = 50,
-    ):
+    ) -> None:
         """Calculates the calibration of the target (y).
         # eq. (3) in "Accurate Uncertainties for Deep Learning Using Calibrated Regression"
         """
@@ -97,27 +99,35 @@ class Calibration(CalibrationPlots):
                 "y_calibration": calibrations,
                 "y_calibration_mse": np.mean((calibrations - p_array) ** 2),
                 "y_calibration_nmse": np.mean((calibrations - p_array) ** 2)
-                / np.nanvar(p_array),
+                / np.var(p_array),
             }
         )
 
     def expected_log_predictive_density(
         self, mus: np.ndarray, sigmas: np.ndarray, y: np.ndarray,
-    ):
+    ) -> None:
         """Calculates expected log predictive density (elpd) using
         \mathbb{E}\left[\log p_\theta(\textbf{y}|\textbf{X})\right]  
         which essientially is "on average how likely is a new test data under the model".
         """
-        log_cdfs = np.array(
+        log_pdfs = np.array(
             [
-                norm.logcdf(y[i], loc=mus[i], scale=sigmas[i])
+                norm.logpdf(y[i], loc=mus[i], scale=sigmas[i])
                 for i in range(sigmas.shape[0])
             ]
         )
-        elpd = np.mean(log_cdfs)
+        elpd = np.mean(log_pdfs)
         self.summary.update({"elpd": elpd})
 
-    def nmse(self, y: np.ndarray, predictions: np.ndarray):
+    def improvement(self, dataset: Dataset):
+        self.summary.update(
+            {
+                "expected_improvement": np.array(dataset.expected_improvement),
+                "actual_improvement": np.array(dataset.actual_improvement),
+            }
+        )
+
+    def nmse(self, y: np.ndarray, predictions: np.ndarray) -> None:
         """Calculates normalized mean square error by 
         nmse = \ frac{1}{N\cdot\mathbb{V}[\textbf{y}]} \sum_i (\textbf{y}-\hat{\textbf{y}})^2
         where N is the length of y
@@ -127,18 +137,18 @@ class Calibration(CalibrationPlots):
         self.summary.update({"mse": mse})
         self.summary.update({"nmse": nmse})
 
-    def regret(self, dataset: Dataset):
+    def regret(self, dataset: Dataset) -> None:
         regret = np.abs(dataset.y_opt - dataset.data.problem.fmin)
         self.summary.update({"regret": np.sum(regret)})
         self.summary.update({"y_opt": np.array(dataset.data.problem.fmin)})
 
-    def glob_min_dist(self, dataset: Dataset):
+    def glob_min_dist(self, dataset: Dataset) -> None:
         squared_error = (dataset.X_opt - dataset.data.problem.min_loc) ** 2
         self.summary.update({"x_opt_dist": np.sum(squared_error)})
         self.summary.update({"x_opt_mean_dist": np.mean(squared_error)})
         self.summary.update({"x_opt": np.array(dataset.data.problem.min_loc)})
 
-    def save(self, save_settings: str = ""):
+    def save(self, save_settings: str = "") -> None:
         final_dict = {k: v.tolist() for k, v in self.summary.items()}
         json_dump = json.dumps(final_dict)
         with open(self.savepth + f"scores{save_settings}.json", "w") as f:
@@ -146,7 +156,7 @@ class Calibration(CalibrationPlots):
 
     def analyze(
         self, surrogate: Model, dataset: Dataset, save_settings: str = "",
-    ):
+    ) -> None:
         """Calculates calibration, sharpness, expected log predictive density and 
         normalized mean square error functions for the "surrogate" on a testset
         drawn from "dataset".
@@ -154,6 +164,7 @@ class Calibration(CalibrationPlots):
         name = f"{save_settings}"
         X_test, y_test = dataset.sample_testset()
         self.ne_true = dataset.data.ne_true
+        self.y_max = dataset.data.y_max
         mu_test, sigma_test = surrogate.predict(X_test)
         self.check_y_calibration(mu_test, sigma_test, y_test)
         self.check_gaussian_sharpness(mu_test, sigma_test, name)
@@ -163,12 +174,7 @@ class Calibration(CalibrationPlots):
         self.nmse(y_test, mu_test)
         self.regret(dataset)
         self.glob_min_dist(dataset)
-
-        # Throw out?
-        # self.check_histogram_sharpness(surrogate, X_test)
-        # self.check_f_calibration(
-        #     mu_test, sigma_test, dataset.data.f_test, name=name,
-        # )
+        self.improvement(dataset)
 
         if self.plot_it and self.save_it:
             if self.d == 1:

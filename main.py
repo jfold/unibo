@@ -2,13 +2,6 @@ from imports.general import *
 from src.experiment import Experiment
 from src.parameters import Parameters
 
-# PLAN:
-# -1) Save with less decimals
-# 0) Unittest validation of input/output
-# 1) Best practice in hyperparameter tuning
-# 2) Define experimental grid from Dewancker et al. 2016
-# 3) Sharpness: how fast does the mean (+ variance) of negative entropy converge?
-
 
 def run():
     start = time.time()
@@ -40,8 +33,8 @@ def run():
         kwargs.update({var: val})
 
     parameters = Parameters(kwargs, mkdir=True)
-    experiment = Experiment(parameters)
     print("Running with:", parameters)
+    experiment = Experiment(parameters)
     experiment.run()
     print("FINISHED EXPERIMENT")
     print("------------------------------------")

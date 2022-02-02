@@ -2,9 +2,12 @@
 .vscode/*   
 **/.DS_Store
 results/tests/*
+results/*
 visualizations/figures/*
 visualizations/tables/*
 cluster
+**/TODO.txt
+**/*.sh
 **/.DS_Store
 **/__pycache__
 CodeChart.drawio
@@ -143,3 +146,4 @@ dmypy.json
 # Pyre type checker
 .pyre/
 unibo_env.yaml
+rankings.npy

@@ -1,5 +1,6 @@
 from dataclasses import asdict
 from botorch.posteriors.posterior import Posterior
+from numpy.lib.twodim_base import fliplr
 from src.dataset import Dataset
 from src.parameters import Parameters
 from imports.general import *
@@ -15,10 +16,11 @@ class DummySurrogate(BatchedMultiOutputGPyTorchModel):
     variance: average distance to training points"""
 
     def __init__(
-        self, parameters: Parameters, dataset: Dataset, name: str = "RF",
+        self, parameters: Parameters, dataset: Dataset, name: str = "DS",
     ):
         self.__dict__.update(asdict(parameters))
         self.name = name
+        self.n_neighbors = 5
         # torch stuff ...
         self._modules = {}
         self._backward_hooks = {}
@@ -29,22 +31,7 @@ class DummySurrogate(BatchedMultiOutputGPyTorchModel):
         self.fit(X_train=dataset.data.X, y_train=dataset.data.y)
 
     def set_hyperparameter_space(self):
-        if self.vanilla:
-            self.rf_params_grid = {
-                "n_estimators": [30],
-                "max_depth": [10],
-            }
-        else:
-            self.rf_params_grid = {
-                "n_estimators": [10, 100, 1000],
-                "max_depth": [5, 10, 20],
-                "max_samples": [
-                    int(self.n_initial / 4),
-                    int(self.n_initial / 2),
-                    int((3 / 4) * self.n_initial),
-                ],
-                "max_features": ["auto", "sqrt"],
-            }
+        pass
 
     def forward(self, x: Tensor) -> MultivariateNormal:
         mean_x, covar_x = self.predict(x)
@@ -53,44 +40,36 @@ class DummySurrogate(BatchedMultiOutputGPyTorchModel):
         return MultivariateNormal(mean_x, covar_x)
 
     def fit(self, X_train: np.ndarray, y_train: np.ndarray):
-        """Fits random forest model with hyperparameter tuning
-        Args:
-            X_train (np.ndarray): training input
-            y_train (np.ndarray): training output
-        """
-        np.random.seed(2021)
-        if not self.vanilla:
-            self.rf_params_grid.update(
-                {
-                    "max_samples": [
-                        int(X_train.shape[0] / 4),
-                        int(X_train.shape[0] / 2),
-                        int((3 / 4) * X_train.shape[0]),
-                    ],
-                }
-            )
-        grid_search = GridSearchCV(
-            estimator=RandomForestRegressor(),
-            param_grid=self.rf_params_grid,
-            cv=self.rf_cv_splits,
-            n_jobs=-1,
-            verbose=0,
-        ).fit(X_train, y_train.squeeze())
-        self.model = grid_search.best_estimator_
+        self.X_train = X_train
+        self.y_train = y_train
+        self.knn = KNNsklearn(n_neighbors=self.n_neighbors, radius=np.inf).fit(X_train)
+        self.model = self.knn
 
     def predict(
         self, X_test: np.ndarray, stabilizer: float = 1e-8
     ) -> Tuple[np.ndarray, np.ndarray]:
-        """Calculates mean (prediction) and variance (uncertainty)"""
         X_test = (
             X_test.cpu().detach().numpy().squeeze()
             if torch.is_tensor(X_test)
             else X_test.squeeze()
         )
         X_test = X_test[:, np.newaxis] if X_test.ndim == 1 else X_test
-        mu_predictive = self.model.predict(X_test)
-        sigma_predictive = self.calculate_y_std(X_test) + stabilizer
-        return (mu_predictive[:, np.newaxis], sigma_predictive[:, np.newaxis])
+        mean_x = []
+        var_x = []
+        for i in range(X_test.shape[0]):
+            x_test = X_test[[i], :]
+            neigh_dist, neigh_ind = self.knn.kneighbors(
+                x_test, self.n_neighbors, return_distance=True
+            )
+            neigh_ind = neigh_ind.squeeze()
+            neigh_dist = neigh_dist.squeeze()
+            lr = LinearRegression().fit(
+                self.X_train[neigh_ind, :], self.y_train[neigh_ind, :],
+            )
+            mean_x.append(lr.predict(x_test).squeeze())
+            var_x.append(np.exp(0.01 * np.min(neigh_dist)) + stabilizer)
+
+        return np.array(mean_x)[:, np.newaxis], np.array(var_x)[:, np.newaxis]
 
     def calculate_y_std(self, X: np.ndarray) -> np.ndarray:
         predictions = None

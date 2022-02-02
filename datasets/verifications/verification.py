@@ -26,7 +26,7 @@ class VerificationData(object):
         )
         self.w = np.random.normal(loc=0, scale=1, size=(self.K, 1))
 
-    def get_y(self, X: np.array) -> np.array:
+    def get_y(self, X: np.array) -> np.ndarray:
         """Generates y according to
         \fb &= \phi(\Xb)\textbf{w} = \sum_{k=1}^K w_k \phi_k(\Xb\textbf{W} )  \label{eq:sim_f}\\
         \yb &= \fb + \epsilon  \,\,,\,\, \epsilon \sim \mathcal{N}(0,\sigma_n^2) \label{eq:sim_y}
@@ -44,7 +44,7 @@ class VerificationData(object):
         self.ne_true = -norm.entropy(loc=0, scale=np.sqrt(self.noise_var))
         return y
 
-    def sample_X(self, n_samples: int = 1) -> np.array:
+    def sample_X(self, n_samples: int = 1) -> np.ndarray:
         X = np.random.uniform(low=self.lbs, high=self.ubs, size=(n_samples, self.d))
         return X
 

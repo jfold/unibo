@@ -1,5 +1,4 @@
 import json
-from typing import Dict
 from imports.general import *
 from imports.ml import *
 from dataclasses import dataclass, asdict, replace
@@ -7,7 +6,7 @@ from dataclasses import dataclass, asdict, replace
 
 @dataclass
 class Parameters:
-    seed: bool = 0
+    seed: bool = 0  # random seed
     d: int = 1  # number of input dimensions
     n_test: int = 3000  # number of test samples for calibration analysis
     n_initial: int = 10  # number of starting points
@@ -21,6 +20,7 @@ class Parameters:
     data_class: str = "Benchmark"  # dataclass name
     problem: str = "Alpine01"  # "Alpine01" # subproblem name
     maximization: bool = False
+    change_std: bool = False  # manipulate predictive std
     snr: float = 10.0
     K: int = 1  # number of terms in sum for VerificationData
     surrogate: str = "RF"  # surrogate function name
@@ -31,9 +31,11 @@ class Parameters:
 
     def __init__(self, kwargs: Dict = {}, mkdir: bool = False) -> None:
         self.update(kwargs)
+        if mkdir and not os.path.isdir(self.savepth):
+            os.mkdir(self.savepth)
         folder_name = (
-            datetime.now().strftime("%d%m%y-%H%M%S")
-            + f"|{self.surrogate}-{self.acquisition}|{self.data_class}-{self.problem}"
+            # datetime.now().strftime("%d%m%y-%H%M%S") +
+            f"{self.data_class}-{self.problem}({self.d})|{self.surrogate}-{self.acquisition}|seed-{self.seed}"
         )
         folder_name = folder_name + "|BO" if self.bo else folder_name
         setattr(
@@ -43,8 +45,10 @@ class Parameters:
         if mkdir and not os.path.isdir(self.savepth):
             os.mkdir(self.savepth)
             self.save()
+        else:
+            print("Experiment already performed!")
 
-    def update(self, kwargs, save=False):
+    def update(self, kwargs, save=False) -> None:
         for key, value in kwargs.items():
             if hasattr(self, key):
                 setattr(self, key, value)
@@ -53,7 +57,7 @@ class Parameters:
         if save:
             self.save()
 
-    def save(self):
+    def save(self) -> None:
         json_dump = json.dumps(asdict(self))
         with open(self.savepth + "parameters.json", "w") as f:
             f.write(json_dump)

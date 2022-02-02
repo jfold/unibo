@@ -5,12 +5,10 @@ import time
 
 # Test domain:
 surrogates = [
-    "BNN",
     "GP",
-    "RF",
 ]
 dims = [1]
-seeds = list(range(3))
+seeds = list(range(1))
 data = {
     "Benchmark": {
         "location": "datasets.benchmarks.benchmark",
