@@ -153,6 +153,10 @@ class Calibration(CalibrationPlots):
         with open(self.savepth + f"scores{save_settings}.json", "w") as f:
             f.write(json_dump)
 
+        if hasattr(self, "uct_metrics"):
+            with open(self.savepth + f"scores-uct{save_settings}.pkl", "wb") as f:
+                pickle.dump(self.uct_metrics, f)
+
     def analyze(
         self, surrogate: Model, dataset: Dataset, save_settings: str = "",
     ) -> None:
@@ -168,16 +172,19 @@ class Calibration(CalibrationPlots):
                 mu_test, sigma_test, y_test,
             )
             self.nmse(y_test, mu_test)
+            self.uct_metrics = uct.metrics.get_all_metrics(
+                mu_test.squeeze(), sigma_test.squeeze(), y_test.squeeze(), verbose=False
+            )
+            if self.plot_it and self.save_it:
+                if self.d == 1:
+                    self.plot_predictive(
+                        dataset, X_test, y_test, mu_test, sigma_test, name=name
+                    )
+                self.plot_y_calibration(name=name)
+
         self.improvement(dataset)
         self.regret(dataset)
         self.glob_min_dist(dataset)
-
-        if self.plot_it and self.save_it:
-            if self.d == 1:
-                self.plot_predictive(
-                    dataset, X_test, y_test, mu_test, sigma_test, name=name
-                )
-            self.plot_y_calibration(name=name)
 
         # Save
         if self.save_it:
