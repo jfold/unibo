@@ -21,7 +21,7 @@ class ResultsTest(unittest.TestCase):
         loader = Loader(loadpths)
         for k in loader.loader_summary.keys():
             print(k, loader.loader_summary[k])
-        print("data.shape:", loader.data.shape)
+        print("data.shape:", loader.data.shape, "data.nbytes:", loader.data.nbytes)
         print(
             f"LOADING ALL {len(loadpths)} FILES TOOK: --- %s seconds ---"
             % (time.time() - start_time)
@@ -47,10 +47,10 @@ class ResultsTest(unittest.TestCase):
         loadpths = get_loadpths(os.getcwd() + "/results/")
         ranking = Ranking(loadpths)
         ranking.rank_metrics_vs_epochs()
-        for d in range(2, 11):
-            ranking.rank_metrics_vs_epochs(
-                avg_names=["seed", "problem"], settings={"d": d, "bo": True}
-            )
+        # for d in range(2, 11):
+        #     ranking.rank_metrics_vs_epochs(
+        #         avg_names=["seed", "problem"], settings={"d": d, "bo": True}
+        #     )
 
     def test_exp_improv_vs_act_improv(self) -> None:
         loadpths = get_loadpths(os.getcwd() + "/results/")

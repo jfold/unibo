@@ -29,6 +29,24 @@ class Ranking(Loader):
         self.std_ranking_table = pd.DataFrame(columns=cols, index=rows)
         self.no_ranking_table = pd.DataFrame(columns=cols, index=rows)
 
+    def get_indexer(self, settings: Dict) -> Tuple[int]:
+        axes = {}
+        for key, val in settings.items():
+            axes.update({key: [self.loader_summary[key]["axis"], val]})
+
+        indexer = [np.s_[:]] * self.data.ndim
+        for name, lst in axes.items():
+            vals = self.loader_summary[name]["vals"]
+            indexer[lst[0]] = np.s_[vals.index(lst[1]) : 1 + vals.index(lst[1])]
+
+        return tuple(indexer)
+
+    def nansum(self, a, **kwargs):
+        mx = np.isnan(a).all(**kwargs)
+        res = np.nansum(a, **kwargs)
+        res[mx] = np.nan
+        return res
+
     def calc_surrogate_ranks(self, bo: bool = True, save: bool = True):
         rankings = np.full(self.data.shape, np.nan)
         rank_axis = self.loader_summary["surrogate"]["axis"]
@@ -36,37 +54,29 @@ class Ranking(Loader):
             for dim in self.loader_summary["d"]["vals"]:
                 for seed in self.loader_summary["seed"]["vals"]:
                     for metric in self.loader_summary["metric"]["vals"]:
-                        data = self.extract(
-                            settings={
-                                "problem": problem,
-                                "d": dim,
-                                "metric": metric,
-                                "bo": bo,
-                                "seed": seed,
-                            }
-                        )
+                        settings = {
+                            "problem": problem,
+                            "d": dim,
+                            "metric": metric,
+                            "bo": bo,
+                            "seed": seed,
+                        }
+                        data = self.extract(settings=settings)
 
-                        if (np.sum(np.isnan(data)) / data.size) > 0.5:
+                        if np.all(np.isnan(data)):
                             continue
 
-                        axes = {
-                            "problem": [
-                                self.loader_summary["problem"]["axis"],
-                                problem,
-                            ],
-                            "d": [self.loader_summary["d"]["axis"], dim],
-                            "seed": [self.loader_summary["seed"]["axis"], seed],
-                            "metric": [self.loader_summary["metric"]["axis"], metric],
-                            "bo": [self.loader_summary["bo"]["axis"], bo],
-                        }
-
-                        indexer = [np.s_[:]] * data.ndim
-                        for name, lst in axes.items():
-                            vals = self.loader_summary[name]["vals"]
-                            indexer[lst[0]] = np.s_[
-                                vals.index(lst[1]) : 1 + vals.index(lst[1])
-                            ]
-                        indexer = tuple(indexer)
+                        if (
+                            "RS" in self.loader_summary["acquisition"]["vals"]
+                            and len(self.loader_summary["acquisition"]["vals"]) == 2
+                        ):
+                            data = self.nansum(
+                                data,
+                                **{
+                                    "axis": self.loader_summary["acquisition"]["axis"],
+                                    "keepdims": True,
+                                },
+                            )
 
                         if self.metric_dict[metric][1] == 1:
                             order = np.flip(
@@ -76,7 +86,9 @@ class Ranking(Loader):
                         else:
                             order = self.shuffle_argsort(data, axis=rank_axis)
                         ranks = np.argsort(order, axis=rank_axis) + 1
+                        indexer = self.get_indexer(settings)
                         rankings[indexer] = ranks
+
         if save:
             with open(os.getcwd() + "/rankings.npy", "wb") as f:
                 np.save(f, rankings)
@@ -87,11 +99,13 @@ class Ranking(Loader):
         avg_names: list[str] = ["seed", "problem", "d"],
         settings: Dict = {"bo": True},
     ):
-        # rankings = self.calc_surrogate_ranks()
+        matplotlib.rcParams["font.size"] = 18
+        matplotlib.rcParams["figure.figsize"] = (12, 18)
+        rankings = self.calc_surrogate_ranks()
         rankings = np.load(os.getcwd() + "/rankings.npy")
         rankings = self.extract(rankings, settings=settings)
         avg_dims = tuple([self.loader_summary[name]["axis"] for name in avg_names])
-        n_avgs = 8 * 3
+        n_avgs = 8 * 8
         epochs = self.loader_summary["epoch"]["vals"]
         ranking_mean = np.nanmean(rankings, axis=avg_dims, keepdims=True)
         ranking_std = np.nanstd(rankings, axis=avg_dims, keepdims=True)
@@ -131,7 +145,7 @@ class Ranking(Loader):
 
             if i_m < len(self.loader_summary["metric"]["vals"]) - 1:
                 ax.set_xticklabels([])
-            plt.ylabel(self.metric_dict[metric][-1])
+            plt.title(self.metric_dict[metric][-1])
             plt.xlim([epochs[0] - 0.1, epochs[-1] + 0.1])
             plt.ylim([1 + 0.1, len(self.loader_summary["surrogate"]["vals"]) + 0.1])
             plt.yticks(range(1, 1 + len(self.loader_summary["surrogate"]["vals"])))
@@ -143,7 +157,7 @@ class Ranking(Loader):
             loc="upper center",
             ncol=len(self.loader_summary["surrogate"]["vals"]),
         )
-        plt.xlabel("Epochs")
+        plt.xlabel("Iterations")
         plt.tight_layout()
         fig.savefig(f"{self.savepth_figs}ranking-metrics-vs-epochs---{settings}.pdf")
         plt.close()
@@ -226,28 +240,29 @@ class Ranking(Loader):
             )
 
     def run(self):
-        self.init_tables()
-        self.calc_ranking()
-        self.calc_plot_metric_dependence(
-            metric_1="regret", metric_2="y_calibration_mse", n_epoch=range(50)
-        )
-        self.calc_plot_metric_dependence(
-            metric_1="regret", metric_2="elpd", n_epoch=range(50)
-        )
+        pass
+        # self.init_tables()
+        # self.calc_ranking()
+        # self.calc_plot_metric_dependence(
+        #     metric_1="regret", metric_2="y_calibration_mse", n_epoch=range(50)
+        # )
+        # self.calc_plot_metric_dependence(
+        #     metric_1="regret", metric_2="elpd", n_epoch=range(50)
+        # )
 
-        self.mean_ranking_table.applymap("{:.4f}".format).to_csv(
-            f"{self.savepth}ranking-means.csv",
-        )
-        self.std_ranking_table.applymap("{:.4f}".format).to_csv(
-            f"{self.savepth}ranking-stds.csv"
-        )
-        print("MEAN:")
-        print(self.mean_ranking_table)
-        # print(self.mean_ranking_table.to_latex(float_format=lambda x: "%.3f" % x))
-        print("MEDIAN:")
-        print(self.median_ranking_table)
-        # print(self.mean_ranking_table.to_latex(float_format=lambda x: "%.3f" % x))
-        print("STD:")
-        print(self.std_ranking_table)
-        # print(self.std_ranking_table.to_latex(float_format=lambda x: "%.2f" % x))
+        # self.mean_ranking_table.applymap("{:.4f}".format).to_csv(
+        #     f"{self.savepth}ranking-means.csv",
+        # )
+        # self.std_ranking_table.applymap("{:.4f}".format).to_csv(
+        #     f"{self.savepth}ranking-stds.csv"
+        # )
+        # print("MEAN:")
+        # print(self.mean_ranking_table)
+        # # print(self.mean_ranking_table.to_latex(float_format=lambda x: "%.3f" % x))
+        # print("MEDIAN:")
+        # print(self.median_ranking_table)
+        # # print(self.mean_ranking_table.to_latex(float_format=lambda x: "%.3f" % x))
+        # print("STD:")
+        # print(self.std_ranking_table)
+        # # print(self.std_ranking_table.to_latex(float_format=lambda x: "%.2f" % x))
 
