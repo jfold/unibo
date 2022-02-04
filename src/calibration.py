@@ -175,6 +175,7 @@ class Calibration(CalibrationPlots):
             self.uct_metrics = uct.metrics.get_all_metrics(
                 mu_test.squeeze(), sigma_test.squeeze(), y_test.squeeze(), verbose=False
             )
+            self.improvement(dataset)
             if self.plot_it and self.save_it:
                 if self.d == 1:
                     self.plot_predictive(
@@ -182,7 +183,6 @@ class Calibration(CalibrationPlots):
                     )
                 self.plot_y_calibration(name=name)
 
-        self.improvement(dataset)
         self.regret(dataset)
         self.glob_min_dist(dataset)
 
