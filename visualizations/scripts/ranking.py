@@ -101,7 +101,7 @@ class Ranking(Loader):
     ):
         matplotlib.rcParams["font.size"] = 18
         matplotlib.rcParams["figure.figsize"] = (12, 18)
-        rankings = self.calc_surrogate_ranks()
+        # rankings = self.calc_surrogate_ranks()
         rankings = np.load(os.getcwd() + "/rankings.npy")
         rankings = self.extract(rankings, settings=settings)
         avg_dims = tuple([self.loader_summary[name]["axis"] for name in avg_names])
@@ -109,10 +109,23 @@ class Ranking(Loader):
         epochs = self.loader_summary["epoch"]["vals"]
         ranking_mean = np.nanmean(rankings, axis=avg_dims, keepdims=True)
         ranking_std = np.nanstd(rankings, axis=avg_dims, keepdims=True)
-        if ranking_mean.squeeze().ndim != 3:
-            raise ValueError(
-                f"Rankings should be 3 dimensional instead of {ranking_mean.squeeze().ndim} after squeezing."
-            )
+        # if (
+        #     "RS" in self.loader_summary["acquisition"]["vals"]
+        #     and len(self.loader_summary["acquisition"]["vals"]) == 2
+        # ):
+        #     ranking_mean = np.mean(
+        #         ranking_mean, axis=self.loader_summary["acquisition"]["axis"]
+        #     )
+        #     check = np.std(
+        #         ranking_mean, axis=self.loader_summary["acquisition"]["axis"]
+        #     )
+        #     if not np.all(0.0 == check):
+        #         raise ValueError()
+
+        # if ranking_mean.squeeze().ndim != 3:
+        #     raise ValueError(
+        #         f"Rankings should be 3 dimensional instead of {ranking_mean.squeeze().ndim} after squeezing."
+        #     )
 
         surrogates = self.loader_summary["surrogate"]["vals"]
         surrogate_axis = self.loader_summary["surrogate"]["axis"]
@@ -120,6 +133,11 @@ class Ranking(Loader):
         metric_axis = self.loader_summary["metric"]["axis"]
 
         indexer = [np.s_[:]] * ranking_mean.ndim
+        if (
+            "RS" in self.loader_summary["acquisition"]["vals"]
+            and len(self.loader_summary["acquisition"]["vals"]) == 2
+        ):
+            indexer[self.loader_summary["acquisition"]["axis"]] = np.s_[0:1]
         fig = plt.figure()
         for i_m, metric in enumerate(metrics):
             indexer[metric_axis] = np.s_[i_m : i_m + 1]
