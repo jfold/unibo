@@ -17,7 +17,7 @@ from botorch.models.gpytorch import BatchedMultiOutputGPyTorchModel
 import torch.nn as nn
 import torch.optim as optim
 import torchbnn as bnn
-import uncertainty_toolbox as uct
+import uncertainty_toolbox as uct  # https://github.com/uncertainty-toolbox/uncertainty-toolbox
 
 matplotlib.rcParams["mathtext.fontset"] = "cm"
 matplotlib.rcParams["font.family"] = "STIXGeneral"
