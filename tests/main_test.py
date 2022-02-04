@@ -7,12 +7,12 @@ import time
 surrogates = [
     "GP",
 ]
-dims = [1]
+dims = [2]
 seeds = list(range(1))
 data = {
     "Benchmark": {
         "location": "datasets.benchmarks.benchmark",
-        "problems": ["Alpine01"],
+        "problems": ["Adjiman"],
     },
     # "VerificationData": {
     #     "location": "datasets.verifications.verification",
@@ -21,47 +21,14 @@ data = {
 }
 kwargs = {
     "savepth": os.getcwd() + "/results/tests/",
-    "n_evals": 3,
+    "n_evals": 10,
     "plot_it": True,
     "vanilla": True,
 }
 
 
 class MainTest(unittest.TestCase):
-    def test_experimental_run(self) -> None:
-        kwargs_ = kwargs
-        for dim in [2]:
-            kwargs_.update(
-                {
-                    "d": dim,
-                    "data_class": "Benchmark",
-                    "data_location": data["Benchmark"]["location"],
-                }
-            )
-            parameters = Parameters(kwargs_, mkdir=False)
-            benchmarks = Benchmark(parameters).benchmark_tags
-            n_problems = 1
-            for problem in sorted(benchmarks):
-                if "unimodal" in benchmarks[problem]:
-                    print(problem)
-                    n_problems += 1
-                if n_problems > 5:
-                    break
-                kwargs_ = kwargs
-                kwargs_.update(
-                    {
-                        "bo": True,
-                        "d": dim,
-                        "data_class": "Benchmark",
-                        "data_location": data["Benchmark"]["location"],
-                        "problem": problem,
-                    }
-                )
-                parameters = Parameters(kwargs_, mkdir=True)
-                experiment = Experiment(parameters)
-                experiment.run()
-
-    def test_toy_bo_calibration(self) -> None:
+    def test_bo_calibration(self) -> None:
         for seed in seeds:
             for d in dims:
                 for surrogate in surrogates:
@@ -83,7 +50,7 @@ class MainTest(unittest.TestCase):
                             experiment = Experiment(parameters)
                             experiment.run()
 
-    def test_toy_calibration(self) -> None:
+    def test_calibration(self) -> None:
         kwargs_ = kwargs
         for seed in seeds:
             for d in dims:

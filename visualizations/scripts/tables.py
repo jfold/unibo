@@ -1,13 +1,12 @@
 from typing import Dict
 from imports.general import *
 from imports.ml import *
+from visualizations.scripts.loader import Loader
 
 
-class Tables(object):
+class Tables(Loader):
     def __init__(self, loadpths: list[str] = [], settings: Dict[str, str] = {}):
-        self.loadpths = loadpths
-        self.surrogates = list(set([pth.split("|")[1] for pth in self.loadpths]))
-        self.settings = settings
+        super(Tables, self).__init__(loadpths, settings)
         self.savepth = (
             os.getcwd()
             + "/visualizations/tables/"
@@ -65,5 +64,6 @@ class Tables(object):
         self.load_raw()
         self.summary_table()
 
-    def summary_table(self):
-        pass
+    # def surrogates_vs_metrics(self):
+    #     columns =
+

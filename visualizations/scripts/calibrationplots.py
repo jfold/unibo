@@ -1,7 +1,7 @@
 from dataclasses import asdict
 from imports.general import *
 from imports.ml import *
-from base.dataset import Dataset
+from src.dataset import Dataset
 from src.parameters import Parameters
 
 

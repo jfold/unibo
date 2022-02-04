@@ -1,30 +1,24 @@
-from botorch import acquisition
 from acquisitions.random_search import RandomSearch
 from src.dataset import Dataset
 from src.parameters import *
-from torch import Tensor
-import botorch
 from surrogates.dummy_surrogate import DummySurrogate
 from surrogates.gaussian_process import GaussianProcess
-from gpytorch.mlls import ExactMarginalLogLikelihood
 from surrogates.random_forest import RandomForest
 from surrogates.bayesian_neural_network import BayesianNeuralNetwork
 from botorch.optim import optimize_acqf
 from botorch.acquisition.analytic import (
-    AnalyticAcquisitionFunction,
-    ConstrainedExpectedImprovement,
     ExpectedImprovement,
-    NoisyExpectedImprovement,
-    PosteriorMean,
-    ProbabilityOfImprovement,
     UpperConfidenceBound,
+    # AnalyticAcquisitionFunction,
+    # ConstrainedExpectedImprovement,
+    # NoisyExpectedImprovement,
+    # PosteriorMean,
+    # ProbabilityOfImprovement,
 )
 
 
-# TODO: Check what happens if gradients are not available in model.
-# TODO: Check what to do with BNNs. Have people done BoTorch with this already?
 class Optimizer(object):
-    """Optimizer class"""
+    """# Optimizer class"""
 
     def __init__(self, parameters: Parameters) -> None:
         self.__dict__.update(asdict(parameters))
@@ -44,6 +38,9 @@ class Optimizer(object):
         elif self.surrogate == "DS":
             self.surrogate_object = DummySurrogate(self.parameters, dataset)
             self.surrogate_model = self.surrogate_object
+        elif self.surrogate == "RS":
+            self.surrogate_object = None
+            self.surrogate_model = None
         else:
             raise ValueError(f"Surrogate function {self.surrogate} not supported.")
         self.is_fitted = True

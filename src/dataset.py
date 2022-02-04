@@ -14,11 +14,15 @@ class Dataset(object):
         self.data = data_class(parameters)
         self.summary = {
             "problem": self.problem,
+            "signal_var": self.data.signal_var,
+            "noise_var": self.data.noise_var,
             "d": int(self.d),
             "x_lbs": self.data.lbs,
             "x_ubs": self.data.ubs,
-            "f_min": float(self.data.problem.fmin),
-            "f_max": float(self.data.problem.fmax),
+            "problem_min_problem": self.data.problem.min_loc,
+            "problem_min": float(self.data.problem.fmin),
+            "problem_max": float(self.data.problem.fmax),
+            "normalized_min": float(self.data.f_min),
         }
         self.actual_improvement = None
         self.expected_improvement = None
@@ -30,6 +34,7 @@ class Dataset(object):
         )
         self.y_opt = self.data.y[[self.opt_idx], :]
         self.X_opt = self.data.X[[self.opt_idx], :]
+
         self.summary.update(
             {
                 "n_initial": int(self.n_initial),

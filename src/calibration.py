@@ -138,15 +138,14 @@ class Calibration(CalibrationPlots):
         self.summary.update({"nmse": nmse})
 
     def regret(self, dataset: Dataset) -> None:
-        regret = np.abs(dataset.y_opt - dataset.data.problem.fmin)
+        y_solution = dataset.data.f_max if self.maximization else dataset.data.f_min
+        regret = np.abs(dataset.y_opt - y_solution)
         self.summary.update({"regret": np.sum(regret)})
-        self.summary.update({"y_opt": np.array(dataset.data.problem.fmin)})
 
     def glob_min_dist(self, dataset: Dataset) -> None:
-        squared_error = (dataset.X_opt - dataset.data.problem.min_loc) ** 2
+        squared_error = (dataset.X_opt - np.array(dataset.data.problem.min_loc)) ** 2
         self.summary.update({"x_opt_dist": np.sum(squared_error)})
         self.summary.update({"x_opt_mean_dist": np.mean(squared_error)})
-        self.summary.update({"x_opt": np.array(dataset.data.problem.min_loc)})
 
     def save(self, save_settings: str = "") -> None:
         final_dict = {k: v.tolist() for k, v in self.summary.items()}
@@ -154,34 +153,38 @@ class Calibration(CalibrationPlots):
         with open(self.savepth + f"scores{save_settings}.json", "w") as f:
             f.write(json_dump)
 
+        if hasattr(self, "uct_metrics"):
+            with open(self.savepth + f"scores-uct{save_settings}.pkl", "wb") as f:
+                pickle.dump(self.uct_metrics, f)
+
     def analyze(
         self, surrogate: Model, dataset: Dataset, save_settings: str = "",
     ) -> None:
-        """Calculates calibration, sharpness, expected log predictive density and 
-        normalized mean square error functions for the "surrogate" on a testset
-        drawn from "dataset".
-        """
         name = f"{save_settings}"
-        X_test, y_test = dataset.sample_testset()
-        self.ne_true = dataset.data.ne_true
-        self.y_max = dataset.data.y_max
-        mu_test, sigma_test = surrogate.predict(X_test)
-        self.check_y_calibration(mu_test, sigma_test, y_test)
-        self.check_gaussian_sharpness(mu_test, sigma_test, name)
-        self.expected_log_predictive_density(
-            mu_test, sigma_test, y_test,
-        )
-        self.nmse(y_test, mu_test)
+        if surrogate is not None:
+            X_test, y_test = dataset.sample_testset()
+            self.ne_true = dataset.data.ne_true
+            self.y_max = dataset.data.y_max
+            mu_test, sigma_test = surrogate.predict(X_test)
+            self.check_y_calibration(mu_test, sigma_test, y_test)
+            self.check_gaussian_sharpness(mu_test, sigma_test, name)
+            self.expected_log_predictive_density(
+                mu_test, sigma_test, y_test,
+            )
+            self.nmse(y_test, mu_test)
+            self.uct_metrics = uct.metrics.get_all_metrics(
+                mu_test.squeeze(), sigma_test.squeeze(), y_test.squeeze(), verbose=False
+            )
+            if self.plot_it and self.save_it:
+                if self.d == 1:
+                    self.plot_predictive(
+                        dataset, X_test, y_test, mu_test, sigma_test, name=name
+                    )
+                self.plot_y_calibration(name=name)
+
+        self.improvement(dataset)
         self.regret(dataset)
         self.glob_min_dist(dataset)
-        self.improvement(dataset)
-
-        if self.plot_it and self.save_it:
-            if self.d == 1:
-                self.plot_predictive(
-                    dataset, X_test, y_test, mu_test, sigma_test, name=name
-                )
-            self.plot_y_calibration(name=name)
 
         # Save
         if self.save_it:
