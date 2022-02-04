@@ -21,7 +21,7 @@ class Benchmark(object):
         self.benchmarks = test_funcs
         all_problems = inspect.getmembers(self.benchmarks)
         if parameters.problem not in [a for a, b in all_problems]:
-            raise ValueError(f"Could not find problem: {parameters.problem}")
+            raise NameError(f"Could not find problem: {parameters.problem}")
         self.benchmark_tags = {}
         for name, obj in inspect.getmembers(self.benchmarks):
             if inspect.isclass(obj):

@@ -49,9 +49,13 @@ class DatasetsTest(unittest.TestCase):
             # benchmarks = sorted(benchmarks)
             problems = []
             for problem in benchmarks:
-                if "unimodal" in benchmarks[problem]:
+                if (
+                    "unimodal" in benchmarks[problem]
+                    and "boring" not in benchmarks[problem]
+                ):
                     problems.append(problem)
             result.update({d: problems})
+        print(result)
         json_dump = json.dumps(result)
         with open("datasets/benchmarks/unibo-problems.json", "w") as f:
             f.write(json_dump)

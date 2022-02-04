@@ -47,7 +47,7 @@ class Optimizer(object):
 
     def construct_acquisition_function(self, dataset: Dataset) -> None:
         if not self.is_fitted:
-            raise ValueError("Surrogate has not been fitted!")
+            raise RuntimeError("Surrogate has not been fitted!")
         y_opt_tensor = torch.tensor(dataset.y_opt.squeeze())
         if self.acquisition == "EI":
             self.acquisition_function = ExpectedImprovement(
