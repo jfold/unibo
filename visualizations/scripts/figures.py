@@ -6,8 +6,13 @@ from visualizations.scripts.loader import Loader
 
 
 class Figures(Loader):
-    def __init__(self, loadpths: list[str] = [], settings: Dict[str, str] = {}):
-        super(Figures, self).__init__(loadpths, settings)
+    def __init__(
+        self,
+        loadpths: list[str] = [],
+        settings: Dict[str, str] = {},
+        update_data: bool = True,
+    ):
+        super(Figures, self).__init__(loadpths, settings, update=update_data)
         if not self.data_was_loaded:
             raise ValueError("No data could be loaded")
         self.savepth = (

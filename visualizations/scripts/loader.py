@@ -3,17 +3,32 @@ from imports.ml import *
 
 
 class Loader(object):
-    def __init__(self, loadpths: list[str] = [], settings: Dict[str, str] = {}):
+    def __init__(
+        self,
+        loadpths: list[str] = [],
+        settings: Dict[str, str] = {},
+        update: bool = True,
+    ):
         self.loadpths = loadpths
         self.settings = settings
-        self.load_metric_dict()
-        self.load_params_tocheck()
-        self.peak_data()
-        self.load_data()
-        self.extract()
+        if update:
+            self.load_data()
+        else:
+            try:
+                self.load_from_file()
+            except:
+                print("No existing data file. Creates from scratch!")
+                self.load_data()
         self.data_was_loaded = True if np.sum(np.isfinite(self.data)) > 0 else False
 
+    def load_from_file(self):
+        with open(os.getcwd() + "/metrics.pkl", "rb") as pkl:
+            dict = pickle.load(pkl)
+        for key, value in dict.items():
+            setattr(self, key, value)
+
     def load_metric_dict(self):
+        """These will be our final dimensionl in data array"""
         self.metric_dict = {
             "nmse": ["nMSE", -1, [0, 2], r"nMSE"],
             "elpd": ["ELPD", 1, [-5, 5], r"ELPD"],
@@ -23,7 +38,6 @@ class Loader(object):
                 [],
                 r"$ \mathbb{E}[( \mathcal{C}_{\mathbf{y}}(p) - p)^2] $",
             ],
-            # "y_calibration_nmse": ["Calibration nMSE", -1,],
             "mean_sharpness": ["Sharpness", 1, [-5, 5], r"$ \mathcal{S}$"],
             "x_opt_mean_dist": [
                 "Solution mean distance",
@@ -31,15 +45,22 @@ class Loader(object):
                 [],
                 r"$ \mathbb{E}[|| \mathbf{x}_o - \mathbf{x}_s ||_2] $",
             ],
-            # "x_opt_dist": [
-            #     "Solution distance",
-            #     -1,
-            #     r"$ || \mathbf{x}_o - \mathbf{x}_s ||_2 $",
-            # ],
             "regret": ["Regret", -1, [], r"$ \mathcal{R}$"],
+            # uct module:
+            "uct-accuracy-corr": ["corr", 1, [0, 2], r"Corr"],
+            "uct-avg_calibration-rms_cal": ["rms_cal", -1, [], r"RMSCE"],
+            "uct-avg_calibration-miscal_area": ["miscal_area", -1, [], r"MA"],
+            # "uct-adv_group_calibration-rms_adv_group_cal": [
+            #     "rms_adv_group_cal",
+            #     -1,
+            #     [],
+            #     r"RMSACE",
+            # ],
+            "uct-scoring_rule-nll": ["nll", -1, [], r"NLL"],
         }
 
     def load_params_tocheck(self):
+        """These will be our D-1 dimensions and constitute experimental grid"""
         self.check_params = [
             "seed",
             "d",
@@ -61,18 +82,11 @@ class Loader(object):
                 os.path.isdir(experiment)
                 and os.path.isfile(f"{experiment}parameters.json")
                 and os.path.isfile(f"{experiment}scores.json")
+                and os.path.isfile(f"{experiment}scores-uct.pkl")
                 and os.path.isfile(f"{experiment}dataset.json")
             ):
                 with open(f"{experiment}parameters.json") as json_file:
                     parameters = json.load(json_file)
-                # parameters["n_evals"] = 90
-                # json_dump = json.dumps(parameters)
-                # with open(f"{experiment}parameters.json", "w") as f:
-                #     f.write(json_dump)
-                with open(f"{experiment}scores.json") as json_file:
-                    scores = json.load(json_file)
-                with open(f"{experiment}dataset.json") as json_file:
-                    dataset = json.load(json_file)
 
                 if not self.settings.items() <= parameters.items() or not all(
                     param in parameters for param in self.check_params
@@ -88,6 +102,9 @@ class Loader(object):
                         lst = self.data_summary[k]
                         lst.append(parameters[k])
                         self.data_summary.update({k: lst})
+
+                # if i_e > 20: # for debugging
+                #     break
 
     def init_data_object(self):
         self.values = []
@@ -113,13 +130,16 @@ class Loader(object):
         }
         self.data = np.full(tuple(self.dims), np.nan)
 
-    def load_data(self):
+    def load_data(self, save: bool = True):
+        self.load_metric_dict()
+        self.load_params_tocheck()
+        self.peak_data()
         self.init_data_object()
         for pth, parameters in self.data_settings.items():
             with open(f"{pth}scores.json") as json_file:
                 scores = json.load(json_file)
-            with open(f"{pth}dataset.json") as json_file:
-                dataset = json.load(json_file)
+            with open(f"{pth}scores-uct.pkl", "rb") as pkl:
+                uct_scores = pickle.load(pkl)
 
             if not self.settings.items() <= parameters.items():
                 continue
@@ -138,25 +158,42 @@ class Loader(object):
                 data_idx[-1] = self.values[-1].index(metric)
                 if metric in scores:
                     self.data[tuple(data_idx)] = scores[metric]
+                elif "uct-" in metric:
+                    entries = metric.split("-")
+                    self.data[tuple(data_idx)] = uct_scores[entries[1]][entries[2]]
 
             # Running over epochs
-            files_in_path = [f for f in os.listdir(pth) if "scores---epoch" in f]
+            files_in_path = [
+                f for f in os.listdir(pth) if "scores---epoch" in f and ".json" in f
+            ]
             for file in files_in_path:
-                data_idx[-2] = int(
-                    file.split("---epoch-")[-1].split(".json")[0]
-                )  # epoch index
+                # epoch index
+                data_idx[-2] = int(file.split("---epoch-")[-1].split(".json")[0])
+
                 with open(f"{pth}{file}") as json_file:
                     scores_epoch_i = json.load(json_file)
+
+                file = file.replace("scores---", "scores-uct---").replace(
+                    ".json", ".pkl"
+                )
+                with open(f"{pth}{file}", "rb") as pkl:
+                    uct_scores_epoch_i = pickle.load(pkl)
+
                 for metric in self.metric_dict.keys():
                     data_idx[-1] = self.values[-1].index(metric)
                     if metric in scores_epoch_i:
                         self.data[tuple(data_idx)] = scores_epoch_i[metric]
-        self.loader_summary.update(
-            {"missing": np.sum(np.isnan(self.data)) / self.data.size}
-        )
-        self.loader_summary.update(
-            {"missing": np.sum(np.isnan(self.data)) / self.data.size}
-        )
+                    elif "uct-" in metric:
+                        entries = metric.split("-")
+                        self.data[tuple(data_idx)] = uct_scores_epoch_i[entries[1]][
+                            entries[2]
+                        ]
+                    else:
+                        raise RuntimeError(f"Metric {metric} does not exist")
+
+        if save:
+            with open(os.getcwd() + "/metrics.pkl", "wb") as pkl:
+                pickle.dump(self.dict, pkl)
 
     def extract(
         self, data: np.ndarray = None, settings: Dict[str, list] = {}
