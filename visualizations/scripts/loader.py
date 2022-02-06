@@ -193,7 +193,7 @@ class Loader(object):
 
         if save:
             with open(os.getcwd() + "/metrics.pkl", "wb") as pkl:
-                pickle.dump(self.dict, pkl)
+                pickle.dump(self.__dict__, pkl)
 
     def extract(
         self, data: np.ndarray = None, settings: Dict[str, list] = {}
