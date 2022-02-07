@@ -46,8 +46,7 @@ class ResultsTest(unittest.TestCase):
     def test_ranking(self) -> None:
         loadpths = get_loadpths(os.getcwd() + "/results/")
         ranking = Ranking(loadpths, update_data=False)
-        print(ranking.data.shape)
-        # ranking.rank_metrics_vs_epochs()
+        ranking.rank_metrics_vs_epochs()
         # for d in range(2, 11):
         #     ranking.rank_metrics_vs_epochs(
         #         avg_names=["seed", "problem"], settings={"d": d, "bo": True}

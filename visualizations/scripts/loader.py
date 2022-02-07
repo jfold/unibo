@@ -82,7 +82,6 @@ class Loader(object):
                 os.path.isdir(experiment)
                 and os.path.isfile(f"{experiment}parameters.json")
                 and os.path.isfile(f"{experiment}scores.json")
-                and os.path.isfile(f"{experiment}scores-uct.pkl")
                 and os.path.isfile(f"{experiment}dataset.json")
             ):
                 with open(f"{experiment}parameters.json") as json_file:
@@ -138,8 +137,11 @@ class Loader(object):
         for pth, parameters in self.data_settings.items():
             with open(f"{pth}scores.json") as json_file:
                 scores = json.load(json_file)
-            with open(f"{pth}scores-uct.pkl", "rb") as pkl:
-                uct_scores = pickle.load(pkl)
+            if os.path.isfile(f"{pth}scores-uct.pkl"):
+                with open(f"{pth}scores-uct.pkl", "rb") as pkl:
+                    uct_scores = pickle.load(pkl)
+            else:
+                uct_scores = None
 
             if not self.settings.items() <= parameters.items():
                 continue
@@ -158,7 +160,7 @@ class Loader(object):
                 data_idx[-1] = self.values[-1].index(metric)
                 if metric in scores:
                     self.data[tuple(data_idx)] = scores[metric]
-                elif "uct-" in metric:
+                elif "uct-" in metric and uct_scores is not None:
                     entries = metric.split("-")
                     self.data[tuple(data_idx)] = uct_scores[entries[1]][entries[2]]
 
@@ -176,20 +178,21 @@ class Loader(object):
                 file = file.replace("scores---", "scores-uct---").replace(
                     ".json", ".pkl"
                 )
-                with open(f"{pth}{file}", "rb") as pkl:
-                    uct_scores_epoch_i = pickle.load(pkl)
+                if os.path.isfile(f"{pth}{file}"):
+                    with open(f"{pth}{file}", "rb") as pkl:
+                        uct_scores_epoch_i = pickle.load(pkl)
+                else:
+                    uct_scores_epoch_i = None
 
                 for metric in self.metric_dict.keys():
                     data_idx[-1] = self.values[-1].index(metric)
                     if metric in scores_epoch_i:
                         self.data[tuple(data_idx)] = scores_epoch_i[metric]
-                    elif "uct-" in metric:
+                    elif "uct-" in metric and uct_scores_epoch_i is not None:
                         entries = metric.split("-")
                         self.data[tuple(data_idx)] = uct_scores_epoch_i[entries[1]][
                             entries[2]
                         ]
-                    else:
-                        raise RuntimeError(f"Metric {metric} does not exist")
 
         if save:
             with open(os.getcwd() + "/metrics.pkl", "wb") as pkl:
