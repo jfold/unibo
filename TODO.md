@@ -1,4 +1,5 @@
-- sammenlign med random som kun bruges til at plotte x-dist og regret
+- Akkumuleret varians diagonal af: X^T X
+- Ranking tabel med ingen BO for alle metrikker pånær BO-specifikke
 - regn self.noise_var på stort sæt, plot sqrt(self.noise_var) sammen med regret # done
 - scatter-plot: actual impr., expected impr. for hver surrogat plottet for alle epoker,seeds,problemer
 
@@ -8,4 +9,3 @@
 
 - gem også middelværdi for surrogaten i X[opt_idx]
 - Gem runtime for at se hastighed
-- Ranking tabel med ingen BO for alle metrikker pånær BO-specifikke
