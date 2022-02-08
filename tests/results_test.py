@@ -44,9 +44,11 @@ class ResultsTest(unittest.TestCase):
         figures.bo_regret_vs_no_bo_calibration(epoch=50, avg_names=["seed"])
 
     def test_ranking(self) -> None:
+        start_time = time.time()
         loadpths = get_loadpths(os.getcwd() + "/results/")
         ranking = Ranking(loadpths, update_data=False)
         ranking.rank_metrics_vs_epochs()
+        print(f"Ranking took: --- %s seconds ---" % (time.time() - start_time))
         # for d in range(2, 11):
         #     ranking.rank_metrics_vs_epochs(
         #         avg_names=["seed", "problem"], settings={"d": d, "bo": True}

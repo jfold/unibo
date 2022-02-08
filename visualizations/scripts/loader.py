@@ -1,5 +1,7 @@
 from imports.general import *
 from imports.ml import *
+from src.dataset import Dataset
+from src.parameters import Parameters
 
 
 class Loader(object):
@@ -46,6 +48,7 @@ class Loader(object):
                 r"$ \mathbb{E}[|| \mathbf{x}_o - \mathbf{x}_s ||_2] $",
             ],
             "regret": ["Regret", -1, [], r"$ \mathcal{R}$"],
+            "true_regret": ["true_regret", -1, [], r"$ \mathcal{R}_t$"],
             # uct module:
             "uct-accuracy-corr": ["corr", 1, [0, 2], r"Corr"],
             "uct-avg_calibration-rms_cal": ["rms_cal", -1, [], r"RMSCE"],
@@ -135,16 +138,29 @@ class Loader(object):
         self.peak_data()
         self.init_data_object()
         for pth, parameters in self.data_settings.items():
+            if not self.settings.items() <= parameters.items():
+                continue
+
             with open(f"{pth}scores.json") as json_file:
                 scores = json.load(json_file)
+            with open(f"{pth}dataset.json") as json_file:
+                dataset = json.load(json_file)
+
+            # inferring true regret
+            dataobj = Dataset(Parameters(parameters))
+            X = np.array(dataset["X"])
+            y_clean = dataobj.data.get_y(X, add_noise=False)
+            y_clean = np.array(
+                [np.min(y_clean[:i]) for i in range(1, len(y_clean) + 1)]
+            )
+            y_clean = y_clean[dataset["n_initial"] - 1 :]
+            true_regrets = np.abs(dataobj.data.f_min - y_clean)
+
             if os.path.isfile(f"{pth}scores-uct.pkl"):
                 with open(f"{pth}scores-uct.pkl", "rb") as pkl:
                     uct_scores = pickle.load(pkl)
             else:
                 uct_scores = None
-
-            if not self.settings.items() <= parameters.items():
-                continue
 
             params_idx = [
                 self.values[i].index(parameters[key])
@@ -163,6 +179,8 @@ class Loader(object):
                 elif "uct-" in metric and uct_scores is not None:
                     entries = metric.split("-")
                     self.data[tuple(data_idx)] = uct_scores[entries[1]][entries[2]]
+                elif metric == "true_regret":
+                    self.data[tuple(data_idx)] = true_regrets[-1]
 
             # Running over epochs
             files_in_path = [
@@ -193,6 +211,8 @@ class Loader(object):
                         self.data[tuple(data_idx)] = uct_scores_epoch_i[entries[1]][
                             entries[2]
                         ]
+                    elif metric == "true_regret":
+                        self.data[tuple(data_idx)] = true_regrets[data_idx[-2]]
 
         if save:
             with open(os.getcwd() + "/metrics.pkl", "wb") as pkl:

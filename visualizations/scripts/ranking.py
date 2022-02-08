@@ -82,7 +82,6 @@ class Ranking(Loader):
                                     "keepdims": True,
                                 },
                             )
-
                         if self.metric_dict[metric][1] == 1:
                             order = np.flip(
                                 self.shuffle_argsort(data, axis=rank_axis),
@@ -93,6 +92,9 @@ class Ranking(Loader):
                         ranks = np.argsort(order, axis=rank_axis) + 1
                         indexer = self.get_indexer(settings)
                         rankings[indexer] = ranks
+
+                        # if metric == self.loader_summary["metric"]["vals"][-1]:
+                        #     raise ValueError()
 
         if save:
             with open(os.getcwd() + "/rankings.npy", "wb") as f:
@@ -110,31 +112,14 @@ class Ranking(Loader):
         rankings = np.load(os.getcwd() + "/rankings.npy")
         rankings = self.extract(rankings, settings=settings)
         avg_dims = tuple([self.loader_summary[name]["axis"] for name in avg_names])
-        n_avgs = 8 * 8
+        n_avgs = 10 * 5 * 8
         epochs = self.loader_summary["epoch"]["vals"]
         ranking_mean = np.nanmean(rankings, axis=avg_dims, keepdims=True)
         ranking_std = np.nanstd(rankings, axis=avg_dims, keepdims=True)
-        # if (
-        #     "RS" in self.loader_summary["acquisition"]["vals"]
-        #     and len(self.loader_summary["acquisition"]["vals"]) == 2
-        # ):
-        #     ranking_mean = np.mean(
-        #         ranking_mean, axis=self.loader_summary["acquisition"]["axis"]
-        #     )
-        #     check = np.std(
-        #         ranking_mean, axis=self.loader_summary["acquisition"]["axis"]
-        #     )
-        #     if not np.all(0.0 == check):
-        #         raise ValueError()
-
-        # if ranking_mean.squeeze().ndim != 3:
-        #     raise ValueError(
-        #         f"Rankings should be 3 dimensional instead of {ranking_mean.squeeze().ndim} after squeezing."
-        #     )
 
         surrogates = self.loader_summary["surrogate"]["vals"]
         surrogate_axis = self.loader_summary["surrogate"]["axis"]
-        metrics = self.loader_summary["metric"]["vals"]
+        metrics = self.loader_summary["metric"]["vals"]  # [:7]
         metric_axis = self.loader_summary["metric"]["axis"]
 
         indexer = [np.s_[:]] * ranking_mean.ndim
@@ -147,38 +132,43 @@ class Ranking(Loader):
         for i_m, metric in enumerate(metrics):
             indexer[metric_axis] = np.s_[i_m : i_m + 1]
             ax = plt.subplot(len(metrics), 1, i_m + 1)
+            print(metric)
             for i_s, surrogate in enumerate(surrogates):
                 indexer[surrogate_axis] = np.s_[i_s : i_s + 1]
                 means = ranking_mean[indexer].squeeze()
                 stds = ranking_std[indexer].squeeze()
-                plt.plot(
-                    epochs,
-                    means,
-                    color=ps[surrogate]["c"],
-                    marker=ps[surrogate]["m"],
-                    label=f"${surrogate}$",
-                )
-                plt.fill_between(
-                    epochs,
-                    means + 1 * stds / n_avgs,
-                    means - 1 * stds / n_avgs,
-                    color=ps[surrogate]["c"],
-                    alpha=0.1,
-                )
 
-            if i_m < len(self.loader_summary["metric"]["vals"]) - 1:
+                if surrogate != "RS" or (
+                    surrogate == "RS"
+                    and metric in ["regret", "true_regret", "x_opt_mean_dist"]
+                ):
+                    plt.plot(
+                        epochs,
+                        means,
+                        color=ps[surrogate]["c"],
+                        marker=ps[surrogate]["m"],
+                        label=f"${surrogate}$",
+                    )
+                    plt.fill_between(
+                        epochs,
+                        means + 1 * stds / n_avgs,
+                        means - 1 * stds / n_avgs,
+                        color=ps[surrogate]["c"],
+                        alpha=0.1,
+                    )
+
+            if i_m < len(metrics) - 1:
                 ax.set_xticklabels([])
             plt.title(self.metric_dict[metric][-1])
             plt.xlim([epochs[0] - 0.1, epochs[-1] + 0.1])
-            plt.ylim([1 + 0.1, len(self.loader_summary["surrogate"]["vals"]) + 0.1])
-            plt.yticks(range(1, 1 + len(self.loader_summary["surrogate"]["vals"])))
+            plt.ylim([1 + 0.1, len(surrogates) + 0.1])
+            if metric not in ["regret", "true_regret", "x_opt_distance"]:
+                plt.ylim([1 + 0.1, len(surrogates) - 1 + 0.1])
+            plt.yticks(range(1, 1 + len(surrogates)))
 
         handles, labels = ax.get_legend_handles_labels()
         fig.legend(
-            handles,
-            labels,
-            loc="upper center",
-            ncol=len(self.loader_summary["surrogate"]["vals"]),
+            handles, labels, loc="upper center", ncol=len(surrogates),
         )
         plt.xlabel("Iterations")
         plt.tight_layout()
@@ -186,9 +176,9 @@ class Ranking(Loader):
         plt.close()
 
     def shuffle_argsort(self, array: np.ndarray, axis: int = None) -> np.ndarray:
-        numerical_noise = np.random.uniform(0, 1e-7, size=array.shape)
-        # if not (np.all(np.argsort(array + numerical_noise) == np.argsort(array))):
-        #     # print("Tie! Picking winner at random.")
+        numerical_noise = np.random.uniform(0, 1e-10, size=array.shape)
+        if not (np.all(np.argsort(array + numerical_noise) == np.argsort(array))):
+            print("Tie! Picking winner at random.")
         if axis is None:
             return np.argsort(array + numerical_noise)
         else:
@@ -261,31 +251,3 @@ class Ranking(Loader):
                     ",", "-"
                 )
             )
-
-    def run(self):
-        pass
-        # self.init_tables()
-        # self.calc_ranking()
-        # self.calc_plot_metric_dependence(
-        #     metric_1="regret", metric_2="y_calibration_mse", n_epoch=range(50)
-        # )
-        # self.calc_plot_metric_dependence(
-        #     metric_1="regret", metric_2="elpd", n_epoch=range(50)
-        # )
-
-        # self.mean_ranking_table.applymap("{:.4f}".format).to_csv(
-        #     f"{self.savepth}ranking-means.csv",
-        # )
-        # self.std_ranking_table.applymap("{:.4f}".format).to_csv(
-        #     f"{self.savepth}ranking-stds.csv"
-        # )
-        # print("MEAN:")
-        # print(self.mean_ranking_table)
-        # # print(self.mean_ranking_table.to_latex(float_format=lambda x: "%.3f" % x))
-        # print("MEDIAN:")
-        # print(self.median_ranking_table)
-        # # print(self.mean_ranking_table.to_latex(float_format=lambda x: "%.3f" % x))
-        # print("STD:")
-        # print(self.std_ranking_table)
-        # # print(self.std_ranking_table.to_latex(float_format=lambda x: "%.2f" % x))
-
