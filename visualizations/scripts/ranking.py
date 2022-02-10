@@ -53,10 +53,14 @@ class Ranking(Loader):
         return res
 
     def calc_surrogate_ranks(self, bo: bool = True, save: bool = True):
-        rankings = np.full(self.data.shape, np.nan)
         rank_axis = self.loader_summary["surrogate"]["axis"]
+        all_probs = "".join(list(self.data_settings.keys()))
+        self.rankings = np.full(self.data.shape, np.nan)
+        all_start = time.time()
         for problem in self.loader_summary["problem"]["vals"]:
             for dim in self.loader_summary["d"]["vals"]:
+                if f"({dim}){problem}" not in all_probs:
+                    continue
                 for seed in self.loader_summary["seed"]["vals"]:
                     for metric in self.loader_summary["metric"]["vals"]:
                         settings = {
@@ -68,38 +72,37 @@ class Ranking(Loader):
                         }
                         data = self.extract(settings=settings)
 
-                        if np.all(np.isnan(data)):
-                            continue
+                        if not np.all(np.isnan(data)):
+                            if (
+                                "RS" in self.loader_summary["acquisition"]["vals"]
+                                and len(self.loader_summary["acquisition"]["vals"]) == 2
+                            ):
+                                data = self.nansum(
+                                    data,
+                                    **{
+                                        "axis": self.loader_summary["acquisition"][
+                                            "axis"
+                                        ],
+                                        "keepdims": True,
+                                    },
+                                )
+                            if self.metric_dict[metric][1] == 1:
+                                order = np.flip(
+                                    self.shuffle_argsort(data, axis=rank_axis),
+                                    axis=rank_axis,
+                                )
+                            else:
+                                order = self.shuffle_argsort(data, axis=rank_axis)
+                            ranks = np.argsort(order, axis=rank_axis) + 1
+                            indexer = self.get_indexer(settings)
+                            self.rankings[indexer] = ranks
 
-                        if (
-                            "RS" in self.loader_summary["acquisition"]["vals"]
-                            and len(self.loader_summary["acquisition"]["vals"]) == 2
-                        ):
-                            data = self.nansum(
-                                data,
-                                **{
-                                    "axis": self.loader_summary["acquisition"]["axis"],
-                                    "keepdims": True,
-                                },
-                            )
-                        if self.metric_dict[metric][1] == 1:
-                            order = np.flip(
-                                self.shuffle_argsort(data, axis=rank_axis),
-                                axis=rank_axis,
-                            )
-                        else:
-                            order = self.shuffle_argsort(data, axis=rank_axis)
-                        ranks = np.argsort(order, axis=rank_axis) + 1
-                        indexer = self.get_indexer(settings)
-                        rankings[indexer] = ranks
-
-                        # if metric == self.loader_summary["metric"]["vals"][-1]:
-                        #     raise ValueError()
+        print(f"EVERYTHING--- %s seconds ---" % (time.time() - all_start))
 
         if save:
             with open(os.getcwd() + "/rankings.npy", "wb") as f:
-                np.save(f, rankings)
-        return rankings
+                np.save(f, self.rankings)
+        return self.rankings
 
     def rank_metrics_vs_epochs(
         self,
@@ -112,14 +115,14 @@ class Ranking(Loader):
         rankings = np.load(os.getcwd() + "/rankings.npy")
         rankings = self.extract(rankings, settings=settings)
         avg_dims = tuple([self.loader_summary[name]["axis"] for name in avg_names])
-        n_avgs = 10 * 5 * 8
+        sem_multi = 1.96 / np.sqrt(10 * 5 * 8)  # seeds*(problems/dimensions)*dimensions
         epochs = self.loader_summary["epoch"]["vals"]
         ranking_mean = np.nanmean(rankings, axis=avg_dims, keepdims=True)
         ranking_std = np.nanstd(rankings, axis=avg_dims, keepdims=True)
 
         surrogates = self.loader_summary["surrogate"]["vals"]
         surrogate_axis = self.loader_summary["surrogate"]["axis"]
-        metrics = self.loader_summary["metric"]["vals"]  # [:7]
+        metrics = self.loader_summary["metric"]["vals"][:9]
         metric_axis = self.loader_summary["metric"]["axis"]
 
         indexer = [np.s_[:]] * ranking_mean.ndim
@@ -132,15 +135,21 @@ class Ranking(Loader):
         for i_m, metric in enumerate(metrics):
             indexer[metric_axis] = np.s_[i_m : i_m + 1]
             ax = plt.subplot(len(metrics), 1, i_m + 1)
-            print(metric)
             for i_s, surrogate in enumerate(surrogates):
                 indexer[surrogate_axis] = np.s_[i_s : i_s + 1]
-                means = ranking_mean[indexer].squeeze()
-                stds = ranking_std[indexer].squeeze()
+                means = ranking_mean[tuple(indexer)].squeeze()
+                stds = ranking_std[tuple(indexer)].squeeze()
 
                 if surrogate != "RS" or (
                     surrogate == "RS"
-                    and metric in ["regret", "true_regret", "x_opt_mean_dist"]
+                    and metric
+                    in [
+                        "regret",
+                        "true_regret",
+                        "x_opt_mean_dist",
+                        "mahalanobis_dist",
+                        "running_inner_product",
+                    ]
                 ):
                     plt.plot(
                         epochs,
@@ -151,8 +160,8 @@ class Ranking(Loader):
                     )
                     plt.fill_between(
                         epochs,
-                        means + 1 * stds / n_avgs,
-                        means - 1 * stds / n_avgs,
+                        means + stds * sem_multi,
+                        means - stds * sem_multi,
                         color=ps[surrogate]["c"],
                         alpha=0.1,
                     )
