@@ -18,6 +18,7 @@ class Loader(object):
         else:
             try:
                 self.load_from_file()
+                self.load_metric_dict()
             except:
                 print("No existing data file. Creates from scratch!")
                 self.load_data()
@@ -34,12 +35,6 @@ class Loader(object):
         self.metric_dict = {
             "nmse": ["nMSE", -1, [0, 2], r"nMSE"],
             "elpd": ["ELPD", 1, [-5, 5], r"ELPD"],
-            "y_calibration_mse": [
-                "Calibration MSE",
-                -1,
-                [],
-                r"$ \mathbb{E}[( \mathcal{C}_{\mathbf{y}}(p) - p)^2] $",
-            ],
             "mean_sharpness": ["Sharpness", 1, [-5, 5], r"$ \mathcal{S}$"],
             "x_opt_mean_dist": [
                 "Solution mean distance",
@@ -49,6 +44,14 @@ class Loader(object):
             ],
             "regret": ["Regret", -1, [], r"$ \mathcal{R}$"],
             "true_regret": ["true_regret", -1, [], r"$ \mathcal{R}_t$"],
+            "mahalanobis_dist": ["mahalanobis_dist", -1, [], r"$ D_M$"],
+            "running_inner_product": ["running_inner_product", -1, [], r"$ RC$"],
+            "y_calibration_mse": [
+                "Calibration MSE",
+                -1,
+                [],
+                r"$ \mathbb{E}[( \mathcal{C}_{\mathbf{y}}(p) - p)^2] $",
+            ],
             # uct module:
             "uct-accuracy-corr": ["corr", 1, [0, 2], r"Corr"],
             "uct-avg_calibration-rms_cal": ["rms_cal", -1, [], r"RMSCE"],
@@ -132,6 +135,41 @@ class Loader(object):
         }
         self.data = np.full(tuple(self.dims), np.nan)
 
+    def calc_true_regret(self, parameters: Dict, dataset: Dict):
+        # inferring true regret
+        dataobj = Dataset(Parameters(parameters))
+        X = np.array(dataset["X"])
+        y_clean = dataobj.data.get_y(X, add_noise=False)
+        y_clean = np.array([np.min(y_clean[:i]) for i in range(1, len(y_clean) + 1)])
+        y_clean = y_clean[dataset["n_initial"] - 1 :]
+        true_regrets = np.abs(dataobj.data.f_min - y_clean)
+        return true_regrets
+
+    def calc_running_inner_product(self, dataset: Dict) -> np.ndarray:
+        X = np.array(dataset["X"])
+        running_inner_product = np.cumsum(np.diag(X @ X.T)).squeeze()[
+            dataset["n_initial"] - 1 :
+        ]
+        return running_inner_product
+
+    def calc_mahalanobis_dist_to_current_best(self, dataset: Dict) -> np.ndarray:
+        X = np.array(dataset["X"])
+        y = np.array(dataset["y"])
+        n_initial = dataset["n_initial"]
+        Sigma = np.cov(X, rowvar=False)
+        idx_opt = np.argmin(y[:n_initial, :])
+        y_opt = y[[idx_opt], :]
+        X_opt = X[[idx_opt], :].T
+        mahalanobis_dists = [np.nan]
+        for i in range(n_initial, X.shape[0]):
+            cur_y = y[[i], :]
+            cur_X = X[[i], :].T
+            mahalanobis_dists.append(mahalanobis(cur_X, X_opt, Sigma))
+            if cur_y < y_opt:
+                y_opt = cur_y
+                X_opt = cur_X
+        return np.array(mahalanobis_dists)
+
     def load_data(self, save: bool = True):
         self.load_metric_dict()
         self.load_params_tocheck()
@@ -146,15 +184,9 @@ class Loader(object):
             with open(f"{pth}dataset.json") as json_file:
                 dataset = json.load(json_file)
 
-            # inferring true regret
-            dataobj = Dataset(Parameters(parameters))
-            X = np.array(dataset["X"])
-            y_clean = dataobj.data.get_y(X, add_noise=False)
-            y_clean = np.array(
-                [np.min(y_clean[:i]) for i in range(1, len(y_clean) + 1)]
-            )
-            y_clean = y_clean[dataset["n_initial"] - 1 :]
-            true_regrets = np.abs(dataobj.data.f_min - y_clean)
+            true_regrets = self.calc_true_regret(parameters, dataset)
+            running_inner_product = self.calc_running_inner_product(dataset)
+            mahalanobis_dists = self.calc_mahalanobis_dist_to_current_best(dataset)
 
             if os.path.isfile(f"{pth}scores-uct.pkl"):
                 with open(f"{pth}scores-uct.pkl", "rb") as pkl:
@@ -181,6 +213,10 @@ class Loader(object):
                     self.data[tuple(data_idx)] = uct_scores[entries[1]][entries[2]]
                 elif metric == "true_regret":
                     self.data[tuple(data_idx)] = true_regrets[-1]
+                elif metric == "mahalanobis_dist":
+                    self.data[tuple(data_idx)] = mahalanobis_dists[-1]
+                elif metric == "running_inner_product":
+                    self.data[tuple(data_idx)] = running_inner_product[-1]
 
             # Running over epochs
             files_in_path = [
@@ -213,6 +249,10 @@ class Loader(object):
                         ]
                     elif metric == "true_regret":
                         self.data[tuple(data_idx)] = true_regrets[data_idx[-2]]
+                    elif metric == "mahalanobis_dist":
+                        self.data[tuple(data_idx)] = mahalanobis_dists[data_idx[-2]]
+                    elif metric == "running_inner_product":
+                        self.data[tuple(data_idx)] = running_inner_product[data_idx[-2]]
 
         if save:
             with open(os.getcwd() + "/metrics.pkl", "wb") as pkl:
