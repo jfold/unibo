@@ -104,6 +104,23 @@ class Ranking(Loader):
                 np.save(f, self.rankings)
         return self.rankings
 
+    def rank_correlation(
+        self, settings: Dict = {"metric": ["regret", "y_calibration_mse"]}
+    ) -> None:
+        rankings = np.load(os.getcwd() + "/rankings.npy")
+        ranking_dir = list(settings.keys())[0]
+        assert len(list(settings.keys())) == 1 and len(settings[ranking_dir]) == 2
+        x = self.extract(
+            rankings, settings={"epoch": 90, ranking_dir: settings[ranking_dir][0]}
+        )
+        y = self.extract(
+            rankings, settings={"epoch": 90, ranking_dir: settings[ranking_dir][1]}
+        )
+
+        x, y = self.remove_nans(x.squeeze(), y.squeeze())
+        rho, pval = spearmanr(x, y)
+        print(rho, pval)
+
     def rank_metrics_vs_epochs(
         self,
         avg_names: list[str] = ["seed", "problem", "d"],

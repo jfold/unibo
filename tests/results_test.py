@@ -43,7 +43,7 @@ class ResultsTest(unittest.TestCase):
         figures.bo_regret_vs_no_bo_calibration(epoch=50, avg_names=[])
         figures.bo_regret_vs_no_bo_calibration(epoch=50, avg_names=["seed"])
 
-    def test_ranking(self) -> None:
+    def test_rank_metrics_vs_epochs(self) -> None:
         # start_time = time.time()
         loadpths = get_loadpths(os.getcwd() + "/results/")
         ranking = Ranking(loadpths, update_data=False)
@@ -53,6 +53,11 @@ class ResultsTest(unittest.TestCase):
         #     ranking.rank_metrics_vs_epochs(
         #         avg_names=["seed", "problem"], settings={"d": d, "bo": True}
         #     )
+
+    def test_ranking_correlation(self) -> None:
+        loadpths = get_loadpths(os.getcwd() + "/results/")
+        ranking = Ranking(loadpths, update_data=False)
+        ranking.rank_correlation()
 
     def test_exp_improv_vs_act_improv(self) -> None:
         loadpths = get_loadpths(os.getcwd() + "/results/")

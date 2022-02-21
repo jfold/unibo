@@ -10,6 +10,7 @@ from sklearn.neighbors import NearestNeighbors as KNNsklearn
 from sklearn.linear_model import LinearRegression
 from scipy.stats.stats import energy_distance
 from scipy.spatial.distance import mahalanobis
+from scipy.stats import spearmanr
 import torch
 import botorch
 from botorch.models.model import Model
