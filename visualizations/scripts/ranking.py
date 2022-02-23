@@ -46,17 +46,16 @@ class Ranking(Loader):
 
         return tuple(indexer)
 
-    def nansum(self, a, **kwargs):
+    def nansum(self, a, **kwargs) -> np.ndarray:
         mx = np.isnan(a).all(**kwargs)
         res = np.nansum(a, **kwargs)
         res[mx] = np.nan
         return res
 
-    def calc_surrogate_ranks(self, bo: bool = True, save: bool = True):
+    def calc_surrogate_ranks(self, save: bool = True):
         rank_axis = self.loader_summary["surrogate"]["axis"]
         all_probs = "".join(list(self.data_settings.keys()))
         self.rankings = np.full(self.data.shape, np.nan)
-        all_start = time.time()
         for problem in self.loader_summary["problem"]["vals"]:
             for dim in self.loader_summary["d"]["vals"]:
                 if f"({dim}){problem}" not in all_probs:
@@ -67,7 +66,7 @@ class Ranking(Loader):
                             "problem": problem,
                             "d": dim,
                             "metric": metric,
-                            "bo": bo,
+                            "bo": True,
                             "seed": seed,
                         }
                         data = self.extract(settings=settings)
@@ -97,12 +96,9 @@ class Ranking(Loader):
                             indexer = self.get_indexer(settings)
                             self.rankings[indexer] = ranks
 
-        print(f"EVERYTHING--- %s seconds ---" % (time.time() - all_start))
-
         if save:
             with open(os.getcwd() + "/rankings.npy", "wb") as f:
                 np.save(f, self.rankings)
-        return self.rankings
 
     def rank_correlation(
         self, settings: Dict = {"metric": ["regret", "y_calibration_mse"]}
@@ -111,15 +107,69 @@ class Ranking(Loader):
         ranking_dir = list(settings.keys())[0]
         assert len(list(settings.keys())) == 1 and len(settings[ranking_dir]) == 2
         x = self.extract(
-            rankings, settings={"epoch": 90, ranking_dir: settings[ranking_dir][0]}
+            rankings, settings={"bo": True, ranking_dir: settings[ranking_dir][0]},
         )
         y = self.extract(
-            rankings, settings={"epoch": 90, ranking_dir: settings[ranking_dir][1]}
+            rankings, settings={"bo": True, ranking_dir: settings[ranking_dir][1]},
         )
 
         x, y = self.remove_nans(x.squeeze(), y.squeeze())
         rho, pval = spearmanr(x, y)
         print(rho, pval)
+
+    def metric_correlation(
+        self, settings: Dict = {"metric": ["regret", "y_calibration_mse"]}
+    ) -> None:
+        ranking_dir = list(settings.keys())[0]
+        assert len(list(settings.keys())) == 1 and len(settings[ranking_dir]) == 2
+        x = self.extract(settings={"bo": True, ranking_dir: settings[ranking_dir][0]})
+        y = self.extract(settings={"bo": True, ranking_dir: settings[ranking_dir][1]})
+        x, y = self.remove_nans(x.squeeze(), y.squeeze())
+        rho, pval = pearsonr(x, y)
+        print(rho, pval)
+
+    def calc_surrogate_ranks_no_bo(self, save: bool = True) -> None:
+        rank_axis = self.loader_summary["surrogate"]["axis"]
+        all_probs = "".join(list(self.data_settings.keys()))
+        self.rankings = np.full(self.data.shape, np.nan)
+        start_time = time.time()
+        for problem in self.loader_summary["problem"]["vals"]:
+            for dim in self.loader_summary["d"]["vals"]:
+                if f"({dim}){problem}" not in all_probs:
+                    continue
+                for seed in self.loader_summary["seed"]["vals"]:
+                    for metric in self.loader_summary["metric"]["vals"]:
+                        settings = {
+                            "problem": problem,
+                            "d": dim,
+                            "metric": metric,
+                            "seed": seed,
+                            "acquisition": "EI",
+                            "bo": False,
+                            "epoch": 90,
+                        }
+                        data = self.extract(settings=settings)
+                        idx = self.get_indexer(settings)
+                        if self.metric_dict[metric][1] == 1:
+                            order = np.flip(
+                                self.shuffle_argsort(data, axis=rank_axis),
+                                axis=rank_axis,
+                            )
+                        else:
+                            order = self.shuffle_argsort(data, axis=rank_axis)
+                        ranks = np.argsort(order, axis=rank_axis) + 1
+                        self.rankings[idx] = ranks
+                        print(self.rankings[idx].squeeze())
+
+        print(f"Ranking took: --- %s seconds ---" % (time.time() - start_time))
+        if save:
+            with open(os.getcwd() + "/no-bo-rankings.npy", "wb") as f:
+                np.save(f, self.rankings)
+
+    def ranking_no_bo(self, save: bool = True) -> None:
+        self.calc_surrogate_ranks_no_bo(save)
+        rankings = np.load(os.getcwd() + "/no-bo-rankings.npy")
+        mean_rankings = np.nanmean(rankings).transpose()
 
     def rank_metrics_vs_epochs(
         self,
@@ -132,7 +182,7 @@ class Ranking(Loader):
         rankings = np.load(os.getcwd() + "/rankings.npy")
         rankings = self.extract(rankings, settings=settings)
         avg_dims = tuple([self.loader_summary[name]["axis"] for name in avg_names])
-        sem_multi = 1.96 / np.sqrt(10 * 5 * 8)  # seeds*(problems/dimensions)*dimensions
+        sem_multi = 1.96 / np.sqrt(10 * 5 * 8)
         epochs = self.loader_summary["epoch"]["vals"]
         ranking_mean = np.nanmean(rankings, axis=avg_dims, keepdims=True)
         ranking_std = np.nanstd(rankings, axis=avg_dims, keepdims=True)
