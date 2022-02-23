@@ -1,6 +1,7 @@
 from acquisitions.random_search import RandomSearch
 from src.dataset import Dataset
 from src.parameters import *
+from surrogates.deep_ensemble import DeepEnsemble
 from surrogates.dummy_surrogate import DummySurrogate
 from surrogates.gaussian_process import GaussianProcess
 from surrogates.random_forest import RandomForest
@@ -34,6 +35,9 @@ class Optimizer(object):
             self.surrogate_model = self.surrogate_object
         elif self.surrogate == "BNN":
             self.surrogate_object = BayesianNeuralNetwork(self.parameters, dataset)
+            self.surrogate_model = self.surrogate_object
+        elif self.surrogate == "DE":
+            self.surrogate_object = DeepEnsemble(self.parameters, dataset)
             self.surrogate_model = self.surrogate_object
         elif self.surrogate == "DS":
             self.surrogate_object = DummySurrogate(self.parameters, dataset)

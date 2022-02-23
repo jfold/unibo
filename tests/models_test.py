@@ -1,6 +1,7 @@
 from os import mkdir
 import unittest
 from imports.ml import *
+from surrogates.deep_ensemble import DeepEnsemble
 from surrogates.dummy_surrogate import DummySurrogate
 from surrogates.gaussian_process import GaussianProcess
 from surrogates.random_forest import *
@@ -217,6 +218,22 @@ class ModelsTest(unittest.TestCase):
         parameters = Parameters(kwargs, mkdir=True)
         dataset = Dataset(parameters)
         model = BayesianNeuralNetwork(parameters, dataset)
+        X_test, y_test = dataset.sample_testset(
+            n_samples=parameters.n_evals + parameters.n_evals
+        )
+        mu, std = model.predict(X_test)
+        assert isinstance(model.model, nn.Sequential)
+        assert isinstance(mu, np.ndarray) and mu.shape == y_test.shape
+        assert isinstance(std, np.ndarray) and std.shape == y_test.shape
+
+        plots = CalibrationPlots(parameters)
+        plots.plot_predictive(dataset, X_test, y_test, mu, std)
+
+    def test_DeepEnsemble(self) -> None:
+        kwargs.update({"surrogate": "DE"})
+        parameters = Parameters(kwargs, mkdir=True)
+        dataset = Dataset(parameters)
+        model = DeepEnsemble(parameters, dataset)
         X_test, y_test = dataset.sample_testset(
             n_samples=parameters.n_evals + parameters.n_evals
         )
