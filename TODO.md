@@ -11,3 +11,18 @@
 
 - gem også middelværdi for surrogaten i X[opt_idx]
 - Gem runtime for at se hastighed
+
+Liste af resultater:
+
+SYNTETISKE
+
+- èn samlet figur med alle BO+kalibrerings-metrikker som funktion af epoker
+- én rho + p-værdi for ranking mellem kalibreringsfejl og regret
+- én rho + p-værdi for numeriske værdier mellem kalibreringsfejl og regret
+- én tabel med alle non-bo metrikker metrikker (rækker: surrogat, søjler: metrikker)
+- act. improv. vs expected
+
+REAL
+
+- opfølgende: gør GP mere eksplorativt
+- akkumuleret regret: hvor god du er og hvor hurtig du er
