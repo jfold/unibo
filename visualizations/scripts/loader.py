@@ -156,7 +156,7 @@ class Loader(object):
         X = np.array(dataset["X"])
         y = np.array(dataset["y"])
         n_initial = dataset["n_initial"]
-        Sigma = np.cov(X, rowvar=False)
+        Sigma = np.diag((np.array(dataset["x_ubs"]) - np.array(dataset["x_lbs"])) / 12)
         idx_opt = np.argmin(y[:n_initial, :])
         y_opt = y[[idx_opt], :]
         X_opt = X[[idx_opt], :].T
