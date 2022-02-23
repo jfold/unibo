@@ -59,6 +59,16 @@ class ResultsTest(unittest.TestCase):
         ranking = Ranking(loadpths, update_data=False)
         ranking.rank_correlation()
 
+    def test_metric_correlation(self) -> None:
+        loadpths = get_loadpths(os.getcwd() + "/results/")
+        ranking = Ranking(loadpths, update_data=False)
+        ranking.metric_correlation()
+
+    def test_ranking_no_bo(self) -> None:
+        loadpths = get_loadpths(os.getcwd() + "/results/")
+        ranking = Ranking(loadpths, update_data=False)
+        ranking.ranking_no_bo()
+
     def test_exp_improv_vs_act_improv(self) -> None:
         loadpths = get_loadpths(os.getcwd() + "/results/")
         figures = Figures(loadpths)
