@@ -241,7 +241,6 @@ class ModelsTest(unittest.TestCase):
         plots = CalibrationPlots(parameters)
         plots.plot_predictive(dataset, X_test, y_test, mu, std)
 
-        assert isinstance(model.model, nn.Sequential)
         assert isinstance(mu, np.ndarray) and mu.shape == y_test.shape
         assert isinstance(std, np.ndarray) and std.shape == y_test.shape
 
