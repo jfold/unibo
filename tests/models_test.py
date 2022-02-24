@@ -238,12 +238,12 @@ class ModelsTest(unittest.TestCase):
             n_samples=parameters.n_evals + parameters.n_evals
         )
         mu, std = model.predict(X_test)
+        plots = CalibrationPlots(parameters)
+        plots.plot_predictive(dataset, X_test, y_test, mu, std)
+
         assert isinstance(model.model, nn.Sequential)
         assert isinstance(mu, np.ndarray) and mu.shape == y_test.shape
         assert isinstance(std, np.ndarray) and std.shape == y_test.shape
-
-        plots = CalibrationPlots(parameters)
-        plots.plot_predictive(dataset, X_test, y_test, mu, std)
 
     def test_RandomForest(self) -> None:
         kwargs.update({"surrogate": "RF"})

@@ -14,7 +14,6 @@ class MLP(nn.Module):
         self.output_fc = nn.Linear(10, output_dim)
 
     def forward(self, x):
-
         batch_size = x.shape[0]
         x = x.view(batch_size, -1)
         h_1 = F.relu(self.input_fc(x))
@@ -29,6 +28,8 @@ class DeepEnsemble(BatchedMultiOutputGPyTorchModel):
     def __init__(self, parameters: Parameters, dataset: Dataset, name: str = "DE"):
         super().__init__()
         self.name = name
+        self.seed = parameters.seed
+        self.d = parameters.d
         self.n_networks = 10
         self.mse_loss = nn.MSELoss()
         self._set_dimensions(train_X=dataset.data.X, train_Y=dataset.data.y)
@@ -40,7 +41,7 @@ class DeepEnsemble(BatchedMultiOutputGPyTorchModel):
         covar_x = torch.tensor(np.diag(covar_x.squeeze()))
         return MultivariateNormal(mean_x, covar_x)
 
-    def fit(self, X_train: np.ndarray, y_train: np.ndarray, n_epochs: int = 500):
+    def fit(self, X_train: np.ndarray, y_train: np.ndarray, n_epochs: int = 1500):
         X_train = torch.tensor(X_train, dtype=torch.float32)
         y_train = torch.tensor(y_train, dtype=torch.float32)
         self.models = []
@@ -48,7 +49,7 @@ class DeepEnsemble(BatchedMultiOutputGPyTorchModel):
             torch.manual_seed(self.seed + 2022 + n)
             model = MLP(self.d)
             self.optimizer = torch.optim.Adam(
-                model.parameters(), lr=1e-1, weight_decay=1e-5
+                model.parameters(), lr=1e-2, weight_decay=1e-3
             )
             loss = []
             for _ in range(n_epochs):
@@ -59,20 +60,20 @@ class DeepEnsemble(BatchedMultiOutputGPyTorchModel):
                 mse.backward()
                 self.optimizer.step()
             self.models.append(model)
-            fig = plt.figure()
-            plt.plot(np.log(loss))
-            plt.show()
-
-        raise ValueError()
+        # plt.figure()
+        # plt.plot(loss)
+        # plt.show()
+        # raise ValueError()
 
     def predict(
-        self, X_test: np.ndarray, stabilizer: float = 1e-8, n_ensemble: int = 100
+        self, X_test: np.ndarray, y_test: np.ndarray = None, stabilizer: float = 1e-8,
     ) -> Tuple[np.ndarray, np.ndarray]:
-        """Calculates mean (prediction) and variance (uncertainty)"""
+        """Calculates mean (prediction) and variance (uncertainty). If y_test is parsed, the test loss is printed."""
         X_test = torch.tensor(X_test, dtype=torch.float32)
-        predictions = np.full((n_ensemble, X_test.shape[0]), np.nan)
-        for n in range(n_ensemble):
-            predictions[n, :] = self.model(X_test).cpu().detach().numpy().squeeze()
+        predictions = np.full((self.n_networks, X_test.shape[0]), np.nan)
+        for n in range(self.n_networks):
+            predictions[n, :] = self.models[n](X_test).cpu().detach().numpy().squeeze()
+
         mu_predictive = np.nanmean(predictions, axis=0)
         sigma_predictive = np.nanstd(predictions, axis=0) + stabilizer
 
@@ -84,5 +85,11 @@ class DeepEnsemble(BatchedMultiOutputGPyTorchModel):
             if sigma_predictive.ndim == 1
             else sigma_predictive
         )
+        if y_test is not None:
+            test_loss = self.mse_loss(
+                torch.tensor(mu_predictive, dtype=torch.float32),
+                torch.tensor(y_test, dtype=torch.float32),
+            )
+            print(test_loss)
 
         return mu_predictive, sigma_predictive

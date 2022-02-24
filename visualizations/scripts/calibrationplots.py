@@ -58,7 +58,7 @@ class CalibrationPlots(object):
         plt.ylabel("y")
         plt.legend()
         fig.savefig(self.savepth + f"predictive{name}.pdf")
-        plt.close()
+        plt.show()
 
     def plot_mse_sigma(self, mu, y, sigma):
         plt.figure()
