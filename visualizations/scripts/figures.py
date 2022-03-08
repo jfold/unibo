@@ -311,47 +311,56 @@ class Figures(Loader):
                 )
 
     def exp_improv_vs_act_improv(self):
-        expected_improvements = [[] for _ in self.loader_summary["surrogate"]["vals"]]
-        actual_improvements = [[] for _ in self.loader_summary["surrogate"]["vals"]]
-        for i_e, experiment in enumerate(p for p in self.loadpths):
-            if os.path.isdir(experiment) and os.path.isfile(
-                experiment + "parameters.json"
-            ):
-                with open(experiment + "parameters.json") as json_file:
-                    parameters = json.load(json_file)
-                if not parameters["bo"] and parameters["acquisition"] != "EI":
-                    continue
-                files_in_path = [
-                    f
-                    for f in os.listdir(experiment)
-                    if "scores---epoch" in f and "scores---epoch-0" not in f
-                ]
-                idx = self.loader_summary["surrogate"]["vals"].index(
-                    parameters["surrogate"]
+        expected_improvements = {
+            x: [] for x in self.loader_summary["surrogate"]["vals"] if not x == "RS"
+        }
+        actual_improvements = {x: [] for x in self.loader_summary["surrogate"]["vals"]}
+        for pth, data in self.data_settings.items():
+            with open(f"{pth}parameters.json") as json_file:
+                parameters = json.load(json_file)
+            surrogate = parameters["surrogate"]
+            if surrogate == "RS" or not parameters["bo"]:
+                continue
+            files_in_path = [
+                f for f in os.listdir(pth) if "scores---epoch" in f and ".json" in f
+            ]
+            for file in files_in_path:
+                with open(f"{pth}{file}") as json_file:
+                    scores_epoch_i = json.load(json_file)
+
+                lst = expected_improvements[surrogate]
+                lst.append(
+                    np.array(scores_epoch_i["expected_improvement"])
+                    .squeeze()
+                    .astype(float)
                 )
-                for file in files_in_path:
-                    with open(f"{experiment}{file}") as json_file:
-                        scores_epoch_i = json.load(json_file)
-                    expected_improvements[idx].append(
-                        np.array(scores_epoch_i["expected_improvement"]).squeeze()
-                    )
-                    actual_improvements[idx].append(
-                        np.array(scores_epoch_i["actual_improvement"]).squeeze()
-                    )
-        expected_improvements = [np.array(x) for x in expected_improvements]
-        actual_improvements = [np.array(x) for x in actual_improvements]
+                expected_improvements[surrogate] = lst
+
+                lst = actual_improvements[surrogate]
+                lst.append(
+                    np.array(scores_epoch_i["actual_improvement"])
+                    .squeeze()
+                    .astype(float)
+                )
+                actual_improvements[surrogate] = lst
         fig = plt.figure()
-        for i_s, surrogate in enumerate(self.loader_summary["surrogate"]["vals"]):
+        for surrogate in expected_improvements.keys():
+            x = np.array(expected_improvements[surrogate]).squeeze()
+            y = np.array(actual_improvements[surrogate]).squeeze()
+            x, y = self.remove_nans(x, y)
+            rho, pval = pearsonr(x, y)
             plt.scatter(
-                expected_improvements[i_s],
-                actual_improvements[i_s],
-                label=surrogate,
+                x,
+                y,
+                label=rf"{surrogate} ($\rho = ${rho:.2E}, $p=${pval:.2E})",
                 color=ps[surrogate]["c"],
-                alpha=0.7,
+                alpha=0.4,
             )
+
         plt.xlabel("Expected Improvement")
         plt.ylabel("Actual Improvement")
-        plt.xlim([0, 10])
+        plt.ylim([0, 1])
+        plt.xlim([0, 1])
         plt.legend()
         fig.savefig(f"{self.savepth}exp-improv-vs-act-improv.pdf")
 

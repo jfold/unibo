@@ -3,14 +3,13 @@ import random
 import matplotlib
 import matplotlib.pyplot as plt
 from mpl_toolkits.axes_grid1 import make_axes_locatable
-from scipy.stats import norm, uniform, kstest, entropy, pearsonr
+from scipy.stats import norm, uniform, kstest, entropy, pearsonr, spearmanr
 from sklearn.model_selection import train_test_split
 from sklearn.feature_selection import mutual_info_regression
 from sklearn.neighbors import NearestNeighbors as KNNsklearn
 from sklearn.linear_model import LinearRegression
 from scipy.stats.stats import energy_distance
 from scipy.spatial.distance import mahalanobis
-from scipy.stats import spearmanr
 import torch
 import botorch
 from botorch.models.model import Model
