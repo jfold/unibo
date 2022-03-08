@@ -21,7 +21,7 @@ class Ranking(Loader):
         )
         self.savepth_tables = (
             os.getcwd()
-            + "/visualizations/figures/"
+            + "/visualizations/tables/"
             + str.join("-", [f"{key}-{val}-" for key, val in settings.items()])
         )
         # self.init_tables()
@@ -62,6 +62,7 @@ class Ranking(Loader):
                     continue
                 for seed in self.loader_summary["seed"]["vals"]:
                     for metric in self.loader_summary["metric"]["vals"]:
+                        t0 = time.time()
                         settings = {
                             "problem": problem,
                             "d": dim,
@@ -85,25 +86,28 @@ class Ranking(Loader):
                                         "keepdims": True,
                                     },
                                 )
+
                             if self.metric_dict[metric][1] == 1:
-                                order = np.flip(
-                                    self.shuffle_argsort(data, axis=rank_axis),
-                                    axis=rank_axis,
-                                )
+                                order = self.shuffle_argsort(-data, axis=rank_axis)
                             else:
                                 order = self.shuffle_argsort(data, axis=rank_axis)
-                            ranks = np.argsort(order, axis=rank_axis) + 1
+                            ranks = self.shuffle_argsort(order, axis=rank_axis) + 1
+                            # check when debugging:
+                            # print(metric)
+                            # print(data.squeeze()[:, :3])
+                            # print(ranks.squeeze()[:, :3])
+                            # raise ValueError()
                             indexer = self.get_indexer(settings)
                             self.rankings[indexer] = ranks
 
         if save:
-            with open(os.getcwd() + "/rankings.npy", "wb") as f:
+            with open(os.getcwd() + "/results/rankings.npy", "wb") as f:
                 np.save(f, self.rankings)
 
     def rank_correlation(
         self, settings: Dict = {"metric": ["regret", "y_calibration_mse"]}
     ) -> None:
-        rankings = np.load(os.getcwd() + "/rankings.npy")
+        rankings = np.load(os.getcwd() + "/results/rankings.npy")
         ranking_dir = list(settings.keys())[0]
         assert len(list(settings.keys())) == 1 and len(settings[ranking_dir]) == 2
         x = self.extract(
@@ -128,7 +132,19 @@ class Ranking(Loader):
         rho, pval = pearsonr(x, y)
         print(rho, pval)
 
-    def calc_surrogate_ranks_no_bo(self, save: bool = True) -> None:
+    def do_ranking(
+        self, data: np.ndarray, settings: Dict, rank_axis: int, direction: int
+    ) -> Tuple[np.array, Tuple]:
+        idx = self.get_indexer(settings)
+        if direction == 1:
+            order = self.shuffle_argsort(-data, axis=rank_axis)
+        else:
+            order = self.shuffle_argsort(data, axis=rank_axis)
+        ranks = self.shuffle_argsort(order, axis=rank_axis) + 1
+        ranks = np.argsort(order, axis=rank_axis) + 1
+        return ranks, idx
+
+    def calc_surrogate_ranks_no_bo(self, save: bool = True) -> np.ndarray:
         rank_axis = self.loader_summary["surrogate"]["axis"]
         all_probs = "".join(list(self.data_settings.keys()))
         self.rankings = np.full(self.data.shape, np.nan)
@@ -149,37 +165,80 @@ class Ranking(Loader):
                             "epoch": 90,
                         }
                         data = self.extract(settings=settings)
-                        idx = self.get_indexer(settings)
-                        if self.metric_dict[metric][1] == 1:
-                            order = np.flip(
-                                self.shuffle_argsort(data, axis=rank_axis),
-                                axis=rank_axis,
-                            )
-                        else:
-                            order = self.shuffle_argsort(data, axis=rank_axis)
-                        ranks = np.argsort(order, axis=rank_axis) + 1
-                        self.rankings[idx] = ranks
-                        print(self.rankings[idx].squeeze())
+                        ranking, idx = self.do_ranking(
+                            data, settings, rank_axis, self.metric_dict[metric][1]
+                        )
+                        self.rankings[idx] = ranking
 
         print(f"Ranking took: --- %s seconds ---" % (time.time() - start_time))
         if save:
-            with open(os.getcwd() + "/no-bo-rankings.npy", "wb") as f:
+            with open(os.getcwd() + "/results/rankings-no-bo.npy", "wb") as f:
                 np.save(f, self.rankings)
+        return self.rankings
 
-    def ranking_no_bo(self, save: bool = True) -> None:
-        self.calc_surrogate_ranks_no_bo(save)
-        rankings = np.load(os.getcwd() + "/no-bo-rankings.npy")
-        mean_rankings = np.nanmean(rankings).transpose()
+    def save_to_tex(self, df: pd.DataFrame, name: str):
+        with open(f"{self.savepth_tables}/{name}.tex", "w") as file:
+            file.write(df.to_latex(escape=False))
+        file.close()
+
+    def ranking_no_bo(self, save: bool = True, update: bool = False) -> None:
+        rankings = (
+            self.calc_surrogate_ranks_no_bo(save)
+            if update
+            else np.load(os.getcwd() + "/results/rankings-no-bo.npy")
+        )
+        non_bo_metrics = [
+            "nmse",
+            "elpd",
+            "mean_sharpness",
+            "y_calibration_mse",
+            "uct-avg_calibration-miscal_area",
+        ]
+        table = pd.DataFrame(
+            columns=non_bo_metrics, index=self.loader_summary["surrogate"]["vals"],
+        )
+        for metric in non_bo_metrics:
+            for surrogate in self.loader_summary["surrogate"]["vals"]:
+                settings = {
+                    "surrogate": surrogate,
+                    "metric": metric,
+                    "bo": False,
+                    "epoch": 90,
+                }
+                data = self.extract(rankings, settings=settings)
+                sem_div = 1.96 / np.sqrt(np.sum(np.isfinite(data)))
+                table.loc[[surrogate], [metric]] = "${:.2f} \pm {:.2f}$".format(
+                    np.nanmean(data), np.nanstd(data) * sem_div
+                )
+        table = table.rename(
+            columns={x: self.metric_dict[x][-1] for x in non_bo_metrics}
+        )
+        if save:
+            self.save_to_tex(table, name="ranking-no-bo")
 
     def rank_metrics_vs_epochs(
         self,
         avg_names: list[str] = ["seed", "problem", "d"],
         settings: Dict = {"bo": True},
+        calc_sur_ranks: bool = False,
+        metrics: list[str] = [
+            "y_calibration_mse",
+            "nmse",
+            "elpd",
+            "mean_sharpness",
+            "x_opt_mean_dist",
+            "regret",
+            "true_regret",
+            "mahalanobis_dist",
+        ],
     ):
         matplotlib.rcParams["font.size"] = 18
-        matplotlib.rcParams["figure.figsize"] = (12, 18)
-        # rankings = self.calc_surrogate_ranks()
-        rankings = np.load(os.getcwd() + "/rankings.npy")
+        matplotlib.rcParams["figure.figsize"] = (10, 16)
+        rankings = (
+            self.calc_surrogate_ranks()
+            if calc_sur_ranks
+            else np.load(os.getcwd() + "/results/rankings.npy")
+        )
         rankings = self.extract(rankings, settings=settings)
         avg_dims = tuple([self.loader_summary[name]["axis"] for name in avg_names])
         sem_multi = 1.96 / np.sqrt(10 * 5 * 8)
@@ -189,7 +248,6 @@ class Ranking(Loader):
 
         surrogates = self.loader_summary["surrogate"]["vals"]
         surrogate_axis = self.loader_summary["surrogate"]["axis"]
-        metrics = self.loader_summary["metric"]["vals"][:9]
         metric_axis = self.loader_summary["metric"]["axis"]
 
         indexer = [np.s_[:]] * ranking_mean.ndim
@@ -200,13 +258,10 @@ class Ranking(Loader):
             indexer[self.loader_summary["acquisition"]["axis"]] = np.s_[0:1]
         fig = plt.figure()
         for i_m, metric in enumerate(metrics):
+            print(metric)
             indexer[metric_axis] = np.s_[i_m : i_m + 1]
             ax = plt.subplot(len(metrics), 1, i_m + 1)
             for i_s, surrogate in enumerate(surrogates):
-                indexer[surrogate_axis] = np.s_[i_s : i_s + 1]
-                means = ranking_mean[tuple(indexer)].squeeze()
-                stds = ranking_std[tuple(indexer)].squeeze()
-
                 if surrogate != "RS" or (
                     surrogate == "RS"
                     and metric
@@ -218,6 +273,9 @@ class Ranking(Loader):
                         "running_inner_product",
                     ]
                 ):
+                    indexer[surrogate_axis] = np.s_[i_s : i_s + 1]
+                    means = ranking_mean[tuple(indexer)].squeeze()
+                    stds = ranking_std[tuple(indexer)].squeeze()
                     plt.plot(
                         epochs,
                         means,
@@ -242,47 +300,28 @@ class Ranking(Loader):
                 plt.ylim([1 + 0.1, len(surrogates) - 1 + 0.1])
             plt.yticks(range(1, 1 + len(surrogates)))
 
+        plt.tight_layout()
         handles, labels = ax.get_legend_handles_labels()
         fig.legend(
             handles, labels, loc="upper center", ncol=len(surrogates),
         )
         plt.xlabel("Iterations")
-        plt.tight_layout()
+        plt.show()
         fig.savefig(f"{self.savepth_figs}ranking-metrics-vs-epochs---{settings}.pdf")
         plt.close()
 
     def shuffle_argsort(self, array: np.ndarray, axis: int = None) -> np.ndarray:
         numerical_noise = np.random.uniform(0, 1e-10, size=array.shape)
+        is_nan = np.isnan(array)
         if not (np.all(np.argsort(array + numerical_noise) == np.argsort(array))):
             print("Tie! Picking winner at random.")
         if axis is None:
-            return np.argsort(array + numerical_noise)
+            sorted_array = np.argsort(array + numerical_noise)
         else:
-            return np.argsort(array + numerical_noise, axis=axis)
-
-    def remove_nans(
-        self, x: np.ndarray, y: np.ndarray
-    ) -> Tuple[np.ndarray, np.ndarray]:
-        assert x.shape == y.shape
-        is_nan_idx = np.isnan(x)
-        y = y[np.logical_not(is_nan_idx)]
-        x = x[np.logical_not(is_nan_idx)]
-        is_nan_idx = np.isnan(y)
-        x = x[np.logical_not(is_nan_idx)]
-        y = y[np.logical_not(is_nan_idx)]
-        return x, y
-
-    def remove_extremes(
-        self, x: np.ndarray, y: np.ndarray
-    ) -> Tuple[np.ndarray, np.ndarray]:
-        assert x.shape == y.shape
-        remove_idx = y > np.quantile(y, 0.95)
-        y = y[np.logical_not(remove_idx)]
-        x = x[np.logical_not(remove_idx)]
-        remove_idx = y < np.quantile(y, 0.05)
-        x = x[np.logical_not(remove_idx)]
-        y = y[np.logical_not(remove_idx)]
-        return x, y
+            sorted_array = np.argsort(array + numerical_noise, axis=axis)
+        sorted_array = sorted_array.astype(float)
+        sorted_array[is_nan] = np.nan
+        return sorted_array
 
     def calc_plot_metric_dependence(
         self,

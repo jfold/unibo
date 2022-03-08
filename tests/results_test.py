@@ -18,7 +18,7 @@ class ResultsTest(unittest.TestCase):
     def test_loader(self) -> None:
         start_time = time.time()
         loadpths = get_loadpths(os.getcwd() + "/results/")
-        loader = Loader(loadpths)
+        loader = Loader(loadpths, update=True)  # change update
         for k in loader.loader_summary.keys():
             print(k, loader.loader_summary[k])
         print("data.shape:", loader.data.shape, "data.nbytes:", loader.data.nbytes)
@@ -43,17 +43,6 @@ class ResultsTest(unittest.TestCase):
         figures.bo_regret_vs_no_bo_calibration(epoch=50, avg_names=[])
         figures.bo_regret_vs_no_bo_calibration(epoch=50, avg_names=["seed"])
 
-    def test_rank_metrics_vs_epochs(self) -> None:
-        # start_time = time.time()
-        loadpths = get_loadpths(os.getcwd() + "/results/")
-        ranking = Ranking(loadpths, update_data=False)
-        ranking.rank_metrics_vs_epochs()
-        # print(f"Ranking took: --- %s seconds ---" % (time.time() - start_time))
-        # for d in range(2, 11):
-        #     ranking.rank_metrics_vs_epochs(
-        #         avg_names=["seed", "problem"], settings={"d": d, "bo": True}
-        #     )
-
     def test_ranking_correlation(self) -> None:
         loadpths = get_loadpths(os.getcwd() + "/results/")
         ranking = Ranking(loadpths, update_data=False)
@@ -64,14 +53,20 @@ class ResultsTest(unittest.TestCase):
         ranking = Ranking(loadpths, update_data=False)
         ranking.metric_correlation()
 
-    def test_ranking_no_bo(self) -> None:
+    def test_table_ranking_no_bo(self) -> None:
         loadpths = get_loadpths(os.getcwd() + "/results/")
         ranking = Ranking(loadpths, update_data=False)
         ranking.ranking_no_bo()
 
+    def test_rank_vs_epochs(self) -> None:
+        # start_time = time.time()
+        loadpths = get_loadpths(os.getcwd() + "/results/")
+        ranking = Ranking(loadpths, update_data=False)
+        ranking.rank_metrics_vs_epochs()
+
     def test_exp_improv_vs_act_improv(self) -> None:
         loadpths = get_loadpths(os.getcwd() + "/results/")
-        figures = Figures(loadpths)
+        figures = Figures(loadpths, update_data=False)
         figures.exp_improv_vs_act_improv()
 
 
