@@ -30,6 +30,8 @@ class DeepEnsemble(BatchedMultiOutputGPyTorchModel):
         self.name = name
         self.seed = parameters.seed
         self.d = parameters.d
+        self.change_std = parameters.change_std
+        self.std_change = parameters.std_change
         self.n_networks = 10
         self.mse_loss = nn.MSELoss()
         self._set_dimensions(train_X=dataset.data.X, train_Y=dataset.data.y)
@@ -91,5 +93,6 @@ class DeepEnsemble(BatchedMultiOutputGPyTorchModel):
                 torch.tensor(y_test, dtype=torch.float32),
             )
             print(test_loss)
-
+        if self.change_std:
+            sigma_predictive *= self.std_change
         return mu_predictive, sigma_predictive
