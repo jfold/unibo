@@ -7,6 +7,7 @@ SYNTETISKE
 - ✓ én rho + p-værdi for numeriske værdier mellem kalibreringsfejl og regret
 - ✓ én tabel med alle non-bo metrikker metrikker (rækker: surrogat, søjler: metrikker)
 - ✓ act. improv. vs expected
+- lokale metrikker: calibration på alle testpunkter inden for radius r af et træningspunkt
 
 REAL
 
