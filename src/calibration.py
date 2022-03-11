@@ -59,7 +59,7 @@ class Calibration(CalibrationPlots):
         name: str,
         n_bins: int = 50,
     ) -> None:
-        """Calculates the calibration of underlying mean (f), hence without noise.
+        """# NOT USED. Calculates the calibration of underlying mean (f), hence without noise.
 
         """
         p_array = np.linspace(0.01, 0.99, n_bins)
@@ -79,8 +79,13 @@ class Calibration(CalibrationPlots):
             }
         )
 
-    def check_y_calibration(
-        self, mus: np.ndarray, sigmas: np.ndarray, y: np.ndarray, n_bins: int = 50,
+    def calibration_global(
+        self,
+        mus: np.ndarray,
+        sigmas: np.ndarray,
+        y: np.ndarray,
+        n_bins: int = 50,
+        return_mse: bool = False,
     ) -> None:
         """Calculates the calibration of the target (y).
         # eq. (3) in "Accurate Uncertainties for Deep Learning Using Calibrated Regression"
@@ -93,13 +98,65 @@ class Calibration(CalibrationPlots):
             ]
             calibrations[i_p] = np.mean(indicators)
 
+        if return_mse:
+            return np.mean((calibrations - p_array) ** 2)
+        else:
+            self.summary.update(
+                {
+                    "y_p_array": p_array,
+                    "y_calibration": calibrations,
+                    "y_calibration_mse": np.mean((calibrations - p_array) ** 2),
+                    "y_calibration_nmse": np.mean((calibrations - p_array) ** 2)
+                    / np.var(p_array),
+                }
+            )
+
+    def calibration_local(
+        self,
+        dataset: Dataset,
+        mus: np.ndarray,
+        sigmas: np.ndarray,
+        X: np.ndarray,
+        y: np.ndarray,
+        n_bins: int = 50,
+    ) -> None:
+        """Calculates the calibration of the target (y).
+        # eq. (3) in "Accurate Uncertainties for Deep Learning Using Calibrated Regression"
+        """
+
+        pair_dists = cdist(
+            dataset.data.X, X, metric="euclidean"
+        )  # pairwise euclidean dist between training and test points
+        pair_dists = np.min(
+            pair_dists, axis=0
+        )  # only take radius of nearest training point
+        counts, bins = np.histogram(
+            pair_dists.flatten(), bins=n_bins
+        )  # get histogram with 50 bins
+        calibrations_intervals = np.full((n_bins,), np.nan)
+        calibrations = np.full((n_bins,), np.nan)
+        for i in range(len(bins) - 1):
+            cond = np.logical_and(bins[i] <= pair_dists, pair_dists <= bins[i + 1])
+            mus_, sigmas_, y_ = mus[cond], sigmas[cond], y[cond]
+            calibrations_intervals[i] = self.calibration_global(
+                mus_, sigmas_, y_, return_mse=True
+            )
+            calibrations[i] = np.inner(
+                counts[: i + 1] / np.sum(counts[: i + 1]),
+                calibrations_intervals[: i + 1],
+            )
+        #### for debugging:
+        # plt.scatter(bins[1:], calibrations_intervals, label="Intervals")
+        # plt.scatter(bins[1:], calibrations, label="All below")
+        # plt.legend()
+        # plt.xlabel("Distance to nearest training sample")
+        # plt.show()
+        # raise ValueError()
         self.summary.update(
             {
-                "y_p_array": p_array,
-                "y_calibration": calibrations,
-                "y_calibration_mse": np.mean((calibrations - p_array) ** 2),
-                "y_calibration_nmse": np.mean((calibrations - p_array) ** 2)
-                / np.var(p_array),
+                "calibration_local_dists_to_nearest_train_sample": bins[1:],
+                "calibration_local_intervals": calibrations_intervals,
+                "calibration_local": calibrations,
             }
         )
 
@@ -166,7 +223,8 @@ class Calibration(CalibrationPlots):
             self.ne_true = dataset.data.ne_true
             self.y_max = dataset.data.y_max
             mu_test, sigma_test = surrogate.predict(X_test)
-            self.check_y_calibration(mu_test, sigma_test, y_test)
+            self.calibration_global(mu_test, sigma_test, y_test)
+            self.calibration_local(dataset, mu_test, sigma_test, X_test, y_test)
             self.check_gaussian_sharpness(mu_test, sigma_test, name)
             self.expected_log_predictive_density(
                 mu_test, sigma_test, y_test,
