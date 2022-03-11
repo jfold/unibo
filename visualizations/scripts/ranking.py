@@ -14,25 +14,6 @@ class Ranking(Loader):
         super(Ranking, self).__init__(loadpths, settings, update=update_data)
         if not self.data_was_loaded:
             raise ValueError("No data could be loaded")
-        self.savepth_figs = (
-            os.getcwd()
-            + "/visualizations/figures/"
-            + str.join("-", [f"{key}-{val}-" for key, val in settings.items()])
-        )
-        self.savepth_tables = (
-            os.getcwd()
-            + "/visualizations/tables/"
-            + str.join("-", [f"{key}-{val}-" for key, val in settings.items()])
-        )
-        # self.init_tables()
-
-    def init_tables(self) -> None:
-        rows = self.metric_dict.keys()
-        cols = self.loader_summary["surrogate"]["vals"]
-        self.mean_ranking_table = pd.DataFrame(columns=cols, index=rows)
-        self.median_ranking_table = pd.DataFrame(columns=cols, index=rows)
-        self.std_ranking_table = pd.DataFrame(columns=cols, index=rows)
-        self.no_ranking_table = pd.DataFrame(columns=cols, index=rows)
 
     def get_indexer(self, settings: Dict) -> Tuple[int]:
         axes = {}
@@ -52,87 +33,7 @@ class Ranking(Loader):
         res[mx] = np.nan
         return res
 
-    def calc_surrogate_ranks(self, save: bool = True):
-        rank_axis = self.loader_summary["surrogate"]["axis"]
-        all_probs = "".join(list(self.data_settings.keys()))
-        self.rankings = np.full(self.data.shape, np.nan)
-        for problem in self.loader_summary["problem"]["vals"]:
-            for dim in self.loader_summary["d"]["vals"]:
-                if f"({dim}){problem}" not in all_probs:
-                    continue
-                for seed in self.loader_summary["seed"]["vals"]:
-                    for metric in self.loader_summary["metric"]["vals"]:
-                        t0 = time.time()
-                        settings = {
-                            "problem": problem,
-                            "d": dim,
-                            "metric": metric,
-                            "bo": True,
-                            "seed": seed,
-                        }
-                        data = self.extract(settings=settings)
-
-                        if not np.all(np.isnan(data)):
-                            if (
-                                "RS" in self.loader_summary["acquisition"]["vals"]
-                                and len(self.loader_summary["acquisition"]["vals"]) == 2
-                            ):
-                                data = self.nansum(
-                                    data,
-                                    **{
-                                        "axis": self.loader_summary["acquisition"][
-                                            "axis"
-                                        ],
-                                        "keepdims": True,
-                                    },
-                                )
-
-                            if self.metric_dict[metric][1] == 1:
-                                order = self.shuffle_argsort(-data, axis=rank_axis)
-                            else:
-                                order = self.shuffle_argsort(data, axis=rank_axis)
-                            ranks = self.shuffle_argsort(order, axis=rank_axis) + 1
-                            # check when debugging:
-                            # print(metric)
-                            # print(data.squeeze()[:, :3])
-                            # print(ranks.squeeze()[:, :3])
-                            # raise ValueError()
-                            indexer = self.get_indexer(settings)
-                            self.rankings[indexer] = ranks
-
-        if save:
-            with open(os.getcwd() + "/results/rankings.npy", "wb") as f:
-                np.save(f, self.rankings)
-
-    def rank_correlation(
-        self, settings: Dict = {"metric": ["regret", "y_calibration_mse"]}
-    ) -> None:
-        rankings = np.load(os.getcwd() + "/results/rankings.npy")
-        ranking_dir = list(settings.keys())[0]
-        assert len(list(settings.keys())) == 1 and len(settings[ranking_dir]) == 2
-        x = self.extract(
-            rankings, settings={"bo": True, ranking_dir: settings[ranking_dir][0]},
-        )
-        y = self.extract(
-            rankings, settings={"bo": True, ranking_dir: settings[ranking_dir][1]},
-        )
-
-        x, y = self.remove_nans(x.squeeze(), y.squeeze())
-        rho, pval = spearmanr(x, y)
-        print(rho, pval)
-
-    def metric_correlation(
-        self, settings: Dict = {"metric": ["regret", "y_calibration_mse"]}
-    ) -> None:
-        ranking_dir = list(settings.keys())[0]
-        assert len(list(settings.keys())) == 1 and len(settings[ranking_dir]) == 2
-        x = self.extract(settings={"bo": True, ranking_dir: settings[ranking_dir][0]})
-        y = self.extract(settings={"bo": True, ranking_dir: settings[ranking_dir][1]})
-        x, y = self.remove_nans(x.squeeze(), y.squeeze())
-        rho, pval = pearsonr(x, y)
-        print(rho, pval)
-
-    def do_ranking(
+    def rank(
         self, data: np.ndarray, settings: Dict, rank_axis: int, direction: int
     ) -> Tuple[np.array, Tuple]:
         idx = self.get_indexer(settings)
@@ -141,49 +42,55 @@ class Ranking(Loader):
         else:
             order = self.shuffle_argsort(data, axis=rank_axis)
         ranks = self.shuffle_argsort(order, axis=rank_axis) + 1
-        ranks = np.argsort(order, axis=rank_axis) + 1
+        ranks = np.argsort(order, axis=rank_axis) + 1.0
+        ranks[np.isnan(data)] = np.nan
         return ranks, idx
 
-    def calc_surrogate_ranks_no_bo(self, save: bool = True) -> np.ndarray:
+    def calc_surrogate_ranks(self, with_bo: bool, save: bool = True) -> np.ndarray:
         rank_axis = self.loader_summary["surrogate"]["axis"]
         all_probs = "".join(list(self.data_settings.keys()))
         self.rankings = np.full(self.data.shape, np.nan)
         start_time = time.time()
+        settings = {"bo": with_bo, "acquisition": "EI"}
+        if not with_bo:
+            settings.update({"epoch": 90})
+
         for problem in self.loader_summary["problem"]["vals"]:
             for dim in self.loader_summary["d"]["vals"]:
                 if f"({dim}){problem}" not in all_probs:
                     continue
                 for seed in self.loader_summary["seed"]["vals"]:
                     for metric in self.loader_summary["metric"]["vals"]:
-                        settings = {
-                            "problem": problem,
-                            "d": dim,
-                            "metric": metric,
-                            "seed": seed,
-                            "acquisition": "EI",
-                            "bo": False,
-                            "epoch": 90,
-                        }
+                        settings.update(
+                            {
+                                "problem": problem,
+                                "d": dim,
+                                "metric": metric,
+                                "seed": seed,
+                                "acquisition": "EI",
+                            }
+                        )
                         data = self.extract(settings=settings)
-                        ranking, idx = self.do_ranking(
+                        ranking, idx = self.rank(
                             data, settings, rank_axis, self.metric_dict[metric][1]
                         )
                         self.rankings[idx] = ranking
 
+                        ############### When debugging:
+                    #     print(metric, self.metric_dict[metric])
+                    #     print(data.squeeze()[:, :2])
+                    #     print(ranking.squeeze()[:, :2])
+                    # raise ValueError()
         print(f"Ranking took: --- %s seconds ---" % (time.time() - start_time))
+        add_str = "with" if with_bo else "no"
         if save:
-            with open(os.getcwd() + "/results/rankings-no-bo.npy", "wb") as f:
+            with open(f"{os.getcwd()}/results/rankings-{add_str}-bo.npy", "wb") as f:
                 np.save(f, self.rankings)
         return self.rankings
 
-    def save_to_tex(self, df: pd.DataFrame, name: str):
-        with open(f"{self.savepth_tables}/{name}.tex", "w") as file:
-            file.write(df.to_latex(escape=False))
-        file.close()
-
-    def ranking_no_bo(self, save: bool = True, update: bool = False) -> None:
+    def table_ranking_no_bo(self, save: bool = True, update: bool = True) -> None:
         rankings = (
-            self.calc_surrogate_ranks_no_bo(save)
+            self.calc_surrogate_ranks(with_bo=False, save=save)
             if update
             else np.load(os.getcwd() + "/results/rankings-no-bo.npy")
         )
@@ -215,6 +122,32 @@ class Ranking(Loader):
         )
         if save:
             self.save_to_tex(table, name="ranking-no-bo")
+
+    def table_ranking_with_bo(self, save: bool = True, update: bool = True) -> None:
+        rankings = (
+            self.calc_surrogate_ranks(with_bo=True, save=save)
+            if update
+            else np.load(os.getcwd() + "/results/rankings.npy")
+        )
+        bo_metrics = self.loader_summary["metric"]["vals"]
+        table = pd.DataFrame(
+            columns=bo_metrics, index=self.loader_summary["surrogate"]["vals"],
+        )
+        for metric in bo_metrics:
+            for surrogate in self.loader_summary["surrogate"]["vals"]:
+                settings = {
+                    "surrogate": surrogate,
+                    "metric": metric,
+                    "bo": True,
+                }
+                data = self.extract(rankings, settings=settings)
+                sem_div = 1.96 / np.sqrt(np.sum(np.isfinite(data)))
+                table.loc[[surrogate], [metric]] = "${:.2f} \pm {:.2f}$".format(
+                    np.nanmean(data), np.nanstd(data) * sem_div
+                )
+        table = table.rename(columns={x: self.metric_dict[x][-1] for x in bo_metrics})
+        if save:
+            self.save_to_tex(table, name="ranking-with-bo")
 
     def rank_metrics_vs_epochs(
         self,

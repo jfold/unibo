@@ -24,6 +24,17 @@ class Loader(object):
                 self.load_data()
         self.data_was_loaded = True if np.sum(np.isfinite(self.data)) > 0 else False
 
+        self.savepth_figs = (
+            os.getcwd()
+            + "/visualizations/figures/"
+            + str.join("-", [f"{key}-{val}-" for key, val in settings.items()])
+        )
+        self.savepth_tables = (
+            os.getcwd()
+            + "/visualizations/tables/"
+            + str.join("-", [f"{key}-{val}-" for key, val in settings.items()])
+        )
+
     def load_from_file(self):
         with open(os.getcwd() + "/results/metrics.pkl", "rb") as pkl:
             dict = pickle.load(pkl)
@@ -310,3 +321,16 @@ class Loader(object):
         x = x[np.logical_not(remove_idx)]
         y = y[np.logical_not(remove_idx)]
         return x, y
+
+    def find_extreme_idx(self, x: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
+        extreme_high_idx = x > np.quantile(x, 0.95)
+        extreme_low_idx = x < np.quantile(x, 0.05)
+        return extreme_high_idx, extreme_low_idx
+
+    def find_extreme_vals(self, x: np.ndarray, q: float = 0.05) -> Tuple[float, float]:
+        return np.quantile(x, 1 - q), np.quantile(x, q)
+
+    def save_to_tex(self, df: pd.DataFrame, name: str):
+        with open(f"{self.savepth_tables}/{name}.tex", "w") as file:
+            file.write(df.to_latex(escape=False))
+        file.close()

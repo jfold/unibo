@@ -43,20 +43,20 @@ class ResultsTest(unittest.TestCase):
         figures.bo_regret_vs_no_bo_calibration(epoch=50, avg_names=[])
         figures.bo_regret_vs_no_bo_calibration(epoch=50, avg_names=["seed"])
 
-    def test_ranking_correlation(self) -> None:
+    def test_correlation_table(self) -> None:
         loadpths = get_loadpths(os.getcwd() + "/results/")
-        ranking = Ranking(loadpths, update_data=False)
-        ranking.rank_correlation()
-
-    def test_metric_correlation(self) -> None:
-        loadpths = get_loadpths(os.getcwd() + "/results/")
-        ranking = Ranking(loadpths, update_data=False)
-        ranking.metric_correlation()
+        ranking = Tables(loadpths, update_data=False)
+        ranking.correlation_table()
 
     def test_table_ranking_no_bo(self) -> None:
         loadpths = get_loadpths(os.getcwd() + "/results/")
         ranking = Ranking(loadpths, update_data=False)
-        ranking.ranking_no_bo()
+        ranking.table_ranking_no_bo()
+
+    def test_table_ranking_with_bo(self) -> None:
+        loadpths = get_loadpths(os.getcwd() + "/results/")
+        ranking = Ranking(loadpths, update_data=False)
+        ranking.table_ranking_with_bo()
 
     def test_rank_vs_epochs(self) -> None:
         # start_time = time.time()

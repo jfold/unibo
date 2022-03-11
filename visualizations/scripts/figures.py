@@ -15,31 +15,6 @@ class Figures(Loader):
         super(Figures, self).__init__(loadpths, settings, update=update_data)
         if not self.data_was_loaded:
             raise ValueError("No data could be loaded")
-        self.savepth = (
-            os.getcwd()
-            + "/visualizations/figures/"
-            + str.join("-", [f"{key}-{val}-" for key, val in settings.items()])
-        )
-
-    def find_extreme_idx(self, x: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
-        extreme_high_idx = x > np.quantile(x, 0.95)
-        extreme_low_idx = x < np.quantile(x, 0.05)
-        return extreme_high_idx, extreme_low_idx
-
-    def find_extreme_vals(self, x: np.ndarray, q: float = 0.05) -> Tuple[float, float]:
-        return np.quantile(x, 1 - q), np.quantile(x, q)
-
-    def remove_extremes(
-        self, x: np.ndarray, y: np.ndarray
-    ) -> Tuple[np.ndarray, np.ndarray]:
-        assert x.shape == y.shape
-        remove_idx = y > np.quantile(y, 0.95)
-        y = y[np.logical_not(remove_idx)]
-        x = x[np.logical_not(remove_idx)]
-        remove_idx = y < np.quantile(y, 0.05)
-        x = x[np.logical_not(remove_idx)]
-        y = y[np.logical_not(remove_idx)]
-        return x, y
 
     def calibration(self):
         fig = plt.figure()
@@ -85,7 +60,7 @@ class Figures(Loader):
                 "--", [str(key) + "-" + str(val) for key, val in self.settings.items()]
             ).replace(".", "-")
             settings = "default" if settings == "" else settings
-            fig.savefig(f"{self.savepth}calibration---{settings}.pdf")
+            fig.savefig(f"{self.savepth_figs}calibration---{settings}.pdf")
             plt.close()
 
     def metrics_vs_epochs(
@@ -179,7 +154,9 @@ class Figures(Loader):
                 )
                 plt.xlabel("Epochs")
                 plt.tight_layout()
-                fig.savefig(f"{self.savepth}metrics-vs-epochs---{problem}({d}).pdf")
+                fig.savefig(
+                    f"{self.savepth_figs}metrics-vs-epochs---{problem}({d}).pdf"
+                )
                 plt.close()
 
     def bo_2d_contour(self, n_epochs: int = 10, seed: int = 1):
@@ -246,69 +223,10 @@ class Figures(Loader):
                 plt.ylabel(r"$x_2$")
 
                 fig.savefig(
-                    f"{self.savepth}bo-iters--{parameters.problem}-{parameters.surrogate}"
+                    f"{self.savepth_figs}bo-iters--{parameters.problem}-{parameters.surrogate}"
                     + f"--n-epochs-{n_epochs}--seed-{seed}--d-{parameters.d}.pdf"
                 )
                 plt.close()
-
-    def bo_regret_vs_no_bo_calibration(
-        self, epoch: int = 89, avg_names: list[str] = []
-    ):
-        avg_dims = [self.loader_summary[name]["axis"] for name in avg_names]
-        for problem in self.loader_summary["problem"]["vals"]:
-            for dim in self.loader_summary["d"]["vals"]:
-                fig = plt.figure()
-                skip = False
-                for surrogate in self.loader_summary["surrogate"]["vals"]:
-                    data = self.extract(
-                        settings={
-                            "metric": "regret",
-                            "bo": True,
-                            "surrogate": surrogate,
-                            "problem": problem,
-                            "d": dim,
-                        },
-                    )
-                    x = (
-                        np.nanmean(data, axis=tuple(avg_dims)).squeeze()
-                        if len(avg_dims) >= 0
-                        else data.flatten()
-                    )
-
-                    data = self.extract(
-                        settings={
-                            "metric": "y_calibration_mse",
-                            "bo": False,
-                            "surrogate": surrogate,
-                            "problem": problem,
-                            "d": dim,
-                        },
-                    )
-                    y = (
-                        np.nanmean(data, axis=tuple(avg_dims)).squeeze()
-                        if len(avg_dims) >= 0
-                        else data.flatten()
-                    )
-                    # if np.any(np.isnan(x)) or np.any(np.isnan(y)):
-                    #     skip = True
-                    #     continue
-
-                    plt.scatter(
-                        x,
-                        y,
-                        color=ps[surrogate]["c"],
-                        marker=ps[surrogate]["m"],
-                        label=f"{surrogate}",
-                    )
-                if skip:
-                    continue
-                plt.xlabel("Regret")
-                plt.ylabel("Calibration MSE")
-                # plt.xscale("log")
-                plt.legend()
-                fig.savefig(
-                    f"{self.savepth}regret-vs-no-bo-calibration|{problem}({dim})|epoch={epoch}|avg={avg_names}.pdf"
-                )
 
     def exp_improv_vs_act_improv(self):
         expected_improvements = {
@@ -359,8 +277,64 @@ class Figures(Loader):
 
         plt.xlabel("Expected Improvement")
         plt.ylabel("Actual Improvement")
-        plt.ylim([0, 1])
         plt.xlim([0, 1])
         plt.legend()
-        fig.savefig(f"{self.savepth}exp-improv-vs-act-improv.pdf")
+        fig.savefig(f"{self.savepth_figs}exp-improv-vs-act-improv.pdf")
 
+    # def bo_regret_vs_no_bo_calibration(
+    #     self, epoch: int = 89, avg_names: list[str] = []
+    # ):
+    #     avg_dims = [self.loader_summary[name]["axis"] for name in avg_names]
+    #     for problem in self.loader_summary["problem"]["vals"]:
+    #         for dim in self.loader_summary["d"]["vals"]:
+    #             fig = plt.figure()
+    #             skip = False
+    #             for surrogate in self.loader_summary["surrogate"]["vals"]:
+    #                 data = self.extract(
+    #                     settings={
+    #                         "metric": "regret",
+    #                         "bo": True,
+    #                         "surrogate": surrogate,
+    #                         "problem": problem,
+    #                         "d": dim,
+    #                     },
+    #                 )
+    #                 x = (
+    #                     np.nanmean(data, axis=tuple(avg_dims)).squeeze()
+    #                     if len(avg_dims) >= 0
+    #                     else data.flatten()
+    #                 )
+
+    #                 data = self.extract(
+    #                     settings={
+    #                         "metric": "y_calibration_mse",
+    #                         "bo": False,
+    #                         "surrogate": surrogate,
+    #                         "problem": problem,
+    #                         "d": dim,
+    #                     },
+    #                 )
+    #                 y = (
+    #                     np.nanmean(data, axis=tuple(avg_dims)).squeeze()
+    #                     if len(avg_dims) >= 0
+    #                     else data.flatten()
+    #                 )
+    #                 # if np.any(np.isnan(x)) or np.any(np.isnan(y)):
+    #                 #     skip = True
+    #                 #     continue
+
+    #                 plt.scatter(
+    #                     x,
+    #                     y,
+    #                     color=ps[surrogate]["c"],
+    #                     marker=ps[surrogate]["m"],
+    #                     label=f"{surrogate}",
+    #                 )
+    #             if skip:
+    #                 continue
+    #             plt.xlabel("Regret")
+    #             plt.ylabel("Calibration MSE")
+    #             # plt.xscale("log")
+    #             plt.legend()
+    #             fig.savefig(
+    #                 f"{self.savepth_figs}regret-vs-no-bo-calibration|{problem}({dim})|epoch={epoch}|avg={avg_names}.pdf"

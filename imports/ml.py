@@ -24,7 +24,7 @@ import uncertainty_toolbox as uct  # https://github.com/uncertainty-toolbox/unce
 matplotlib.rcParams["mathtext.fontset"] = "cm"
 matplotlib.rcParams["font.family"] = "STIXGeneral"
 matplotlib.rcParams["axes.grid"] = True
-matplotlib.rcParams["font.size"] = 14
+matplotlib.rcParams["font.size"] = 18
 matplotlib.rcParams["figure.figsize"] = (12, 8)
 matplotlib.rcParams["savefig.bbox"] = "tight"
 # plot-settings:
