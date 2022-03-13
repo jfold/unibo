@@ -6,11 +6,10 @@ from imports.general import *
 from imports.ml import *
 from src.optimizer import Optimizer
 from src.parameters import Parameters
-from visualizations.scripts.calibrationplots import CalibrationPlots
 from src.dataset import Dataset
 
 
-class Calibration(CalibrationPlots):
+class Calibration(object):
     """Calibration experiment class """
 
     def __init__(self, parameters: Parameters) -> None:
@@ -31,8 +30,8 @@ class Calibration(CalibrationPlots):
         self.summary.update(
             {"mean_sharpness": mean_sharpness}  # "sharpness": sharpness,
         )
-        if self.plot_it and self.save_it:
-            self.plot_sharpness_histogram(name=name)
+        # if self.plot_it and self.save_it:
+        #     self.plot_sharpness_histogram(name=name)
 
     def check_histogram_sharpness(
         self, model: Model, X: np.ndarray, n_bins: int = 50
@@ -234,12 +233,12 @@ class Calibration(CalibrationPlots):
                 mu_test.squeeze(), sigma_test.squeeze(), y_test.squeeze(), verbose=False
             )
             self.improvement(dataset)
-            if self.plot_it and self.save_it:
-                if self.d == 1:
-                    self.plot_predictive(
-                        dataset, X_test, y_test, mu_test, sigma_test, name=name
-                    )
-                self.plot_y_calibration(name=name)
+            # if self.plot_it and self.save_it:
+            #     if self.d == 1:
+            #         self.plot_predictive(
+            #             dataset, X_test, y_test, mu_test, sigma_test, name=name
+            #         )
+            #     self.plot_y_calibration(name=name)
 
         self.regret(dataset)
         self.glob_min_dist(dataset)
