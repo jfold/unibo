@@ -4,7 +4,6 @@ from numpy.lib.npyio import save
 from scipy.sparse import data
 from imports.general import *
 from imports.ml import *
-from src.optimizer import Optimizer
 from src.parameters import Parameters
 from src.dataset import Dataset
 

@@ -47,6 +47,7 @@ class Parameters:
             f"({self.d}){self.problem}_{self.surrogate}_{self.acquisition}_seed-{self.seed}"
         )
         folder_name = folder_name + "_BO" if self.bo else folder_name
+        folder_name = folder_name + "_std_change" if self.change_std else folder_name
         setattr(
             self, "experiment", folder_name,
         )
