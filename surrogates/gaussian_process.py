@@ -15,6 +15,7 @@ class GaussianProcess(object):
     def __init__(self, parameters: Parameters, dataset: Dataset, name: str = "GP"):
         self.name = name
         self.change_std = parameters.change_std
+        self.std_change = parameters.std_change
         self.model = botorch.models.SingleTaskGP(
             torch.tensor(dataset.data.X), torch.tensor(dataset.data.y)
         )
@@ -40,5 +41,5 @@ class GaussianProcess(object):
             else sigma_predictive
         )
         if self.change_std:
-            sigma_predictive *= 0.1
+            sigma_predictive *= self.std_change
         return mu_predictive, sigma_predictive

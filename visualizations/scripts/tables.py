@@ -5,8 +5,13 @@ from visualizations.scripts.loader import Loader
 
 
 class Tables(Loader):
-    def __init__(self, loadpths: list[str] = [], settings: Dict[str, str] = {}):
-        super(Tables, self).__init__(loadpths, settings)
+    def __init__(
+        self,
+        loadpths: list[str] = [],
+        settings: Dict[str, str] = {},
+        update_data: bool = True,
+    ):
+        super(Tables, self).__init__(loadpths, settings, update=update_data)
         self.savepth = (
             os.getcwd()
             + "/visualizations/tables/"
@@ -137,3 +142,76 @@ class Tables(Loader):
         fig.savefig(f"{self.savepth_figs}ranking-metrics-vs-epochs---{settings}.pdf")
         plt.close()
 
+    def format_p_val(self, pval: float) -> str:
+        pval_str = (
+            "<10^{-10}" if pval < 1e-10 else rf"={pval:.2E}".replace("E", "10^{") + "}"
+        )
+        return pval_str
+
+    def correlation_table(self, save: bool = True) -> None:
+        surrogates = [
+            x for x in self.loader_summary["surrogate"]["vals"] if not x == "RS"
+        ]
+        rows = ["Metric", "Metric rank"]
+        table = pd.DataFrame(columns=surrogates, index=rows)
+        ranking_dir = "metric"
+        ranking_vals = ["regret", "y_calibration_mse"]
+        for surrogate in surrogates:
+            rho, pval = self.metric_correlation(
+                {"surrogate": surrogate},
+                ranking_dir=ranking_dir,
+                ranking_vals=ranking_vals,
+            )
+            table[surrogate][rows[0]] = rf"{rho:.2f} ($p{self.format_p_val(pval)}$)"
+
+            rho, pval = self.rank_correlation(
+                {"surrogate": surrogate},
+                ranking_dir=ranking_dir,
+                ranking_vals=ranking_vals,
+            )
+            table[surrogate][rows[1]] = rf"{rho:.2f} ($p{self.format_p_val(pval)}$)"
+        if save:
+            self.save_to_tex(table.transpose(), name="correlation-table")
+
+    def rank_correlation(
+        self, settings: Dict = {}, ranking_dir: str = "", ranking_vals: list = []
+    ) -> Dict[float, float]:
+        if "bo" not in settings.keys():
+            settings.update({"bo": True})
+        if ranking_dir == "" or ranking_vals == []:
+            ranking_dir = "metric"
+            ranking_vals = ["regret", "y_calibration_mse"]
+        assert len(ranking_vals) == 2
+
+        rankings = np.load(os.getcwd() + "/results/rankings.npy")
+
+        settings.update({ranking_dir: ranking_vals[0]})
+        x = self.extract(rankings, settings=settings).flatten().squeeze()
+
+        settings.update({ranking_dir: ranking_vals[1]})
+        y = self.extract(rankings, settings=settings).flatten().squeeze()
+        x, y = self.remove_nans(x, y)
+        return spearmanr(x, y)
+
+    def metric_correlation(
+        self, settings: Dict = {}, ranking_dir: str = "", ranking_vals: list = []
+    ) -> Dict[float, float]:
+        if "bo" not in settings.keys():
+            settings.update({"bo": True})
+        if ranking_dir == "" or ranking_vals == []:
+            ranking_dir = "metric"
+            ranking_vals = ["regret", "y_calibration_mse"]
+        assert len(ranking_vals) == 2
+
+        settings.update({ranking_dir: ranking_vals[0]})
+        x = self.extract(settings=settings).flatten().squeeze()
+
+        settings.update({ranking_dir: ranking_vals[1]})
+        y = self.extract(settings=settings).flatten().squeeze()
+
+        x, y = self.remove_nans(x.squeeze(), y.squeeze())
+        x, y = self.remove_extremes(x.squeeze(), y.squeeze())
+        return pearsonr(x, y)
+
+    def expected_vs_actual_improv_correlation(self):
+        return None

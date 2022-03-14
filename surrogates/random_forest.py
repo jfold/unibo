@@ -78,6 +78,8 @@ class RandomForest(BatchedMultiOutputGPyTorchModel):
         X_test = X_test[:, np.newaxis] if X_test.ndim == 1 else X_test
         mu_predictive = self.model.predict(X_test)
         sigma_predictive = self.calculate_y_std(X_test) + stabilizer
+        if self.change_std:
+            sigma_predictive *= self.std_change
         return (mu_predictive[:, np.newaxis], sigma_predictive[:, np.newaxis])
 
     def calculate_y_std(self, X: np.ndarray) -> np.ndarray:

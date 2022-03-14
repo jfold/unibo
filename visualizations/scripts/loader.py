@@ -24,8 +24,19 @@ class Loader(object):
                 self.load_data()
         self.data_was_loaded = True if np.sum(np.isfinite(self.data)) > 0 else False
 
+        self.savepth_figs = (
+            os.getcwd()
+            + "/visualizations/figures/"
+            + str.join("-", [f"{key}-{val}-" for key, val in settings.items()])
+        )
+        self.savepth_tables = (
+            os.getcwd()
+            + "/visualizations/tables/"
+            + str.join("-", [f"{key}-{val}-" for key, val in settings.items()])
+        )
+
     def load_from_file(self):
-        with open(os.getcwd() + "/metrics.pkl", "rb") as pkl:
+        with open(os.getcwd() + "/results/metrics.pkl", "rb") as pkl:
             dict = pickle.load(pkl)
         for key, value in dict.items():
             setattr(self, key, value)
@@ -255,7 +266,7 @@ class Loader(object):
                         self.data[tuple(data_idx)] = running_inner_product[data_idx[-2]]
 
         if save:
-            with open(os.getcwd() + "/metrics.pkl", "wb") as pkl:
+            with open(os.getcwd() + "/results/metrics.pkl", "wb") as pkl:
                 pickle.dump(self.__dict__, pkl)
 
     def extract(
@@ -286,3 +297,40 @@ class Loader(object):
             for idx in idxs:
                 data = np.delete(data, idx, axis=axis)
         return data
+
+    def remove_nans(
+        self, x: np.ndarray, y: np.ndarray
+    ) -> Tuple[np.ndarray, np.ndarray]:
+        assert x.shape == y.shape
+        is_nan_idx = np.isnan(x)
+        y = y[np.logical_not(is_nan_idx)]
+        x = x[np.logical_not(is_nan_idx)]
+        is_nan_idx = np.isnan(y)
+        x = x[np.logical_not(is_nan_idx)]
+        y = y[np.logical_not(is_nan_idx)]
+        return x, y
+
+    def remove_extremes(
+        self, x: np.ndarray, y: np.ndarray
+    ) -> Tuple[np.ndarray, np.ndarray]:
+        assert x.shape == y.shape
+        remove_idx = y > np.quantile(y, 0.95)
+        y = y[np.logical_not(remove_idx)]
+        x = x[np.logical_not(remove_idx)]
+        remove_idx = y < np.quantile(y, 0.05)
+        x = x[np.logical_not(remove_idx)]
+        y = y[np.logical_not(remove_idx)]
+        return x, y
+
+    def find_extreme_idx(self, x: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
+        extreme_high_idx = x > np.quantile(x, 0.95)
+        extreme_low_idx = x < np.quantile(x, 0.05)
+        return extreme_high_idx, extreme_low_idx
+
+    def find_extreme_vals(self, x: np.ndarray, q: float = 0.05) -> Tuple[float, float]:
+        return np.quantile(x, 1 - q), np.quantile(x, q)
+
+    def save_to_tex(self, df: pd.DataFrame, name: str):
+        with open(f"{self.savepth_tables}/{name}.tex", "w") as file:
+            file.write(df.to_latex(escape=False))
+        file.close()

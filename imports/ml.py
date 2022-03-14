@@ -3,14 +3,13 @@ import random
 import matplotlib
 import matplotlib.pyplot as plt
 from mpl_toolkits.axes_grid1 import make_axes_locatable
-from scipy.stats import norm, uniform, kstest, entropy, pearsonr
+from scipy.stats import norm, uniform, kstest, entropy, pearsonr, spearmanr
 from sklearn.model_selection import train_test_split
 from sklearn.feature_selection import mutual_info_regression
 from sklearn.neighbors import NearestNeighbors as KNNsklearn
 from sklearn.linear_model import LinearRegression
 from scipy.stats.stats import energy_distance
-from scipy.spatial.distance import mahalanobis
-from scipy.stats import spearmanr
+from scipy.spatial.distance import mahalanobis, cdist
 import torch
 import botorch
 from botorch.models.model import Model
@@ -25,7 +24,7 @@ import uncertainty_toolbox as uct  # https://github.com/uncertainty-toolbox/unce
 matplotlib.rcParams["mathtext.fontset"] = "cm"
 matplotlib.rcParams["font.family"] = "STIXGeneral"
 matplotlib.rcParams["axes.grid"] = True
-matplotlib.rcParams["font.size"] = 14
+matplotlib.rcParams["font.size"] = 18
 matplotlib.rcParams["figure.figsize"] = (12, 8)
 matplotlib.rcParams["savefig.bbox"] = "tight"
 # plot-settings:
