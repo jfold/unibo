@@ -7,7 +7,9 @@ visualizations/figures/*
 visualizations/tables/*
 cluster
 #**/TODO.txt
+**/result*/*
 **/*.pdf
+**/*.zip
 **/*.sh
 **/.DS_Store
 **/__pycache__
