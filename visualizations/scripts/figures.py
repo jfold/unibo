@@ -65,99 +65,78 @@ class Figures(Loader):
 
     def metrics_vs_epochs(
         self,
-        avg_names: list[str] = ["seed"],
-        only_surrogates: list[str] = [],  # "GP", "BNN", "DS"
+        avg_names: list[str] = ["seed", "problem", "d", "acquisition"],
+        settings: Dict = {"bo": True, "change_std": True},
+        metrics: list[str] = [
+            # "nmse",
+            # "elpd",
+            # "mean_sharpness",
+            "y_calibration_mse",
+            # "regret",
+            "true_regret",
+            "x_opt_mean_dist",
+            "mahalanobis_dist",
+        ],
+        save_str: str = "",
     ):
-        epochs = self.loader_summary["epoch"]["vals"]
+        matplotlib.rcParams["font.size"] = 18
+        matplotlib.rcParams["figure.figsize"] = (12, 7)  # (10, 16)
+        data = self.extract(settings=settings)
+
         avg_dims = tuple([self.loader_summary[name]["axis"] for name in avg_names])
-        n_avgs = np.prod([len(self.loader_summary[name]["vals"]) for name in avg_names])
-        for problem in self.loader_summary["problem"]["vals"]:
-            for d in self.loader_summary["d"]["vals"]:
-                fig = plt.figure()
-                for i_m, metric in enumerate(self.loader_summary["metric"]["vals"]):
-                    ax = plt.subplot(
-                        len(self.loader_summary["metric"]["vals"]), 1, i_m + 1
-                    )
-                    for i_s, surrogate in enumerate(
-                        self.loader_summary["surrogate"]["vals"]
-                    ):
-                        if (
-                            len(only_surrogates) > 0
-                            and surrogate not in only_surrogates
-                        ):
-                            continue
+        sem_multi = 1.96 / np.sqrt(10 * 5 * 9)
+        epochs = self.loader_summary["epoch"]["vals"]
+        surrogates = self.loader_summary["surrogate"]["vals"]
 
-                        data = self.extract(
-                            settings={
-                                "problem": problem,
-                                "d": d,
-                                "surrogate": surrogate,
-                                "metric": metric,
-                                "bo": True,
-                            }
-                        ).squeeze()
-                        if (np.sum(np.isnan(data)) / data.size) > 0.5:
-                            continue
-                        if len(avg_names) > 0:
-                            means = np.nanmean(data, axis=avg_dims)[:, np.newaxis].T
-                            stds = np.nanstd(data, axis=avg_dims)[:, np.newaxis].T
-                        else:
-                            means = data
-                            stds = np.zeros(means.shape)
-
-                        for i_mean, mean in enumerate(means):
-                            if i_mean == 0:
-                                plt.plot(
-                                    epochs,
-                                    mean,
-                                    color=ps[surrogate]["c"],
-                                    marker=ps[surrogate]["m"],
-                                    label=f"${surrogate}$",
-                                )
-                            else:
-                                plt.plot(
-                                    epochs,
-                                    mean,
-                                    color=ps[surrogate]["c"],
-                                    marker=ps[surrogate]["m"],
-                                )
-                            plt.fill_between(
-                                epochs,
-                                mean + 1 * stds[i_mean, :] / np.sqrt(n_avgs),
-                                mean - 1 * stds[i_mean, :] / np.sqrt(n_avgs),
-                                color=ps[surrogate]["c"],
-                                alpha=0.1,
-                            )
-
-                    if (np.sum(np.isnan(data)) / data.size) > 0.5:
-                        continue
-                    if i_m < len(self.loader_summary["metric"]["vals"]) - 1:
-                        ax.set_xticklabels([])
-                    plt.ylabel(self.metric_dict[metric][-1])
-                    if len(self.metric_dict[metric][-2]) == 2:
-                        plt.ylim(
-                            [
-                                self.metric_dict[metric][-2][0],
-                                self.metric_dict[metric][-2][1],
-                            ]
-                        )
-                    plt.xlim([epochs[0] - 0.1, epochs[-1] + 0.1])
-                if (np.sum(np.isnan(data)) / data.size) > 0.5:
-                    plt.close()
-                    continue
-                handles, labels = ax.get_legend_handles_labels()
-                fig.legend(
-                    handles,
-                    labels,
-                    loc="upper center",
-                    ncol=len(self.loader_summary["surrogate"]["vals"]),
+        fig = plt.figure()
+        for i_m, metric in enumerate(metrics):
+            ax = plt.subplot(len(metrics), 1, i_m + 1)
+            for surrogate in surrogates:
+                data_ = self.extract(
+                    data, settings={"surrogate": surrogate, "metric": metric}
                 )
-                plt.xlabel("Epochs")
-                plt.tight_layout()
-                fig.savefig(
-                    f"{self.savepth_figs}metrics-vs-epochs---{problem}({d}).pdf"
+                means = np.nanmean(data_, axis=avg_dims).squeeze()
+                stds = np.nanstd(data_, axis=avg_dims).squeeze()
+                plt.plot(
+                    epochs,
+                    means,
+                    color=ps[surrogate]["c"],
+                    marker=ps[surrogate]["m"],
+                    label=f"${surrogate}$",
                 )
-                plt.close()
+                plt.fill_between(
+                    epochs,
+                    means + stds * sem_multi,
+                    means - stds * sem_multi,
+                    color=ps[surrogate]["c"],
+                    alpha=0.1,
+                )
+
+            if i_m < len(metrics) - 1:
+                ax.set_xticklabels([])
+            plt.title(self.metric_dict[metric][-1])
+            plt.xlim([epochs[0] - 0.1, epochs[-1] + 0.1])
+            plt.ylim([1 + 0.1, len(surrogates) + 0.1])
+            if metric not in ["regret", "true_regret", "x_opt_distance"]:
+                plt.ylim([1 + 0.1, len(surrogates) - 1 + 0.1])
+            plt.yticks(range(1, 1 + len(surrogates)))
+
+        handles, labels = ax.get_legend_handles_labels()
+        fig.legend(
+            handles,
+            labels,
+            loc=(0.1, -0.01),
+            ncol=len(surrogates),
+            fancybox=True,
+            shadow=True,
+        )
+        plt.xlabel("Iterations")
+        plt.tight_layout()
+        plt.show()
+        fig.savefig(
+            f"{self.savepth_figs}metrics-vs-epochs---{settings}---{save_str}.pdf"
+        )
+        plt.close()
 
     def bo_2d_contour(self, n_epochs: int = 10, seed: int = 1):
         for i_e, experiment in enumerate(p for p in self.loadpths):
