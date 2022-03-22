@@ -29,7 +29,15 @@ class ResultsTest(unittest.TestCase):
 
     def test_plot_metrics_vs_epochs(self) -> None:
         loadpths = get_loadpths(os.getcwd() + "/results/")
-        Figures(loadpths).metrics_vs_epochs()
+        figures = Figures(loadpths)
+
+        figures.metrics_vs_epochs(
+            metrics=["y_calibration_mse", "true_regret"], save_str="C-R",
+        )
+
+        figures.metrics_vs_epochs(
+            metrics=["y_calibration_mse", "mahalanobis_dist"], save_str="C-M",
+        )
 
     def test_plot_bo_2d_contour(self) -> None:
         loadpths = get_loadpths(os.getcwd() + "/results/")
@@ -63,11 +71,11 @@ class ResultsTest(unittest.TestCase):
         loadpths = get_loadpths(os.getcwd() + "/results/")
         ranking = Ranking(loadpths, update_data=False)
 
-        ranking.rank_metrics_vs_epochs(
+        ranking.rank_vs_epochs(
             metrics=["y_calibration_mse", "true_regret"], save_str="C-R",
         )
 
-        ranking.rank_metrics_vs_epochs(
+        ranking.rank_vs_epochs(
             metrics=["y_calibration_mse", "mahalanobis_dist"], save_str="C-M",
         )
 
