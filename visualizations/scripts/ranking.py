@@ -174,10 +174,10 @@ class Ranking(Loader):
         if save:
             self.save_to_tex(table, name="ranking-with-bo")
 
-    def rank_metrics_vs_epochs(
+    def rank_vs_epochs(
         self,
         avg_names: list[str] = ["seed", "problem", "d", "acquisition"],
-        settings: Dict = {"bo": True, "change_std": True},
+        settings: Dict = {"bo": True, "change_std": False},
         metrics: list[str] = [
             # "nmse",
             # "elpd",
@@ -248,7 +248,7 @@ class Ranking(Loader):
         plt.tight_layout()
         plt.show()
         fig.savefig(
-            f"{self.savepth_figs}ranking-metrics-vs-epochs---{settings}---{save_str}.pdf"
+            f"{self.savepth_figs}ranking-vs-epochs---{settings}---{save_str}.pdf"
         )
         plt.close()
 
