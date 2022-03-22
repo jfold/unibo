@@ -27,23 +27,17 @@ class ResultsTest(unittest.TestCase):
             % (time.time() - start_time)
         )
 
-    def test_metrics_vs_epochs(self) -> None:
+    def test_plot_metrics_vs_epochs(self) -> None:
         loadpths = get_loadpths(os.getcwd() + "/results/")
         Figures(loadpths).metrics_vs_epochs()
 
-    def test_plots_bo_2d_contour(self) -> None:
+    def test_plot_bo_2d_contour(self) -> None:
         loadpths = get_loadpths(os.getcwd() + "/results/")
         figures = Figures(loadpths)
         for seed in range(1, 11):
             figures.bo_2d_contour(n_epochs=50, seed=seed)
 
-    def test_bo_regret_vs_no_bo_calibration(self) -> None:
-        loadpths = get_loadpths(os.getcwd() + "/results/")
-        figures = Figures(loadpths)
-        figures.bo_regret_vs_no_bo_calibration(epoch=50, avg_names=[])
-        figures.bo_regret_vs_no_bo_calibration(epoch=50, avg_names=["seed"])
-
-    def test_correlation_table(self) -> None:
+    def test_table_correlation(self) -> None:
         loadpths = get_loadpths(os.getcwd() + "/results/")
         ranking = Tables(loadpths, update_data=False)
         ranking.correlation_table()
@@ -62,23 +56,22 @@ class ResultsTest(unittest.TestCase):
         # start_time = time.time()
         loadpths = get_loadpths(os.getcwd() + "/results/")
         ranking = Ranking(loadpths, update_data=False)
-        ranking.calc_surrogate_ranks(self, with_bo=True, save=True)
-        ranking.calc_surrogate_ranks(self, with_bo=False, save=True)
+        ranking.calc_surrogate_ranks(with_bo=True, save=True)
+        ranking.calc_surrogate_ranks(with_bo=False, save=True)
 
-    def test_rank_vs_epochs(self) -> None:
-        # start_time = time.time()
+    def test_plot_rank_vs_epochs(self) -> None:
         loadpths = get_loadpths(os.getcwd() + "/results/")
         ranking = Ranking(loadpths, update_data=False)
+
         ranking.rank_metrics_vs_epochs(
-            settings={"bo": True, "change_std": False},
-            metrics=["y_calibration_mse", "true_regret"],
-        )
-        ranking.rank_metrics_vs_epochs(
-            settings={"bo": True, "change_std": True},
-            metrics=["y_calibration_mse", "true_regret"],
+            metrics=["y_calibration_mse", "true_regret"], save_str="C-R",
         )
 
-    def test_exp_improv_vs_act_improv(self) -> None:
+        ranking.rank_metrics_vs_epochs(
+            metrics=["y_calibration_mse", "mahalanobis_dist"], save_str="C-M",
+        )
+
+    def test_plot_exp_improv_vs_act_improv(self) -> None:
         loadpths = get_loadpths(os.getcwd() + "/results/")
         figures = Figures(loadpths, update_data=False)
         figures.exp_improv_vs_act_improv()
