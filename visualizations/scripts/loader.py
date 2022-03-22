@@ -119,9 +119,6 @@ class Loader(object):
                         lst.append(parameters[k])
                         self.data_summary.update({k: lst})
 
-                # if i_e > 20: # for debugging
-                #     break
-
     def init_data_object(self):
         self.values = []
         self.dims = []

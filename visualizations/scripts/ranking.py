@@ -58,7 +58,7 @@ class Ranking(Loader):
 
         add_str = "with" if with_bo else "no"
 
-        self.rankings_ = np.full(self.data.shape, np.nan)
+        self.rankings = np.full(self.data.shape, np.nan)
         for metric in self.loader_summary["metric"]["vals"]:
             settings.update({"metric": metric})
             data = self.extract(settings=settings)
@@ -66,8 +66,9 @@ class Ranking(Loader):
             ranking, idx = self.rank(
                 data, settings, rank_axis, self.metric_dict[metric][1]
             )
-            self.rankings_[idx] = ranking
+            self.rankings[idx] = ranking
 
+        print("missing:", np.sum(np.isnan(self.rankings)) / self.rankings.size)
         # raise ValueError()
         # for problem in self.loader_summary["problem"]["vals"]:
         #     for dim in self.loader_summary["d"]["vals"]:
@@ -97,10 +98,13 @@ class Ranking(Loader):
         #                 #     print(ranking.squeeze()[:, :2])
         #                 # raise ValueError()
 
-        print(f"Ranking took: --- %s seconds ---" % (time.time() - start_time))
         if save:
             with open(f"{os.getcwd()}/results/rankings-{add_str}-bo.npy", "wb") as f:
                 np.save(f, self.rankings)
+        print(
+            f"Ranking {add_str} BO took: --- %s seconds ---"
+            % (time.time() - start_time)
+        )
         return self.rankings
 
     def table_ranking_no_bo(self, save: bool = True, update: bool = True) -> None:
@@ -137,11 +141,7 @@ class Ranking(Loader):
             self.save_to_tex(table, name="ranking-no-bo")
 
     def table_ranking_with_bo(self, save: bool = True, update: bool = True) -> None:
-        rankings = (
-            self.calc_surrogate_ranks(with_bo=True, save=save)
-            if update
-            else np.load(os.getcwd() + "/results/rankings-with-bo.npy")
-        )
+        rankings = np.load(os.getcwd() + "/results/rankings-with-bo.npy")
         metrics = [
             "nmse",
             "elpd",
@@ -164,8 +164,11 @@ class Ranking(Loader):
                 }
                 data = self.extract(rankings, settings=settings)
                 sem_div = 1.96 / np.sqrt(np.sum(np.isfinite(data)))
-                table[metric][surrogate] = "${:.2f} \pm {:.2f}$".format(
-                    np.nanmean(data), np.nanstd(data) * sem_div
+                table[metric][surrogate] = (
+                    "${:.2f} \pm {:.2E}".format(
+                        np.nanmean(data), np.nanstd(data) * sem_div
+                    ).replace("E", "\cdot 10^{")
+                    + "}$"
                 )
         table = table.rename(columns={x: self.metric_dict[x][-1] for x in metrics})
         if save:
@@ -175,7 +178,6 @@ class Ranking(Loader):
         self,
         avg_names: list[str] = ["seed", "problem", "d", "acquisition"],
         settings: Dict = {"bo": True, "change_std": True},
-        update: bool = True,
         metrics: list[str] = [
             # "nmse",
             # "elpd",
@@ -186,14 +188,11 @@ class Ranking(Loader):
             "x_opt_mean_dist",
             "mahalanobis_dist",
         ],
+        save_str: str = "",
     ):
         matplotlib.rcParams["font.size"] = 18
         matplotlib.rcParams["figure.figsize"] = (12, 7)  # (10, 16)
-        rankings = (
-            self.calc_surrogate_ranks(with_bo=True, save=True)
-            if update
-            else np.load(os.getcwd() + "/results/rankings-with-bo.npy")
-        )
+        rankings = np.load(os.getcwd() + "/results/rankings-with-bo.npy")
         rankings = self.extract(rankings, settings=settings)
 
         avg_dims = tuple([self.loader_summary[name]["axis"] for name in avg_names])
@@ -208,8 +207,8 @@ class Ranking(Loader):
                 rankings_ = self.extract(
                     rankings, settings={"surrogate": surrogate, "metric": metric}
                 )
-                means = np.nanmean(rankings_, axis=avg_dims, keepdims=True).squeeze()
-                stds = np.nanstd(rankings_, axis=avg_dims, keepdims=True).squeeze()
+                means = np.nanmean(rankings_, axis=avg_dims).squeeze()
+                stds = np.nanstd(rankings_, axis=avg_dims).squeeze()
                 plt.plot(
                     epochs,
                     means,
@@ -248,7 +247,9 @@ class Ranking(Loader):
         plt.xlabel("Iterations")
         plt.tight_layout()
         plt.show()
-        fig.savefig(f"{self.savepth_figs}ranking-metrics-vs-epochs---{settings}.pdf")
+        fig.savefig(
+            f"{self.savepth_figs}ranking-metrics-vs-epochs---{settings}---{save_str}.pdf"
+        )
         plt.close()
 
     def shuffle_argsort(self, array: np.ndarray, axis: int = None) -> np.ndarray:

@@ -152,7 +152,7 @@ class Tables(Loader):
         surrogates = [
             x for x in self.loader_summary["surrogate"]["vals"] if not x == "RS"
         ]
-        rows = ["Metric", "Metric rank"]
+        rows = ["Metric", "Rank"]
         table = pd.DataFrame(columns=surrogates, index=rows)
         ranking_dir = "metric"
         ranking_vals = ["regret", "y_calibration_mse"]
@@ -178,12 +178,14 @@ class Tables(Loader):
     ) -> Dict[float, float]:
         if "bo" not in settings.keys():
             settings.update({"bo": True})
+            add_str = "with"
+        else:
+            add_str = "with" if settings["bo"] else "no"
         if ranking_dir == "" or ranking_vals == []:
             ranking_dir = "metric"
             ranking_vals = ["regret", "y_calibration_mse"]
         assert len(ranking_vals) == 2
-
-        rankings = np.load(os.getcwd() + "/results/rankings.npy")
+        rankings = np.load(f"{os.getcwd()}/results/rankings-{add_str}-bo.npy")
 
         settings.update({ranking_dir: ranking_vals[0]})
         x = self.extract(rankings, settings=settings).flatten().squeeze()
