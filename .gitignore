@@ -151,4 +151,3 @@ dmypy.json
 rankings.npy
 pytest.ini
 visualizations/scripts/ranking.py
-metrics.pkl
