@@ -58,11 +58,25 @@ class ResultsTest(unittest.TestCase):
         ranking = Ranking(loadpths, update_data=False)
         ranking.table_ranking_with_bo()
 
+    def test_calculate_rank(self) -> None:
+        # start_time = time.time()
+        loadpths = get_loadpths(os.getcwd() + "/results/")
+        ranking = Ranking(loadpths, update_data=False)
+        ranking.calc_surrogate_ranks(self, with_bo=True, save=True)
+        ranking.calc_surrogate_ranks(self, with_bo=False, save=True)
+
     def test_rank_vs_epochs(self) -> None:
         # start_time = time.time()
         loadpths = get_loadpths(os.getcwd() + "/results/")
         ranking = Ranking(loadpths, update_data=False)
-        ranking.rank_metrics_vs_epochs()
+        ranking.rank_metrics_vs_epochs(
+            settings={"bo": True, "change_std": False},
+            metrics=["y_calibration_mse", "true_regret"],
+        )
+        ranking.rank_metrics_vs_epochs(
+            settings={"bo": True, "change_std": True},
+            metrics=["y_calibration_mse", "true_regret"],
+        )
 
     def test_exp_improv_vs_act_improv(self) -> None:
         loadpths = get_loadpths(os.getcwd() + "/results/")
