@@ -168,10 +168,13 @@ class ModelsTest(unittest.TestCase):
             self.dataset.save()
 
     def test_GaussianProcess(self) -> None:
-        kwargs.update({"surrogate": "GP"})
+        kwargs.update({"surrogate": "GP", "snr": 5, "n_initial": 100})
         parameters = Parameters(kwargs, mkdir=True)
         dataset = Dataset(parameters)
         model = GaussianProcess(parameters, dataset)
+        print(dataset.data.noise_var)
+        print(model.model.likelihood.noise.cpu().detach().numpy().squeeze())
+        print(model.model.covar_module.lengthscale.cpu().detach().numpy().squeeze())
         X_test, y_test = dataset.sample_testset(
             n_samples=parameters.n_evals + parameters.n_evals
         )

@@ -1,3 +1,4 @@
+from acquisitions.fully_bayes import FullyBayes
 from acquisitions.random_search import RandomSearch
 from src.dataset import Dataset
 from src.parameters import *
@@ -65,6 +66,13 @@ class Optimizer(object):
             self.acquisition_function = RandomSearch()
         else:
             raise ValueError(f"Acquisition function {self.acquisition} not supported.")
+
+        if self.fully_bayes:
+            self.acquisition_function = FullyBayes(
+                self.surrogate_model,
+                self.acquisition_function,
+                y_opt_tensor=y_opt_tensor,
+            )
 
     def bo_iter(self, dataset: Dataset) -> Dict[np.ndarray, np.ndarray]:
         assert self.is_fitted

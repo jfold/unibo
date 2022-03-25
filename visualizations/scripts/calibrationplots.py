@@ -13,8 +13,8 @@ class CalibrationPlots(object):
         self.__dict__.update(asdict(parameters))
         self.color = ps[parameters.surrogate]["c"]
         self.marker = ps[parameters.surrogate]["m"]
-        self.loader = Loader()
-        self.loader.load_metric_dict()
+        # self.loader = Loader()
+        # self.loader.load_metric_dict()
 
     def plot_xy(self, dataset: Dataset):
         assert self.d == 1

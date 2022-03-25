@@ -8,6 +8,8 @@ from sklearn.model_selection import train_test_split
 from sklearn.feature_selection import mutual_info_regression
 from sklearn.neighbors import NearestNeighbors as KNNsklearn
 from sklearn.linear_model import LinearRegression
+from sklearn.gaussian_process import GaussianProcessRegressor
+from sklearn.gaussian_process.kernels import RBF, ConstantKernel, Matern, WhiteKernel
 from scipy.stats.stats import energy_distance
 from scipy.spatial.distance import mahalanobis, cdist
 import torch

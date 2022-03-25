@@ -49,16 +49,8 @@ class Calibration(object):
             )
 
     def check_f_calibration(
-        self,
-        mus: np.ndarray,
-        sigmas: np.ndarray,
-        f: np.ndarray,
-        name: str,
-        n_bins: int = 50,
+        self, mus: np.ndarray, sigmas: np.ndarray, f: np.ndarray, n_bins: int = 50,
     ) -> None:
-        """# NOT USED. Calculates the calibration of underlying mean (f), hence without noise.
-
-        """
         p_array = np.linspace(0.01, 0.99, n_bins)
         calibrations = np.full((n_bins,), np.nan)
         for i_p, p in enumerate(p_array):
@@ -85,7 +77,7 @@ class Calibration(object):
         return_mse: bool = False,
     ) -> None:
         """Calculates the calibration of the target (y).
-        # eq. (3) in "Accurate Uncertainties for Deep Learning Using Calibrated Regression"
+        ### eq. (3) in "Accurate Uncertainties for Deep Learning Using Calibrated Regression"
         """
         p_array = np.linspace(0, 1, n_bins)
         calibrations = np.full((n_bins,), np.nan)
