@@ -108,11 +108,7 @@ class Ranking(Loader):
         return self.rankings
 
     def table_ranking_no_bo(self, save: bool = True, update: bool = True) -> None:
-        rankings = (
-            self.calc_surrogate_ranks(with_bo=False, save=save)
-            if update
-            else np.load(os.getcwd() + "/results/rankings-no-bo.npy")
-        )
+        rankings = np.load(os.getcwd() + "/results/rankings-no-bo.npy")
         metrics = [
             "nmse",
             "elpd",
