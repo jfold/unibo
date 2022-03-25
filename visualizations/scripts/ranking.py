@@ -129,8 +129,11 @@ class Ranking(Loader):
                 }
                 data = self.extract(rankings, settings=settings)
                 sem_div = 1.96 / np.sqrt(np.sum(np.isfinite(data)))
-                table[metric][surrogate] = "${:.2f} \pm {:.2f}$".format(
-                    np.nanmean(data), np.nanstd(data) * sem_div
+                table[metric][surrogate] = (
+                    "${:.2f} \pm {:.2E}".format(
+                        np.nanmean(data), np.nanstd(data) * sem_div
+                    ).replace("E", "\cdot 10^{")
+                    + "}$"
                 )
         table = table.rename(columns={x: self.metric_dict[x][-1] for x in metrics})
         if save:
@@ -304,3 +307,28 @@ class Ranking(Loader):
                     ",", "-"
                 )
             )
+
+    def TRIAL_RANKING_no_bo(self, save: bool = True, update: bool = True) -> None:
+        rankings = np.load(os.getcwd() + "/results/rankings-no-bo.npy")
+        print(self.loader_summary["surrogate"]["vals"])
+        for d in range(2, 3):
+            settings = {
+                "metric": "y_calibration_mse",
+                "problem": "BartelsConn",
+                "bo": False,
+                "epoch": 90,
+                "d": d,
+                "change_std": False,
+                "acquisition": "EI",
+            }
+            ranking = self.extract(rankings, settings=settings)
+            data = self.extract(settings=settings)
+            mean_ranking = np.nanmean(
+                ranking,
+                axis=(
+                    self.loader_summary["seed"]["axis"],
+                    self.loader_summary["problem"]["axis"],
+                ),
+            ).squeeze()
+            print(mean_ranking)
+            print(data.squeeze())
