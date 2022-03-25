@@ -55,6 +55,11 @@ class ResultsTest(unittest.TestCase):
         ranking = Ranking(loadpths, update_data=False)
         ranking.table_ranking_no_bo()
 
+    def test_TRAIL_no_bo(self) -> None:
+        loadpths = get_loadpths(os.getcwd() + "/results/")
+        ranking = Ranking(loadpths, update_data=False)
+        ranking.TRIAL_RANKING_no_bo()  # SumPowers (10)
+
     def test_table_ranking_with_bo(self) -> None:
         loadpths = get_loadpths(os.getcwd() + "/results/")
         ranking = Ranking(loadpths, update_data=False)
