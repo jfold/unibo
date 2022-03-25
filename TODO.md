@@ -19,3 +19,13 @@ MÅSKE
 - gem også middelværdi for surrogaten i X[opt_idx]
 - regn self.noise_var på stort sæt, plot sqrt(self.noise_var) sammen med regret # done
 - Gem runtime for at se hastighed
+
+Perfekt kalibrering:
+
+- Når sigma_n^2 er tæt på den sande OG posterior-variansens konfidensintervaller indeholder den underliggende f (ikke y!)
+- Målingen lige nu er, om den prædiktive varians (posterior varians + sigma_n^2) indeholder y (testpunkterne)
+- Har man real-world domæner, hvor man enten kan
+  1. estimere sigma_n^2 og dermed f (fx mange samples for samme hyperparams.)
+  2. har info omkring hvad f bør være
+  3. ved at sigma_n^2 er lav
+  4. ved at sigma_n^2 er høj: balancer/lær sharpness/calibration
