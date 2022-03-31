@@ -4,26 +4,32 @@ from imports.general import *
 from datasets.verifications.verification import VerificationData
 from datasets.benchmarks.benchmark import Benchmark
 from datasets.GP.gp import GPSampler
+from datasets.custom.custom import CustomData
 
 
 class Dataset(object):
-    def __init__(self, parameters: Parameters) -> None:
+    def __init__(self, parameters: Parameters, dataset: Dict = {}) -> None:
         self.__dict__.update(asdict(parameters))
-        module = importlib.import_module(parameters.data_location)
-        data_class = getattr(module, parameters.data_class)
-        self.data = data_class(parameters)
-        self.summary = {
-            "problem": self.problem,
-            "signal_var": self.data.signal_var,
-            "noise_var": self.data.noise_var,
-            "d": int(self.d),
-            "x_lbs": self.data.lbs,
-            "x_ubs": self.data.ubs,
-            "problem_min_problem": self.data.problem.min_loc,
-            "problem_min": float(self.data.problem.fmin),
-            "problem_max": float(self.data.problem.fmax),
-            "normalized_min": float(self.data.f_min),
-        }
+        if len(dataset) == 0:
+            module = importlib.import_module(parameters.data_location)
+            data_class = getattr(module, parameters.data_class)
+            self.data = data_class(parameters)
+            self.summary = {
+                "problem": self.problem,
+                "signal_var": self.data.signal_var,
+                "noise_var": self.data.noise_var,
+                "d": int(self.d),
+                "x_lbs": self.data.lbs,
+                "x_ubs": self.data.ubs,
+                "problem_min_problem": self.data.problem.min_loc,
+                "problem_min": float(self.data.problem.fmin),
+                "problem_max": float(self.data.problem.fmax),
+                "normalized_min": float(self.data.f_min),
+            }
+        else:
+            self.data = CustomData(dataset)
+            self.summary = {}
+
         self.actual_improvement = None
         self.expected_improvement = None
         self.update_solution()
