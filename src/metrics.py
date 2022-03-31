@@ -8,14 +8,14 @@ from src.parameters import Parameters
 from src.dataset import Dataset
 
 
-class Calibration(object):
-    """Calibration experiment class """
+class Metrics(object):
+    """Metric class """
 
     def __init__(self, parameters: Parameters) -> None:
         self.__dict__.update(asdict(parameters))
         self.summary = {}
 
-    def check_gaussian_sharpness(
+    def sharpness_gaussian(
         self, mus: np.ndarray, sigmas: np.ndarray, name: str = ""
     ) -> None:
         """Calculates the sharpness (negative entropy) of the gaussian distributions 
@@ -31,7 +31,7 @@ class Calibration(object):
         # if self.plot_it and self.save_it:
         #     self.plot_sharpness_histogram(name=name)
 
-    def check_histogram_sharpness(
+    def sharpness_histogram(
         self, model: Model, X: np.ndarray, n_bins: int = 50
     ) -> None:
         """Calculates the sharpness (negative entropy) of the histogram distributions 
@@ -48,7 +48,7 @@ class Calibration(object):
                 }
             )
 
-    def check_f_calibration(
+    def calibration_f(
         self, mus: np.ndarray, sigmas: np.ndarray, f: np.ndarray, n_bins: int = 50,
     ) -> None:
         p_array = np.linspace(0.01, 0.99, n_bins)
@@ -68,7 +68,7 @@ class Calibration(object):
             }
         )
 
-    def calibration_global(
+    def calibration_y(
         self,
         mus: np.ndarray,
         sigmas: np.ndarray,
@@ -100,7 +100,7 @@ class Calibration(object):
                 }
             )
 
-    def calibration_local(
+    def calibration_y_local(
         self,
         dataset: Dataset,
         mus: np.ndarray,
@@ -127,7 +127,7 @@ class Calibration(object):
         for i in range(len(bins) - 1):
             cond = np.logical_and(bins[i] <= pair_dists, pair_dists <= bins[i + 1])
             mus_, sigmas_, y_ = mus[cond], sigmas[cond], y[cond]
-            calibrations_intervals[i] = self.calibration_global(
+            calibrations_intervals[i] = self.calibration_y(
                 mus_, sigmas_, y_, return_mse=True
             )
             calibrations[i] = np.inner(
@@ -145,7 +145,7 @@ class Calibration(object):
             {
                 "calibration_local_dists_to_nearest_train_sample": bins[1:],
                 "calibration_local_intervals": calibrations_intervals,
-                "calibration_local": calibrations,
+                "calibration_y_local": calibrations,
             }
         )
 
@@ -212,9 +212,9 @@ class Calibration(object):
             self.ne_true = dataset.data.ne_true
             self.y_max = dataset.data.y_max
             mu_test, sigma_test = surrogate.predict(X_test)
-            self.calibration_global(mu_test, sigma_test, y_test)
-            self.calibration_local(dataset, mu_test, sigma_test, X_test, y_test)
-            self.check_gaussian_sharpness(mu_test, sigma_test, name)
+            self.calibration_y(mu_test, sigma_test, y_test)
+            self.calibration_y_local(dataset, mu_test, sigma_test, X_test, y_test)
+            self.sharpness_gaussian(mu_test, sigma_test, name)
             self.expected_log_predictive_density(
                 mu_test, sigma_test, y_test,
             )
