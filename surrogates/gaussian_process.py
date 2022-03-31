@@ -2,12 +2,13 @@ from dataclasses import asdict
 import botorch
 from botorch.models import SingleTaskGP
 from gpytorch.mlls import ExactMarginalLogLikelihood
+from gpytorch.likelihoods import *
 from src.dataset import Dataset
 from src.parameters import Parameters
 from imports.general import *
 from imports.ml import *
 from botorch.models.utils import validate_input_scaling
-from gpytorch.kernels.rbf_kernel import RBFKernel
+from gpytorch.kernels import *
 
 
 class GaussianProcess(object):
@@ -15,12 +16,13 @@ class GaussianProcess(object):
 
     def __init__(self, parameters: Parameters, dataset: Dataset, name: str = "GP"):
         self.name = name
+        self.gp_kernel = parameters.gp_kernel
         self.change_std = parameters.change_std
         self.std_change = parameters.std_change
         self.model = botorch.models.SingleTaskGP(
             torch.tensor(dataset.data.X),
             torch.tensor(dataset.data.y),
-            covar_module=RBFKernel(),
+            covar_module=getattr(sys.modules[__name__], self.gp_kernel)(),
         )
         self.likelihood = ExactMarginalLogLikelihood(self.model.likelihood, self.model)
         botorch.fit.fit_gpytorch_model(self.likelihood)

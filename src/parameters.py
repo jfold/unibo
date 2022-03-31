@@ -26,8 +26,10 @@ class Parameters:
     std_change: float = 2.0  # how to manipulate predictive std
     snr: float = 1000.0
     noisify: bool = True
+    test: bool = False
     K: int = 1  # number of terms in sum for VerificationData
     surrogate: str = "RF"  # surrogate function name
+    gp_kernel: str = "RBFKernel"  # surrogate function name
     acquisition: str = "EI"  # acquisition function name
     savepth: str = os.getcwd() + "/results/"
     experiment: str = ""  # folder name
@@ -43,12 +45,17 @@ class Parameters:
 
         if mkdir and not os.path.isdir(self.savepth):
             os.mkdir(self.savepth)
-        folder_name = (
-            # datetime.now().strftime("%d%m%y-%H%M%S") +
-            f"({self.d}){self.problem}_{self.surrogate}_{self.acquisition}_seed-{self.seed}"
-        )
-        folder_name = folder_name + "_BO" if self.bo else folder_name
-        folder_name = folder_name + "_std_change" if self.change_std else folder_name
+        if self.test:
+            folder_name = "test"
+        else:
+            folder_name = (
+                # datetime.now().strftime("%d%m%y-%H%M%S") +
+                f"({self.d}){self.problem}_{self.surrogate}_{self.acquisition}_seed-{self.seed}"
+            )
+            folder_name = folder_name + "_BO" if self.bo else folder_name
+            folder_name = (
+                folder_name + "_std_change" if self.change_std else folder_name
+            )
         setattr(
             self, "experiment", folder_name,
         )
