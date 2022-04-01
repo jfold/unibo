@@ -28,7 +28,7 @@ class Dataset(object):
             }
         else:
             self.data = CustomData(parameters)
-            self.summary = {}
+            self.summary = self.data.__dict__
 
         self.actual_improvement = None
         self.expected_improvement = None
