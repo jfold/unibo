@@ -51,7 +51,7 @@ class Parameters:
         else:
             folder_name = (
                 # datetime.now().strftime("%d%m%y-%H%M%S") +
-                f"{self.experiment}({self.d}){self.problem}_{self.surrogate}_{self.acquisition}_seed-{self.seed}"
+                f"{self.experiment}{self.problem}({self.d})_{self.surrogate}_{self.acquisition}_seed-{self.seed}"
             )
             folder_name = folder_name + "_BO" if self.bo else folder_name
             folder_name = (
