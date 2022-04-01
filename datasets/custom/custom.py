@@ -16,12 +16,15 @@ class CustomData(object):
             self.f_test = dataset["f_test"]
             self.f_min = np.min(self.f_test)
             self.f_max = np.max(self.f_test)
-
+        self.min_loc = self.X_test[[np.argmin(self.y_test)], :]
         self.y_min = np.min(self.y_test)
         self.y_max = np.max(self.y_test)
 
     def sample_X(self, n_samples):
         return self.X_test
 
-    def get_y(self, X):
-        return self.y_test
+    def get_y(self, x_idx, parse_idx: bool = False):
+        if parse_idx:
+            return self.y_test[[x_idx], :]
+        else:
+            return self.y_test

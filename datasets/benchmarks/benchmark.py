@@ -38,7 +38,7 @@ class Benchmark(object):
             self.f_min = self.problem.fmin / self.y_max
             self.lbs = [b[0] for b in self.problem.bounds]
             self.ubs = [b[1] for b in self.problem.bounds]
-
+            self.min_loc = self.problem.min_loc
             self.signal_var = self.get_signal_var()
             self.noise_var = self.signal_var / self.snr
             self.X = self.sample_X(parameters.n_initial)

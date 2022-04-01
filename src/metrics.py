@@ -189,7 +189,7 @@ class Metrics(object):
         self.summary.update({"regret": np.sum(regret)})
 
     def glob_min_dist(self, dataset: Dataset) -> None:
-        squared_error = (dataset.X_opt - np.array(dataset.data.problem.min_loc)) ** 2
+        squared_error = (dataset.X_opt - np.array(dataset.data.min_loc)) ** 2
         self.summary.update({"x_opt_dist": np.sum(squared_error)})
         self.summary.update({"x_opt_mean_dist": np.mean(squared_error)})
 
@@ -223,12 +223,6 @@ class Metrics(object):
                 mu_test.squeeze(), sigma_test.squeeze(), y_test.squeeze(), verbose=False
             )
             self.improvement(dataset)
-            # if self.plot_it and self.save_it:
-            #     if self.d == 1:
-            #         self.plot_predictive(
-            #             dataset, X_test, y_test, mu_test, sigma_test, name=name
-            #         )
-            #     self.plot_y_calibration(name=name)
 
         self.regret(dataset)
         self.glob_min_dist(dataset)
