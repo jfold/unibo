@@ -46,7 +46,7 @@ class Parameters:
         if mkdir and not os.path.isdir(self.savepth):
             os.mkdir(self.savepth)
         if self.test:
-            folder_name = "test"
+            folder_name = f"test{self.experiment}"
         else:
             folder_name = (
                 # datetime.now().strftime("%d%m%y-%H%M%S") +
@@ -56,10 +56,7 @@ class Parameters:
             folder_name = (
                 folder_name + "_std_change" if self.change_std else folder_name
             )
-        setattr(
-            self, "experiment", folder_name,
-        )
-        setattr(self, "savepth", self.savepth + self.experiment + "/")
+        setattr(self, "savepth", self.savepth + folder_name + "/")
         if mkdir and not os.path.isdir(self.savepth):
             os.mkdir(self.savepth)
             self.save()

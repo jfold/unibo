@@ -25,7 +25,14 @@ Perfekt kalibrering:
 - Når sigma_n^2 er tæt på den sande OG posterior-variansens konfidensintervaller indeholder den underliggende f (ikke y!)
 - Målingen lige nu er, om den prædiktive varians (posterior varians + sigma_n^2) indeholder y (testpunkterne)
 - Har man real-world domæner, hvor man enten kan
+
   1. estimere sigma_n^2 og dermed f (fx mange samples for samme hyperparams.)
   2. har info omkring hvad f bør være
   3. ved at sigma_n^2 er lav
   4. ved at sigma_n^2 er høj: balancer/lær sharpness/calibration
+
+- Hav to GP'er med hver sin kernel
+- Sample fra den ene + støj
+- Lav BO med de to GP'er, hvor de lærer hyperparams.
+- Act. improv. (y_n+1 - y_n_so_far), (f_n+1 - f_n_so_far) vs. exp. improv.: for BO iteration
+- Kalibrering på stort test set ift. f og y
