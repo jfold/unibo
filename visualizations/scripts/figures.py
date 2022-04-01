@@ -162,8 +162,8 @@ class Figures(Loader):
                 parameters["noisify"] = False
                 parameters = Parameters(parameters)
                 module = importlib.import_module(parameters.data_location)
-                data_class = getattr(module, parameters.data_class)
-                data = data_class(parameters)
+                data_object = getattr(module, parameters.data_object)
+                data = data_object(parameters)
                 x_min_loc = data.problem.min_loc
                 x_1 = np.linspace(dataset["x_lbs"][0], dataset["x_ubs"][0], 100)
                 x_2 = np.linspace(dataset["x_lbs"][1], dataset["x_ubs"][1], 100)

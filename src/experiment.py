@@ -35,8 +35,15 @@ class Experiment(object):
 
             for e in tqdm(range(self.n_evals), leave=False):
                 save_settings = f"---epoch-{e+1}" if e < self.n_evals - 1 else ""
-                x_new, acq_val = self.optimizer.bo_iter(self.dataset)
-                self.dataset.add_X_get_y(x_new, acq_val)
+                # x_new, acq_val = self.optimizer.bo_iter(self.dataset)
+                # self.dataset.add_X_get_y(x_new, acq_val)
+                x_new, acq_val, idx = self.optimizer.bo_iter(
+                    self.dataset, X_test=self.dataset.data.X_test, return_idx=True
+                )
+                self.dataset.data.X = np.append(self.dataset.data.X, x_new, axis=0)
+                self.dataset.data.y = np.append(
+                    self.dataset.data.y, self.dataset.data.y_test[[idx], :], axis=0
+                )
                 self.optimizer.fit_surrogate(self.dataset)
                 self.metrics.analyze(
                     self.optimizer.surrogate_object,

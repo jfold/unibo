@@ -10,7 +10,7 @@ import torch
 
 kwargs = {
     "savepth": os.getcwd() + "/results/tests/",
-    "data_class": "Benchmark",
+    "data_object": "Benchmark",
     "data_location": "datasets.benchmarks.benchmark",
 }
 

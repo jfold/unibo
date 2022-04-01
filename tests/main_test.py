@@ -41,7 +41,7 @@ class MainTest(unittest.TestCase):
                                     "d": d,
                                     "bo": True,
                                     "surrogate": surrogate,
-                                    "data_class": data_name,
+                                    "data_object": data_name,
                                     "data_location": info["location"],
                                     "problem": problem,
                                 }
@@ -64,7 +64,7 @@ class MainTest(unittest.TestCase):
                                     "d": d,
                                     "bo": False,
                                     "surrogate": surrogate,
-                                    "data_class": data_name,
+                                    "data_object": data_name,
                                     "data_location": info["location"],
                                     "problem": problem,
                                 }

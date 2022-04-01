@@ -8,12 +8,12 @@ from datasets.custom.custom import CustomData
 
 
 class Dataset(object):
-    def __init__(self, parameters: Parameters, dataset: Dict = {}) -> None:
+    def __init__(self, parameters: Parameters) -> None:
         self.__dict__.update(asdict(parameters))
-        if len(dataset) == 0:
+        if "benchmarks" in parameters.data_location:
             module = importlib.import_module(parameters.data_location)
-            data_class = getattr(module, parameters.data_class)
-            self.data = data_class(parameters)
+            data_object = getattr(module, parameters.data_object)
+            self.data = data_object(parameters)
             self.summary = {
                 "problem": self.problem,
                 "signal_var": self.data.signal_var,
@@ -27,7 +27,7 @@ class Dataset(object):
                 "normalized_min": float(self.data.f_min),
             }
         else:
-            self.data = CustomData(dataset)
+            self.data = CustomData(parameters)
             self.summary = {}
 
         self.actual_improvement = None
