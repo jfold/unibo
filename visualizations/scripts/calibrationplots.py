@@ -7,7 +7,7 @@ from visualizations.scripts.loader import Loader
 
 
 class CalibrationPlots(object):
-    """Calibration experiment class """
+    """Metrics experiment class """
 
     def __init__(self, parameters: Parameters):
         self.__dict__.update(asdict(parameters))

@@ -1,6 +1,6 @@
 from dataclasses import asdict
 from imports.general import *
-from src.calibration import Calibration
+from src.metrics import Metrics
 from src.dataset import Dataset
 from src.optimizer import Optimizer
 from .parameters import Parameters
@@ -11,7 +11,7 @@ class Experiment(object):
         self.__dict__.update(asdict(parameters))
         self.dataset = Dataset(parameters)
         self.optimizer = Optimizer(parameters)
-        self.calibration = Calibration(parameters)
+        self.metrics = Metrics(parameters)
 
     def __str__(self):
         return (
@@ -20,13 +20,13 @@ class Experiment(object):
             + "\r\n"
             + self.optimizer.__str__
             + "\r\n"
-            + self.calibration.__str__
+            + self.metrics.__str__
         )
 
     def run(self) -> None:
         if self.bo:
             self.optimizer.fit_surrogate(self.dataset)
-            self.calibration.analyze(
+            self.metrics.analyze(
                 self.optimizer.surrogate_object,
                 self.dataset,
                 save_settings="---epoch-0",
@@ -38,7 +38,7 @@ class Experiment(object):
                 x_new, acq_val = self.optimizer.bo_iter(self.dataset)
                 self.dataset.add_X_get_y(x_new, acq_val)
                 self.optimizer.fit_surrogate(self.dataset)
-                self.calibration.analyze(
+                self.metrics.analyze(
                     self.optimizer.surrogate_object,
                     self.dataset,
                     save_settings=save_settings,
@@ -48,7 +48,7 @@ class Experiment(object):
             X = self.dataset.data.sample_X(self.n_evals)
             self.dataset.add_X_get_y(X)
             self.optimizer.fit_surrogate(self.dataset)
-            self.calibration.analyze(self.optimizer.surrogate_object, self.dataset)
+            self.metrics.analyze(self.optimizer.surrogate_object, self.dataset)
             self.dataset.save()
 
 
