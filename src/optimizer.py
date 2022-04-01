@@ -74,11 +74,17 @@ class Optimizer(object):
                 y_opt_tensor=y_opt_tensor,
             )
 
-    def bo_iter(self, dataset: Dataset) -> Dict[np.ndarray, np.ndarray]:
+    def bo_iter(
+        self, dataset: Dataset, X_test: np.ndarray = None, return_idx: bool = False
+    ) -> Dict[np.ndarray, np.ndarray]:
         assert self.is_fitted
         self.construct_acquisition_function(dataset)
-        X_test, _ = dataset.sample_testset(self.n_test)
+        if X_test is None:
+            X_test, _ = dataset.sample_testset(self.n_test)
         X_test_torch = torch.tensor(np.expand_dims(X_test, 1))
         acquisition_values = self.acquisition_function(X_test_torch).detach().numpy()
         i_choice = np.argmax(acquisition_values)
-        return X_test[[i_choice], :], acquisition_values[i_choice]
+        if return_idx:
+            return X_test[[i_choice], :], acquisition_values[i_choice], i_choice
+        else:
+            return X_test[[i_choice], :], acquisition_values[i_choice]

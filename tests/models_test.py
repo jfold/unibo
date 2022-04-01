@@ -7,7 +7,7 @@ from surrogates.gaussian_process import GaussianProcess
 from surrogates.random_forest import *
 from surrogates.bayesian_neural_network import BayesianNeuralNetwork
 from src.optimizer import Optimizer
-from src.calibration import Calibration
+from src.metrics import Metrics
 from src.experiment import Experiment
 from visualizations.scripts.calibrationplots import CalibrationPlots
 
