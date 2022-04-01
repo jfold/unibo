@@ -28,7 +28,11 @@ class Dataset(object):
             }
         else:
             self.data = CustomData(parameters)
-            self.summary = self.data.__dict__
+            self.summary = {
+                "X_test": self.data.X_test.tolist(),
+                "y_test": self.data.y_test.tolist(),
+                "f_test": self.data.f_test.tolist(),
+            }
 
         self.actual_improvement = None
         self.expected_improvement = None
