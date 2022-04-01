@@ -196,11 +196,11 @@ class Metrics(object):
     def save(self, save_settings: str = "") -> None:
         final_dict = {k: v.tolist() for k, v in self.summary.items()}
         json_dump = json.dumps(final_dict)
-        with open(self.savepth + f"scores{save_settings}.json", "w") as f:
+        with open(self.savepth + f"metrics{save_settings}.json", "w") as f:
             f.write(json_dump)
 
         if hasattr(self, "uct_metrics"):
-            with open(self.savepth + f"scores-uct{save_settings}.pkl", "wb") as f:
+            with open(self.savepth + f"metrics-uct{save_settings}.pkl", "wb") as f:
                 pickle.dump(self.uct_metrics, f)
 
     def analyze(

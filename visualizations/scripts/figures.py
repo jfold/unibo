@@ -219,7 +219,7 @@ class Figures(Loader):
             if surrogate == "RS" or not parameters["bo"]:
                 continue
             files_in_path = [
-                f for f in os.listdir(pth) if "scores---epoch" in f and ".json" in f
+                f for f in os.listdir(pth) if "metrics---epoch" in f and ".json" in f
             ]
             for file in files_in_path:
                 with open(f"{pth}{file}") as json_file:

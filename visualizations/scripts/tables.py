@@ -40,20 +40,20 @@ class Tables(Loader):
                     if p.split("|")[1] == surrogate and "Benchmark" in p
                 ]
             ):
-                if os.path.isfile(experiment + f"scores.json") and os.path.isfile(
+                if os.path.isfile(experiment + f"metrics.json") and os.path.isfile(
                     experiment + "parameters.json"
                 ):
 
-                    with open(experiment + f"scores.json") as json_file:
-                        scores = json.load(json_file)
+                    with open(experiment + f"metrics.json") as json_file:
+                        metrics = json.load(json_file)
                     with open(experiment + "parameters.json") as json_file:
                         parameters = json.load(json_file)
 
                     if self.settings.items() <= parameters.items():
                         for i_m, metric in enumerate(metrics):
-                            results[i_s, i_m, i_e] = scores[metric]
+                            results[i_s, i_m, i_e] = metrics[metric]
                 else:
-                    print(f"No such file: {experiment}scores.json")
+                    print(f"No such file: {experiment}metrics.json")
 
         self.means = pd.DataFrame(
             data=np.nanmean(results, axis=-1), index=self.surrogates, columns=metrics

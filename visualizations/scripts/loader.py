@@ -98,7 +98,7 @@ class Loader(object):
             if (
                 os.path.isdir(experiment)
                 and os.path.isfile(f"{experiment}parameters.json")
-                and os.path.isfile(f"{experiment}scores.json")
+                and os.path.isfile(f"{experiment}metrics.json")
                 and os.path.isfile(f"{experiment}dataset.json")
             ):
                 with open(f"{experiment}parameters.json") as json_file:
@@ -187,8 +187,8 @@ class Loader(object):
             if not self.settings.items() <= parameters.items():
                 continue
 
-            with open(f"{pth}scores.json") as json_file:
-                scores = json.load(json_file)
+            with open(f"{pth}metrics.json") as json_file:
+                metrics = json.load(json_file)
             with open(f"{pth}dataset.json") as json_file:
                 dataset = json.load(json_file)
 
@@ -196,8 +196,8 @@ class Loader(object):
             running_inner_product = self.calc_running_inner_product(dataset)
             mahalanobis_dists = self.calc_mahalanobis_dist_to_current_best(dataset)
 
-            if os.path.isfile(f"{pth}scores-uct.pkl"):
-                with open(f"{pth}scores-uct.pkl", "rb") as pkl:
+            if os.path.isfile(f"{pth}metrics-uct.pkl"):
+                with open(f"{pth}metrics-uct.pkl", "rb") as pkl:
                     uct_scores = pickle.load(pkl)
             else:
                 uct_scores = None
@@ -214,8 +214,8 @@ class Loader(object):
 
             for metric in self.metric_dict.keys():
                 data_idx[-1] = self.values[-1].index(metric)
-                if metric in scores:
-                    self.data[tuple(data_idx)] = scores[metric]
+                if metric in metrics:
+                    self.data[tuple(data_idx)] = metrics[metric]
                 elif "uct-" in metric and uct_scores is not None:
                     entries = metric.split("-")
                     self.data[tuple(data_idx)] = uct_scores[entries[1]][entries[2]]
@@ -228,7 +228,7 @@ class Loader(object):
 
             # Running over epochs
             files_in_path = [
-                f for f in os.listdir(pth) if "scores---epoch" in f and ".json" in f
+                f for f in os.listdir(pth) if "metrics---epoch" in f and ".json" in f
             ]
             for file in files_in_path:
                 # epoch index
@@ -237,7 +237,7 @@ class Loader(object):
                 with open(f"{pth}{file}") as json_file:
                     scores_epoch_i = json.load(json_file)
 
-                file = file.replace("scores---", "scores-uct---").replace(
+                file = file.replace("metrics---", "metrics-uct---").replace(
                     ".json", ".pkl"
                 )
                 if os.path.isfile(f"{pth}{file}"):
