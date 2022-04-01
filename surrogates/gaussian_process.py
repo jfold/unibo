@@ -20,8 +20,8 @@ class GaussianProcess(object):
         self.change_std = parameters.change_std
         self.std_change = parameters.std_change
         self.model = botorch.models.SingleTaskGP(
-            torch.tensor(dataset.data.X),
-            torch.tensor(dataset.data.y),
+            torch.tensor(dataset.data.X).double(),
+            torch.tensor(dataset.data.y).double(),
             covar_module=getattr(sys.modules[__name__], self.gp_kernel)(),
         )
         self.likelihood = ExactMarginalLogLikelihood(self.model.likelihood, self.model)
@@ -31,7 +31,7 @@ class GaussianProcess(object):
         self, X_test: np.ndarray, stabilizer: float = 1e-8
     ) -> Tuple[np.ndarray, np.ndarray]:
         """Calculates mean (prediction) and variance (uncertainty)"""
-        X_test = torch.tensor(X_test)
+        X_test = torch.tensor(X_test).double()
         posterior = self.model.posterior(X_test, observation_noise=True)
         mu_predictive = posterior.mean.cpu().detach().numpy().squeeze()
         sigma_predictive = (
