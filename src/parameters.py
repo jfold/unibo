@@ -1,4 +1,5 @@
 import json
+import string
 from imports.general import *
 from imports.ml import *
 from dataclasses import dataclass, asdict
@@ -50,14 +51,10 @@ class Parameters:
             folder_name = f"test{self.experiment}"
         else:
             folder_name = (
-                # datetime.now().strftime("%d%m%y-%H%M%S") +
-                f"{self.experiment}{self.problem}({self.d})_{self.surrogate}_{self.acquisition}_seed-{self.seed}"
+                f"{self.experiment}---{datetime.now().strftime('%d%m%y-%H%M%S')}-"
+                + "".join(random.choice(string.ascii_lowercase) for x in range(4))
             )
-            folder_name = folder_name + "_BO" if self.bo else folder_name
-            folder_name = (
-                folder_name + "_std_change" if self.change_std else folder_name
-            )
-        setattr(self, "savepth", self.savepth + folder_name + "/")
+        setattr(self, "savepth", f"{self.savepth}{folder_name}/")
         if mkdir and not os.path.isdir(self.savepth):
             os.mkdir(self.savepth)
             self.save()
