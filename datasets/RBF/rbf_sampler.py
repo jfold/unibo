@@ -4,33 +4,71 @@ from imports.ml import *
 
 
 class RBFSampler(object):
+    """RBFSampler class makes data sampled from a gaussian process and contains f (without noise) and y (with noise).
+    """
+
     def __init__(self, parameters: Parameters):
+        self.params = parameters
+        np.random.seed(self.params.seed)
+        self.kernel = 1.0 * RBF(length_scale=0.1)
+        self.gp = GaussianProcessRegressor(kernel=self.kernel)
+        self.problem_idx = parameters.problem_idx + 1
+        self.make_data()
 
-        np.random.seed(parameters.seed)
-        gp_true = GaussianProcessRegressor(kernel=1.0 * RBF(length_scale=0.1))
-        self.X_test = np.linspace(0, 1, parameters.n_test).reshape(-1, 1)
-        self.f_test = gp_true.sample_y(
-            self.X_test, parameters.problem_idx + 1, random_state=parameters.seed
+    def make_data(self):
+        ## Make d-dimensional index set (GP input)
+        self.x_ubs = np.ones(self.params.d)
+        self.x_lbs = np.zeros(self.params.d)
+        self.X_test = np.random.uniform(
+            low=self.x_lbs, high=self.x_ubs, size=(self.params.n_test, self.params.d)
         )
-        self.f_test = self.f_test[:, parameters.problem_idx].reshape(-1, 1)
-        # Make dataset
-        idxs = np.random.choice(list(range(parameters.n_test)), parameters.n_initial)
-        self.X_train = self.X_test[idxs, :].reshape(-1, 1)
-        self.f_train = self.f_test[idxs]
+
+        ## Sample GP at index set (GP output)
+        self.f_test = self.gp.sample_y(
+            self.X_test, self.problem_idx, random_state=self.params.seed
+        )[:, [-1]]
+        # Find true glob. min
+        self.f_min_idx = np.argmin(self.f_test)
+        self.f_min_loc = self.X_test[[self.f_min_idx], :]
+        self.f_min = self.f_test[[self.f_min_idx]]
+
+        # Compute noise levels w.r.t. SNR
+        self.signal_std = np.std(self.f_test)
+        self.noise_std = self.signal_std / self.params.snr
+
+        ## Noisify output with gaussian additive
         self.y_test = self.f_test + np.random.normal(
-            loc=0, scale=parameters.sigma_data, size=(self.f_test.size, 1)
+            loc=0, scale=self.noise_std, size=self.f_test.shape
         )
-        self.y_train = self.f_train + np.random.normal(
-            loc=0, scale=parameters.sigma_data, size=(self.f_train.size, 1)
-        )
-        self.ne_true = -norm.entropy(loc=0, scale=parameters.sigma_data)
+        # Find noisy glob. min
+        self.y_min_idx = np.argmin(self.y_test)
+        self.y_min_loc = self.X_test[[self.y_min_idx], :]
+        self.y_min = self.y_test[[self.y_min_idx]]
 
-        # print(
-        #     self.X_test.shape,
-        #     self.X_train.shape,
-        #     self.f_test.shape,
-        #     self.f_train.shape,
-        #     self.y_test.shape,
-        #     self.y_train.shape,
-        # )
+        self.X_mean = np.mean(self.X_test, axis=0)
+        self.X_std = np.std(self.X_test, axis=0)
+        self.f_mean = np.mean(self.f_test)
+        self.f_std = np.std(self.f_test)
+        self.y_mean = np.mean(self.y_test)
+        self.y_std = np.std(self.y_test)
 
+        # Standardize
+        self.X_test = (self.X_test - self.X_mean) / self.X_std
+        self.f_test = (self.f_test - self.f_mean) / self.f_std
+        self.y_test = (self.y_test - self.y_mean) / self.y_std
+
+        ## Sample random initial training points
+        idxs = np.random.choice(list(range(self.params.n_test)), self.params.n_initial)
+        self.X_train = self.X_test[idxs, :]
+        self.f_train = self.f_test[[idxs]]
+        self.y_train = self.y_test[[idxs]]
+
+        self.ne_true = -norm.entropy(loc=0, scale=self.noise_std)
+
+    def get_y(self, idxs: list, noisify: bool = True):
+        f = np.array([self.f_test[idx] for idx in idxs])
+        if noisify:
+            noise = np.random.normal(loc=0, scale=np.sqrt(self.noise_std), size=f.shape)
+            y = f + noise
+            return y
+        return f

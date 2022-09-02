@@ -5,30 +5,27 @@ from src.parameters import Parameters
 
 
 class CustomData(object):
-    """Linear sum activation data generation class."""
+    """Custom data generation class."""
 
-    def __init__(self, parameters: Parameters, dataset: Dict = None):
-        if dataset is None:
-            dataset = RBFSampler(parameters).__dict__
-        self.X = dataset["X_train"]
-        self.y = dataset["y_train"]
-        self.X_test = dataset["X_test"]
-        self.y_test = dataset["y_test"]
-        if "f_train" in dataset.keys() and "f_test" in dataset.keys():
-            self.f_train = dataset["f_train"]
-            self.f_test = dataset["f_test"]
-            self.f_min = np.min(self.f_test)
-            self.f_max = np.max(self.f_test)
-        self.min_loc = self.X_test[[np.argmin(self.y_test)], :]
-        self.y_min = np.min(self.y_test)
-        self.y_max = np.max(self.y_test)
-        self.ne_true = dataset["ne_true"]
+    def __init__(self, parameters: Parameters, data: Dict = None):
+        if data is None:
+            data = RBFSampler(parameters).__dict__
 
-    def sample_X(self, n_samples):
-        return self.X_test
+        self.__dict__.update(data)
 
-    def get_y(self, x_idx, parse_idx: bool = False):
-        if parse_idx:
-            return self.y_test[[x_idx], :]
+    def sample_X(self, n_samples: int, return_idxs: bool = False):
+        idxs = np.random.choice(list(range(self.data.params.n_test)), n_samples)
+        if return_idxs:
+            return self.data.X_test[idxs, :], idxs
         else:
-            return self.y_test
+            return self.data.X_test[idxs, :]
+
+    def get_y(self, X: np.ndarray = None, idxs: list = None, add_noise: bool = True):
+        if X is None and idxs is not None:
+            y = self.data.get_y(idxs, noisify=add_noise)
+        elif X is not None and idxs is not None:
+            y = self.data.get_y(X, noisify=add_noise)
+        else:
+            raise ValueError("Either X or idx has to be None, not both.")
+
+        return y
