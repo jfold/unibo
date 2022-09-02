@@ -1,5 +1,6 @@
 from dataclasses import asdict
 import json
+from netrc import netrc
 from numpy.lib.npyio import save
 from scipy.sparse import data
 from imports.general import *
@@ -16,7 +17,7 @@ class Metrics(object):
         self.summary = {}
 
     def sharpness_gaussian(
-        self, mus: np.ndarray, sigmas: np.ndarray, name: str = ""
+        self, mus: np.ndarray, sigmas: np.ndarray, ne_true: float = None, name: str = ""
     ) -> None:
         """Calculates the sharpness (negative entropy) of the gaussian distributions 
         with means: mus and standard deviation: sigmas
@@ -28,8 +29,20 @@ class Metrics(object):
         self.summary.update(
             {"mean_sharpness": mean_sharpness}  # "sharpness": sharpness,
         )
+        if ne_true is not None:
+            self.summary.update(
+                {"sharpness_abs_error": np.abs(ne_true - mean_sharpness)}
+            )
+
         # if self.plot_it and self.save_it:
         #     self.plot_sharpness_histogram(name=name)
+
+    def bias(self, mus: np.ndarray, f: np.ndarray) -> None:
+        mse = np.mean((mus - f) ** 2)
+        nmse = mse / np.var(f)
+        self.summary.update(
+            {"bias_mse": mse, "bias_nmse": nmse,}
+        )
 
     def sharpness_histogram(
         self, model: Model, X: np.ndarray, n_bins: int = 50
@@ -114,7 +127,7 @@ class Metrics(object):
         """
 
         pair_dists = cdist(
-            dataset.data.X, X, metric="euclidean"
+            dataset.data.X_train, X, metric="euclidean"
         )  # pairwise euclidean dist between training and test points
         pair_dists = np.min(
             pair_dists, axis=0
@@ -180,18 +193,52 @@ class Metrics(object):
         """
         mse = np.mean((y - predictions) ** 2)
         nmse = mse / np.var(y)
-        self.summary.update({"mse": mse})
-        self.summary.update({"nmse": nmse})
+        self.summary.update({"mse": mse, "nmse": nmse})
 
     def regret(self, dataset: Dataset) -> None:
         y_solution = dataset.data.f_max if self.maximization else dataset.data.f_min
-        regret = np.abs(dataset.y_opt - y_solution)
+        y_opt = dataset.y_opt
+        regret = np.abs(y_opt - y_solution)
         self.summary.update({"regret": np.sum(regret)})
 
     def glob_min_dist(self, dataset: Dataset) -> None:
-        squared_error = (dataset.X_opt - np.array(dataset.data.min_loc)) ** 2
-        self.summary.update({"x_opt_dist": np.sum(squared_error)})
-        self.summary.update({"x_opt_mean_dist": np.mean(squared_error)})
+        squared_error = (dataset.X_opt - np.array(dataset.data.y_min_loc)) ** 2
+        self.summary.update(
+            {
+                "x_opt_dist": np.sqrt(np.sum(squared_error)),
+                "x_opt_mean_dist": np.mean(squared_error),
+            }
+        )
+
+    # def calc_true_regret(self, parameters: Dict, dataset: Dict):
+    #     # inferring true regret
+    #     dataobj = Dataset(Parameters(parameters))
+    #     X = np.array(dataset["X"])
+    #     y_clean = dataobj.data.get_y(X, add_noise=False)
+    #     y_clean = np.array([np.min(y_clean[:i]) for i in range(1, len(y_clean) + 1)])
+    #     y_clean = y_clean[dataset["n_initial"] - 1 :]
+    #     true_regrets = np.abs(dataobj.data.f_min - y_clean)
+    #     return true_regrets
+
+    # def calc_running_inner_product(self, dataset: Dataset) -> np.ndarray:
+    #     X = np.array(dataset["X"])
+    #     running_inner_product = np.cumsum(np.diag(X @ X.T)).squeeze()[
+    #         dataset["n_initial"] - 1 :
+    #     ]
+    #     return running_inner_product
+
+    def calc_mahalanobis_dist_to_current_best(self, dataset: Dataset) -> np.ndarray:
+        X = np.array(dataset.X)[: dataset.n_initial, :]
+        y = np.array(dataset.y)[: dataset.n_initial, :]
+        Sigma = np.diag((np.array(dataset.x_ubs) - np.array(dataset.x_lbs)) / 12)
+        idx_opt = np.argmin(y)
+        y_opt = y[[idx_opt], :]
+        X_opt = X[[idx_opt], :].T
+        mahalanobis_dists = [np.nan]
+        cur_y = y[[i], :]
+        cur_X = X[[-1], :].T
+        dist = mahalanobis(cur_X, X_opt, Sigma)
+        self.summary.update({"mahalanobis_dist": dist})
 
     def save(self, save_settings: str = "") -> None:
         final_dict = {k: v.tolist() for k, v in self.summary.items()}
@@ -206,21 +253,30 @@ class Metrics(object):
     def analyze(
         self, surrogate: Model, dataset: Dataset, save_settings: str = "",
     ) -> None:
-        name = f"{save_settings}"
         if surrogate is not None:
-            X_test, y_test = dataset.sample_testset()
             self.ne_true = dataset.data.ne_true
-            self.y_max = dataset.data.y_max
-            mu_test, sigma_test = surrogate.predict(X_test)
-            self.calibration_y(mu_test, sigma_test, y_test)
-            self.calibration_y_local(dataset, mu_test, sigma_test, X_test, y_test)
-            self.sharpness_gaussian(mu_test, sigma_test, name)
-            self.expected_log_predictive_density(
-                mu_test, sigma_test, y_test,
+            mu_test, sigma_test = surrogate.predict(dataset.data.X_test)
+            self.calibration_f(mu_test, sigma_test, dataset.data.f_test)
+            self.calibration_y(mu_test, sigma_test, dataset.data.y_test)
+            self.calibration_y_local(
+                dataset, mu_test, sigma_test, dataset.data.X_test, dataset.data.y_test
             )
-            self.nmse(y_test, mu_test)
+            self.sharpness_gaussian(
+                mu_test,
+                sigma_test,
+                ne_true=dataset.data.ne_true,
+                name=f"{save_settings}",
+            )
+            self.expected_log_predictive_density(
+                mu_test, sigma_test, dataset.data.y_test,
+            )
+            self.nmse(dataset.data.y_test, mu_test)
+            self.bias(mu_test, dataset.data.f_test)
             self.uct_metrics = uct.metrics.get_all_metrics(
-                mu_test.squeeze(), sigma_test.squeeze(), y_test.squeeze(), verbose=False
+                mu_test.squeeze(),
+                sigma_test.squeeze(),
+                dataset.data.y_test.squeeze(),
+                verbose=False,
             )
             self.improvement(dataset)
 
