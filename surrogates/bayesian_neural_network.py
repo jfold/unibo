@@ -16,27 +16,30 @@ class BayesianNeuralNetwork(BatchedMultiOutputGPyTorchModel):
         self.change_std = parameters.change_std
         self.std_change = parameters.std_change
         self.model = nn.Sequential(
+            # bnn.BayesLinear(
+            #     prior_mu=0.0,
+            #     prior_sigma=1.0,  # / self.d,
+            #     in_features=self.d,
+            #     out_features=50,
+            # ),
+            # nn.ReLU(),
             bnn.BayesLinear(
                 prior_mu=0.0,
-                prior_sigma=1.0 / self.d,
+                prior_sigma=1.0,
                 in_features=self.d,
-                out_features=50,
+                out_features=10,  # / 50,
             ),
             nn.ReLU(),
             bnn.BayesLinear(
-                prior_mu=0.0, prior_sigma=1.0 / 50, in_features=50, out_features=10,
-            ),
-            nn.ReLU(),
-            bnn.BayesLinear(
-                prior_mu=0.0, prior_sigma=1.0 / 10, in_features=10, out_features=1,
+                prior_mu=0.0, prior_sigma=1.0, in_features=10, out_features=1,  # / 10
             ),
         )
         self.mse_loss = nn.MSELoss()
         self.kl_loss = bnn.BKLLoss(reduction="mean", last_layer_only=False)
         self.kl_weight = 1.0
-        self._set_dimensions(train_X=dataset.data.X, train_Y=dataset.data.y)
+        self._set_dimensions(train_X=dataset.data.X_train, train_Y=dataset.data.y_train)
         self.optimizer = optim.Adam(self.model.parameters(), lr=0.1)
-        self.fit(X_train=dataset.data.X, y_train=dataset.data.y)
+        self.fit(X_train=dataset.data.X_train, y_train=dataset.data.y_train)
 
     def forward(self, x: Tensor) -> MultivariateNormal:
         mean_x, covar_x = self.predict(x)
