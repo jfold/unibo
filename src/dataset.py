@@ -50,6 +50,7 @@ class Dataset(object):
         )
         self.y_opt = self.data.y_train[[self.opt_idx], :]
         self.X_opt = self.data.X_train[[self.opt_idx], :]
+        self.f_opt = self.data.f_train[[self.opt_idx], :]
 
         self.summary.update(
             {
