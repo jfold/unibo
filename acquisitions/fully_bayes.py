@@ -5,8 +5,6 @@ from botorch.acquisition.analytic import AnalyticAcquisitionFunction
 
 
 class FullyBayes(object):
-    """Returns random acquisition values using RandomSearch(X)"""
-
     def __init__(
         self,
         parameters: Parameters,

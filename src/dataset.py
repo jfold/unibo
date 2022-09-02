@@ -81,5 +81,5 @@ class Dataset(object):
 
     def sample_testset(self, n_samples: int = None) -> Dict[np.ndarray, np.ndarray]:
         n_samples = self.n_test if n_samples is None else n_samples
-        X, y, _ = self.data.sample_data(n_samples=n_samples)
+        X, y, f = self.data.sample_data(n_samples=n_samples)
         return X, y
