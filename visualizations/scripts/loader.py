@@ -56,14 +56,13 @@ class Loader(object):
             "regret": ["Regret", -1, [], r"$ \mathcal{R}$"],
             "true_regret": ["true_regret", -1, [], r"$ \mathcal{R}_t$"],
             "mahalanobis_dist": ["mahalanobis_dist", -1, [], r"$ D_M$"],
-            "running_inner_product": ["running_inner_product", -1, [], r"$ RC$"],
+            # "running_inner_product": ["running_inner_product", -1, [], r"$ RC$"],
             "y_calibration_mse": [
                 "Calibration MSE",
                 -1,
                 [],
                 r"$ \mathbb{E}[( \mathcal{C}_{\mathbf{y}}(p) - p)^2] $",
             ],
-            # uct module:
             "uct-accuracy-corr": ["corr", 1, [0, 2], r"Corr"],
             "uct-avg_calibration-rms_cal": ["rms_cal", -1, [], r"RMSCE"],
             "uct-avg_calibration-miscal_area": ["miscal_area", -1, [], r"MA"],
@@ -85,6 +84,8 @@ class Loader(object):
             "n_initial",
             "n_evals",
             "problem",
+            "data_location",
+            "data_object",
             "change_std",
             "surrogate",
             "acquisition",
@@ -103,12 +104,10 @@ class Loader(object):
             ):
                 with open(f"{experiment}parameters.json") as json_file:
                     parameters = json.load(json_file)
-
                 if not self.settings.items() <= parameters.items() or not all(
                     param in parameters for param in self.check_params
                 ):
                     continue
-
                 self.data_settings.update(
                     {experiment: {k: parameters[k] for k in self.check_params}}
                 )
@@ -127,7 +126,6 @@ class Loader(object):
             self.values.append(sorted(set(val)))
             self.dims.append(len(self.values[-1]))
             self.names.append(key)
-
         self.values.append(
             list(range(1 + int(np.max(self.values[self.names.index("n_evals")]))))
         )
@@ -143,41 +141,6 @@ class Loader(object):
         }
         self.data = np.full(tuple(self.dims), np.nan)
 
-    def calc_true_regret(self, parameters: Dict, dataset: Dict):
-        # inferring true regret
-        dataobj = Dataset(Parameters(parameters))
-        X = np.array(dataset["X"])
-        y_clean = dataobj.data.get_y(X, add_noise=False)
-        y_clean = np.array([np.min(y_clean[:i]) for i in range(1, len(y_clean) + 1)])
-        y_clean = y_clean[dataset["n_initial"] - 1 :]
-        true_regrets = np.abs(dataobj.data.f_min - y_clean)
-        return true_regrets
-
-    def calc_running_inner_product(self, dataset: Dict) -> np.ndarray:
-        X = np.array(dataset["X"])
-        running_inner_product = np.cumsum(np.diag(X @ X.T)).squeeze()[
-            dataset["n_initial"] - 1 :
-        ]
-        return running_inner_product
-
-    def calc_mahalanobis_dist_to_current_best(self, dataset: Dict) -> np.ndarray:
-        X = np.array(dataset["X"])
-        y = np.array(dataset["y"])
-        n_initial = dataset["n_initial"]
-        Sigma = np.diag((np.array(dataset["x_ubs"]) - np.array(dataset["x_lbs"])) / 12)
-        idx_opt = np.argmin(y[:n_initial, :])
-        y_opt = y[[idx_opt], :]
-        X_opt = X[[idx_opt], :].T
-        mahalanobis_dists = [np.nan]
-        for i in range(n_initial, X.shape[0]):
-            cur_y = y[[i], :]
-            cur_X = X[[i], :].T
-            mahalanobis_dists.append(mahalanobis(cur_X, X_opt, Sigma))
-            if cur_y < y_opt:
-                y_opt = cur_y
-                X_opt = cur_X
-        return np.array(mahalanobis_dists)
-
     def load_data(self, save: bool = True):
         self.load_metric_dict()
         self.load_params_tocheck()
@@ -191,10 +154,6 @@ class Loader(object):
                 metrics = json.load(json_file)
             with open(f"{pth}dataset.json") as json_file:
                 dataset = json.load(json_file)
-
-            true_regrets = self.calc_true_regret(parameters, dataset)
-            running_inner_product = self.calc_running_inner_product(dataset)
-            mahalanobis_dists = self.calc_mahalanobis_dist_to_current_best(dataset)
 
             if os.path.isfile(f"{pth}metrics-uct.pkl"):
                 with open(f"{pth}metrics-uct.pkl", "rb") as pkl:
@@ -219,8 +178,8 @@ class Loader(object):
                 elif "uct-" in metric and uct_scores is not None:
                     entries = metric.split("-")
                     self.data[tuple(data_idx)] = uct_scores[entries[1]][entries[2]]
-                elif metric == "true_regret":
-                    self.data[tuple(data_idx)] = true_regrets[-1]
+                # elif metric == "true_regret":
+                #     self.data[tuple(data_idx)] = true_regrets[-1]
                 elif metric == "mahalanobis_dist":
                     self.data[tuple(data_idx)] = mahalanobis_dists[-1]
                 elif metric == "running_inner_product":
@@ -255,8 +214,8 @@ class Loader(object):
                         self.data[tuple(data_idx)] = uct_scores_epoch_i[entries[1]][
                             entries[2]
                         ]
-                    elif metric == "true_regret":
-                        self.data[tuple(data_idx)] = true_regrets[data_idx[-2]]
+                    # elif metric == "true_regret":
+                    #     self.data[tuple(data_idx)] = true_regrets[data_idx[-2]]
                     elif metric == "mahalanobis_dist":
                         self.data[tuple(data_idx)] = mahalanobis_dists[data_idx[-2]]
                     elif metric == "running_inner_product":
