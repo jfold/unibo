@@ -78,12 +78,25 @@ class Optimizer(object):
         self, dataset: Dataset, X_test: np.ndarray = None, return_idx: bool = False
     ) -> Dict[np.ndarray, np.ndarray]:
         assert self.is_fitted
+
         self.construct_acquisition_function(dataset)
+
         if X_test is None:
             X_test, _ = dataset.sample_testset(self.n_test)
+
         X_test_torch = torch.tensor(np.expand_dims(X_test, 1))
         acquisition_values = self.acquisition_function(X_test_torch).detach().numpy()
-        i_choice = np.argmax(acquisition_values)
+
+        # find idx
+        if self.parameters.prob_acq:
+            acquisition_values += 1e-8  # numerical adjust.
+            p = acquisition_values / np.sum(acquisition_values)
+            i_choice = np.random.choice(range(len(p)), p=p)
+        else:
+            i_choice = np.random.choice(
+                np.flatnonzero(acquisition_values == acquisition_values.max())
+            )
+
         if return_idx:
             return X_test[[i_choice], :], acquisition_values[i_choice], i_choice
         else:
