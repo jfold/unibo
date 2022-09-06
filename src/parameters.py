@@ -18,7 +18,7 @@ class Parameters:
     save_it: bool = True  # whether to save progress
     csi: float = 0.0  # exploration parameter for BO
     data_name: str = "Benchmark"  # dataclass name
-    problem: str = "Alpine01"  # e.g. "Alpine01" # subproblem name
+    problem: str = ""  # e.g. "Alpine01" # subproblem name, overwrites problem_idx
     problem_idx: int = 0
     maximization: bool = False
     change_std: bool = False  # if manipulate predictive std
