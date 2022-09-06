@@ -34,8 +34,8 @@ class DeepEnsemble(BatchedMultiOutputGPyTorchModel):
         self.std_change = parameters.std_change
         self.n_networks = 10
         self.mse_loss = nn.MSELoss()
-        self._set_dimensions(train_X=dataset.data.X, train_Y=dataset.data.y)
-        self.fit(X_train=dataset.data.X, y_train=dataset.data.y)
+        self._set_dimensions(train_X=dataset.data.X_train, train_Y=dataset.data.y_train)
+        self.fit(X_train=dataset.data.X_train, y_train=dataset.data.y_train)
 
     def forward(self, x: Tensor) -> MultivariateNormal:
         mean_x, covar_x = self.predict(x)
@@ -43,20 +43,30 @@ class DeepEnsemble(BatchedMultiOutputGPyTorchModel):
         covar_x = torch.tensor(np.diag(covar_x.squeeze()))
         return MultivariateNormal(mean_x, covar_x)
 
-    def fit(self, X_train: np.ndarray, y_train: np.ndarray, n_epochs: int = 1500):
-        X_train = torch.tensor(X_train, dtype=torch.float32)
-        y_train = torch.tensor(y_train, dtype=torch.float32)
+    def fit(
+        self,
+        X_train: np.ndarray,
+        y_train: np.ndarray,
+        n_epochs: int = 1500,
+        rand_portion: float = 0.5,
+    ):
+        n_samples = X_train.shape[0]
         self.models = []
         for n in range(self.n_networks):
             torch.manual_seed(self.seed + 2022 + n)
+            idxs = np.random.choice(
+                range(n_samples), size=int(rand_portion * n_samples), replace=False
+            )
+            X_train_torch = torch.tensor(X_train[idxs, :], dtype=torch.float32)
+            y_train_torch = torch.tensor(y_train[idxs, :], dtype=torch.float32)
             model = MLP(self.d)
             self.optimizer = torch.optim.Adam(
                 model.parameters(), lr=1e-2, weight_decay=1e-3
             )
             loss = []
             for _ in range(n_epochs):
-                pre = model(X_train)
-                mse = self.mse_loss(pre, y_train)
+                pre = model(X_train_torch)
+                mse = self.mse_loss(pre, y_train_torch)
                 loss.append(mse)
                 self.optimizer.zero_grad()
                 mse.backward()
