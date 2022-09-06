@@ -63,7 +63,10 @@ class Benchmark(object):
     def sample_data(
         self, n_samples: int = 1, first_time: bool = False
     ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+        # sample X
         X = np.random.uniform(low=self.x_lbs, high=self.x_ubs, size=(n_samples, self.d))
+
+        # query f
         f = []
         for x in X:
             f.append(self.problem.evaluate(x))
@@ -96,32 +99,32 @@ class Benchmark(object):
 
         return X, y[:, np.newaxis], f[:, np.newaxis]
 
-    def sample_X(self, n_samples: int = 1) -> np.ndarray:
-        X = np.random.uniform(low=self.x_lbs, high=self.x_ubs, size=(n_samples, self.d))
-        if self.X_mean is not None:
-            # Standardize
-            X = (X - self.X_mean) / self.X_std
+    # def sample_X(self, n_samples: int = 1) -> np.ndarray:
+    #     X = np.random.uniform(low=self.x_lbs, high=self.x_ubs, size=(n_samples, self.d))
+    #     if self.X_mean is not None:
+    #         # Standardize
+    #         X = (X - self.X_mean) / self.X_std
 
-        return X
+    #     return X
 
-    def get_y(self, X: np.ndarray, add_noise: bool = True) -> np.ndarray:
-        f = []
-        for x in X:
-            f.append(self.problem.evaluate(x))
-        f = np.array(f)
+    # def get_y(self, X: np.ndarray, add_noise: bool = True) -> np.ndarray:
+    #     f = []
+    #     for x in X:
+    #         f.append(self.problem.evaluate(x))
+    #     f = np.array(f)
 
-        if self.f_mean is not None:
-            f = (f - self.f_mean) / self.f_std
+    #     if self.f_mean is not None:
+    #         f = (f - self.f_mean) / self.f_std
 
-        if self.noisify and add_noise:
-            noise = np.random.normal(loc=0, scale=self.noise_std, size=f.shape)
-            y = f + noise
+    #     if self.noisify and add_noise:
+    #         noise = np.random.normal(loc=0, scale=self.noise_std, size=f.shape)
+    #         y = f + noise
 
-            if self.y_mean is not None:
-                y = y / self.noise_std
-            return y[:, np.newaxis]
+    #         if self.y_mean is not None:
+    #             y = y / self.noise_std
+    #         return y[:, np.newaxis]
 
-        return f
+    #     return f
 
     def __str__(self):
         return str(self.problem)
