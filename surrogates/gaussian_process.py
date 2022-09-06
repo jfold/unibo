@@ -40,7 +40,7 @@ class GaussianProcess(object):
         torch.manual_seed(parameters.seed)
         # getattr(sys.modules[__name__], self.gp_kernel())
         kernel = ScaleKernel(
-            RBFKernel(lengthscale_prior=NormalPrior(1e-1, 1e-1)),
+            RBFKernel(lengthscale_prior=LogNormalPrior(0, 1)),
             outputscale_prior=NormalPrior(1.0, 1.0),
         )
         self.model = botorch.models.SingleTaskGP(
