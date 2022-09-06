@@ -31,7 +31,10 @@ class Metrics(object):
         )
         if ne_true is not None:
             self.summary.update(
-                {"sharpness_abs_error": np.abs(ne_true - mean_sharpness)}
+                {
+                    "sharpness_abs_error": np.abs(ne_true - mean_sharpness),
+                    "posterior_variance": np.mean(sigmas) ** 2,
+                }
             )
 
         # if self.plot_it and self.save_it:
