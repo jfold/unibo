@@ -25,6 +25,7 @@ class Experiment(object):
 
     def run(self) -> None:
         if self.bo:
+            # Epoch 0
             self.optimizer.fit_surrogate(self.dataset)
             self.metrics.analyze(
                 self.optimizer.surrogate_object,
@@ -33,17 +34,24 @@ class Experiment(object):
             )
             self.dataset.save(save_settings="---epoch-0")
 
+            # Epochs > 0
             for e in tqdm(range(self.n_evals), leave=False):
                 save_settings = f"---epoch-{e+1}" if e < self.n_evals - 1 else ""
-                # x_new, acq_val = self.optimizer.bo_iter(self.dataset)
-                # self.dataset.add_X_get_y(x_new, acq_val)
-                x_new, acq_val, idx = self.optimizer.bo_iter(
-                    self.dataset, X_test=self.dataset.data.X_test, return_idx=True
-                )
-                self.dataset.data.X = np.append(self.dataset.data.X, x_new, axis=0)
-                self.dataset.data.y = np.append(
-                    self.dataset.data.y, self.dataset.data.y_test[[idx], :], axis=0
-                )
+
+                # BO iteration
+                x_next, acq_val, i_choice = self.optimizer.bo_iter(
+                    self.dataset, return_idx=True
+                )  # , X_test=self.dataset.data.X_test
+                y_next = self.dataset.data.y_test[[i_choice]]
+                f_next = self.dataset.data.f_test[[i_choice]]
+
+                # Add to dataset
+                self.dataset.add_data(x_next, y_next, f_next)
+
+                # Update dataset
+                self.dataset.update_solution()
+
+                # Update surrogate
                 self.optimizer.fit_surrogate(self.dataset)
                 self.metrics.analyze(
                     self.optimizer.surrogate_object,
@@ -52,8 +60,8 @@ class Experiment(object):
                 )
             self.dataset.save()
         else:
-            X = self.dataset.data.sample_X(self.n_evals)
-            self.dataset.add_X_get_y(X)
+            X, y, f = self.dataset.data.sample_data(self.n_evals)
+            self.dataset.add_data(X, y, f)
             self.optimizer.fit_surrogate(self.dataset)
             self.metrics.analyze(self.optimizer.surrogate_object, self.dataset)
             self.dataset.save()

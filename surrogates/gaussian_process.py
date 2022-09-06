@@ -41,7 +41,7 @@ class GaussianProcess(object):
         # getattr(sys.modules[__name__], self.gp_kernel())
         kernel = ScaleKernel(
             RBFKernel(lengthscale_prior=LogNormalPrior(0, 1)),
-            outputscale_prior=NormalPrior(1.0, 1.0),
+            outputscale_prior=NormalPrior(1.0, 2.0),
         )
         self.model = botorch.models.SingleTaskGP(
             torch.tensor(dataset.data.X_train).double(),
@@ -56,11 +56,14 @@ class GaussianProcess(object):
         # surrogate_model.model.likelihood.noise.detach().numpy().squeeze()
 
     def predict(
-        self, X_test: np.ndarray, stabilizer: float = 1e-8
+        self,
+        X_test: np.ndarray,
+        stabilizer: float = 1e-8,
+        observation_noise: bool = True,
     ) -> Tuple[np.ndarray, np.ndarray]:
         """Calculates mean (prediction) and variance (uncertainty)"""
         X_test = torch.tensor(X_test).double()
-        posterior = self.model.posterior(X_test, observation_noise=True)
+        posterior = self.model.posterior(X_test, observation_noise=observation_noise)
         mu_predictive = posterior.mean.cpu().detach().numpy().squeeze()
         sigma_predictive = (
             np.sqrt(posterior.variance.cpu().detach().numpy()) + stabilizer
