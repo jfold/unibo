@@ -16,8 +16,8 @@ class VerificationData(object):
         self.lbs = [-1 for b in range(self.d)]
         self.ubs = [1 for b in range(self.d)]
         self.init_model()
-        self.X = self.sample_X(parameters.n_initial)
-        self.y = self.get_y(self.X)
+        self.X_train = self.sample_X(parameters.n_initial)
+        self.y_train = self.get_y(self.X_train)
 
     def init_model(self) -> None:
         self.sigma_0 = 5
