@@ -69,6 +69,7 @@ class Metrics(object):
     ) -> None:
         p_array = np.linspace(0.01, 0.99, n_bins)
         calibrations = np.full((n_bins,), np.nan)
+        assert mus.size == sigmas.size == f.size
         for i_p, p in enumerate(p_array):
             fractiles = [norm.ppf(0.5 - p / 2, loc=0, scale=sig) for sig in sigmas]
             lb_indicators = mus + fractiles < f
