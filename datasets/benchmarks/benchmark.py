@@ -41,21 +41,21 @@ class Benchmark(object):
         self.X_mean = None
         self.f_mean = None
         self.y_mean = None
-        self.f_min_idx = None
-        self.y_min_loc = None
+        self.f_min_idx = np.nan
+        self.y_min_idx = np.nan
         self.ne_true = None
+        self.y_max = np.maximum(np.abs(self.problem.fmax), np.abs(self.problem.fmin))
+        self.f_max = self.problem.fmax
+        self.f_min = self.problem.fmin
+        self.y_min = self.f_min
+        self.f_min_loc = np.array([self.problem.min_loc])
+        self.y_min_loc = self.f_min_loc
         self.sample_testset_and_compute_data_stats()
         self.X_train, self.y_train, self.f_train = self.sample_data(
             parameters.n_initial
         )
 
     def sample_testset_and_compute_data_stats(self, n_samples: int = 3000) -> None:
-        self.y_max = np.maximum(np.abs(self.problem.fmax), np.abs(self.problem.fmin))
-        self.f_max = self.problem.fmax
-        self.f_min = self.problem.fmin
-        self.f_min_loc = self.problem.min_loc
-        self.y_min_idx = self.f_min_loc
-        self.y_min = self.f_min_loc
 
         self.sample_data(n_samples=n_samples, first_time=True)
         self.X_test, self.y_test, self.f_test = self.sample_data(n_samples=self.n_test)
