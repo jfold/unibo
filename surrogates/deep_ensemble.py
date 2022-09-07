@@ -34,6 +34,7 @@ class DeepEnsemble(BatchedMultiOutputGPyTorchModel):
         self.std_change = parameters.std_change
         self.n_networks = 10
         self.mse_loss = nn.MSELoss()
+        # nn.GaussianNLLLoss
         self._set_dimensions(train_X=dataset.data.X_train, train_Y=dataset.data.y_train)
         self.fit(X_train=dataset.data.X_train, y_train=dataset.data.y_train)
 
@@ -48,10 +49,12 @@ class DeepEnsemble(BatchedMultiOutputGPyTorchModel):
         X_train: np.ndarray,
         y_train: np.ndarray,
         n_epochs: int = 1500,
-        rand_portion: float = 0.5,
+        rand_portion: float = 1.0,
     ):
         n_samples = X_train.shape[0]
         self.models = []
+        sigmas = []
+        preds = []
         for n in range(self.n_networks):
             torch.manual_seed(self.seed + 2022 + n)
             idxs = np.random.choice(
@@ -72,13 +75,26 @@ class DeepEnsemble(BatchedMultiOutputGPyTorchModel):
                 mse.backward()
                 self.optimizer.step()
             self.models.append(model)
+
+            # Compute observation_noise
+            pre = pre.cpu().detach().numpy()
+            preds.append(np.mean(pre))
+            sigmas.append(np.mean((pre - y_train_torch.cpu().detach().numpy()) ** 2))
+
+        self.observation_noise = np.sqrt(
+            np.mean(sigmas) + np.mean(preds - np.mean(preds))
+        )
         # plt.figure()
         # plt.plot(loss)
         # plt.show()
         # raise ValueError()
 
     def predict(
-        self, X_test: np.ndarray, y_test: np.ndarray = None, stabilizer: float = 1e-8,
+        self,
+        X_test: np.ndarray,
+        y_test: np.ndarray = None,
+        stabilizer: float = 1e-8,
+        observation_noise: bool = True,
     ) -> Tuple[np.ndarray, np.ndarray]:
         """Calculates mean (prediction) and variance (uncertainty). If y_test is parsed, the test loss is printed."""
         X_test = torch.tensor(X_test, dtype=torch.float32)
@@ -88,6 +104,9 @@ class DeepEnsemble(BatchedMultiOutputGPyTorchModel):
 
         mu_predictive = np.nanmean(predictions, axis=0)
         sigma_predictive = np.nanstd(predictions, axis=0) + stabilizer
+
+        if observation_noise:
+            sigma_predictive += self.observation_noise
 
         mu_predictive = (
             mu_predictive[:, np.newaxis] if mu_predictive.ndim == 1 else mu_predictive
