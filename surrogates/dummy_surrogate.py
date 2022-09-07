@@ -27,8 +27,8 @@ class DummySurrogate(BatchedMultiOutputGPyTorchModel):
         self._forward_hooks = {}
         self._forward_pre_hooks = {}
         self.set_hyperparameter_space()
-        self._set_dimensions(train_X=dataset.data.X, train_Y=dataset.data.y)
-        self.fit(X_train=dataset.data.X, y_train=dataset.data.y)
+        self._set_dimensions(train_X=dataset.data.X_train, train_Y=dataset.data.y_train)
+        self.fit(X_train=dataset.data.X_train, y_train=dataset.data.y_train)
 
     def set_hyperparameter_space(self):
         pass
