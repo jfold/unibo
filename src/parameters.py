@@ -54,7 +54,7 @@ class Parameters:
         else:
             folder_name = (
                 f"{self.experiment}---{datetime.now().strftime('%d%m%y-%H%M%S')}-"
-                + "".join(random.choice(string.ascii_lowercase) for x in range(4))
+                # + "".join(random.choice(string.ascii_lowercase) for x in range(4))
             )
         setattr(self, "savepth", f"{self.savepth}{folder_name}/")
         if mkdir and not os.path.isdir(self.savepth):
