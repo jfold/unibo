@@ -68,13 +68,17 @@ class BayesianNeuralNetwork(BatchedMultiOutputGPyTorchModel):
         # raise ValueError()
 
     def predict(
-        self, X_test: np.ndarray, stabilizer: float = 1e-8, n_ensemble: int = 100
+        self, X_test: Any, stabilizer: float = 1e-8, n_ensemble: int = 100
     ) -> Tuple[np.ndarray, np.ndarray]:
         """Calculates mean (prediction) and variance (uncertainty)"""
-        X_test = torch.tensor(X_test, dtype=torch.float32)
+        X_test_torch = (
+            torch.from_numpy(X_test) if isinstance(X_test, np.ndarray) else X_test
+        )
         predictions = np.full((n_ensemble, X_test.shape[0]), np.nan)
         for n in range(n_ensemble):
-            predictions[n, :] = self.model(X_test).cpu().detach().numpy().squeeze()
+            predictions[n, :] = (
+                self.model(X_test_torch.float()).cpu().detach().numpy().squeeze()
+            )
         mu_predictive = np.nanmean(predictions, axis=0)
         sigma_predictive = np.nanstd(predictions, axis=0) + stabilizer
 

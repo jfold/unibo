@@ -46,7 +46,7 @@ class DummySurrogate(BatchedMultiOutputGPyTorchModel):
         self.model = self.knn
 
     def predict(
-        self, X_test: np.ndarray, stabilizer: float = 1e-8
+        self, X_test: Any, stabilizer: float = 1e-8
     ) -> Tuple[np.ndarray, np.ndarray]:
         X_test = (
             X_test.cpu().detach().numpy().squeeze()

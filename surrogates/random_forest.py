@@ -67,7 +67,7 @@ class RandomForest(BatchedMultiOutputGPyTorchModel):
         self.model = grid_search.best_estimator_
 
     def predict(
-        self, X_test: np.ndarray, stabilizer: float = 1e-8
+        self, X_test: Any, stabilizer: float = 1e-8
     ) -> Tuple[np.ndarray, np.ndarray]:
         """Calculates mean (prediction) and variance (uncertainty)"""
         X_test = (

@@ -84,8 +84,10 @@ class Optimizer(object):
         if X_test is None:
             X_test, _ = dataset.sample_testset(self.n_test)
 
-        X_test_torch = torch.tensor(np.expand_dims(X_test, 1))
-        acquisition_values = self.acquisition_function(X_test_torch).detach().numpy()
+        X_test_torch = torch.from_numpy(np.expand_dims(X_test, 1))
+        acquisition_values = (
+            self.acquisition_function(X_test_torch.float()).detach().numpy()
+        )
 
         # find idx
         if self.parameters.prob_acq:

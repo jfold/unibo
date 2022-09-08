@@ -89,16 +89,20 @@ class DeepEnsemble(BatchedMultiOutputGPyTorchModel):
 
     def predict(
         self,
-        X_test: np.ndarray,
+        X_test: Any,
         y_test: np.ndarray = None,
         stabilizer: float = 1e-8,
         observation_noise: bool = True,
     ) -> Tuple[np.ndarray, np.ndarray]:
         """Calculates mean (prediction) and variance (uncertainty). If y_test is parsed, the test loss is printed."""
-        X_test = torch.tensor(X_test, dtype=torch.float32)
+        X_test_torch = (
+            torch.from_numpy(X_test) if isinstance(X_test, np.ndarray) else X_test
+        )
         predictions = np.full((self.n_networks, X_test.shape[0]), np.nan)
         for n in range(self.n_networks):
-            predictions[n, :] = self.models[n](X_test).cpu().detach().numpy().squeeze()
+            predictions[n, :] = (
+                self.models[n](X_test_torch.float()).cpu().detach().numpy().squeeze()
+            )
 
         mu_predictive = np.nanmean(predictions, axis=0)
         sigma_predictive = np.nanstd(predictions, axis=0) + stabilizer

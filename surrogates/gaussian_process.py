@@ -56,14 +56,15 @@ class GaussianProcess(object):
         # surrogate_model.model.likelihood.noise.detach().numpy().squeeze()
 
     def predict(
-        self,
-        X_test: np.ndarray,
-        stabilizer: float = 1e-8,
-        observation_noise: bool = True,
+        self, X_test: Any, stabilizer: float = 1e-8, observation_noise: bool = True,
     ) -> Tuple[np.ndarray, np.ndarray]:
         """Calculates mean (prediction) and variance (uncertainty)"""
-        X_test = torch.tensor(X_test).double()
-        posterior = self.model.posterior(X_test, observation_noise=observation_noise)
+        X_test_torch = (
+            torch.from_numpy(X_test) if isinstance(X_test, np.ndarray) else X_test
+        )
+        posterior = self.model.posterior(
+            X_test_torch.double(), observation_noise=observation_noise
+        )
         mu_predictive = posterior.mean.cpu().detach().numpy().squeeze()
         sigma_predictive = (
             np.sqrt(posterior.variance.cpu().detach().numpy()) + stabilizer
