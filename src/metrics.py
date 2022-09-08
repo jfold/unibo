@@ -105,34 +105,28 @@ class Metrics(object):
             calibrations[i_p] = np.mean(indicators)
 
         if return_mse:
-            return np.mean((calibrations - p_array) ** 2)
+            return np.nanmean((calibrations - p_array) ** 2)
         else:
             self.summary.update(
                 {
                     "y_p_array": p_array,
                     "y_calibration": calibrations,
-                    "y_calibration_mse": np.mean((calibrations - p_array) ** 2),
-                    "y_calibration_nmse": np.mean((calibrations - p_array) ** 2)
+                    "y_calibration_mse": np.nanmean((calibrations - p_array) ** 2),
+                    "y_calibration_nmse": np.nanmean((calibrations - p_array) ** 2)
                     / np.var(p_array),
                 }
             )
 
     def calibration_y_local(
-        self,
-        dataset: Dataset,
-        mus: np.ndarray,
-        sigmas: np.ndarray,
-        X: np.ndarray,
-        y: np.ndarray,
-        n_bins: int = 50,
+        self, dataset: Dataset, mus: np.ndarray, sigmas: np.ndarray, n_bins: int = 50,
     ) -> None:
         """Calculates the calibration of the target (y).
         # eq. (3) in "Accurate Uncertainties for Deep Learning Using Calibrated Regression"
         """
 
         pair_dists = cdist(
-            dataset.data.X_train, X, metric="euclidean"
-        )  # pairwise euclidean dist between training and test points
+            dataset.data.X_train, dataset.data.X_test, metric="euclidean"
+        )
         pair_dists = np.min(
             pair_dists, axis=0
         )  # only take radius of nearest training point
@@ -143,14 +137,15 @@ class Metrics(object):
         calibrations = np.full((n_bins,), np.nan)
         for i in range(len(bins) - 1):
             cond = np.logical_and(bins[i] <= pair_dists, pair_dists <= bins[i + 1])
-            mus_, sigmas_, y_ = mus[cond], sigmas[cond], y[cond]
-            calibrations_intervals[i] = self.calibration_y(
-                mus_, sigmas_, y_, return_mse=True
-            )
-            calibrations[i] = np.inner(
-                counts[: i + 1] / np.sum(counts[: i + 1]),
-                calibrations_intervals[: i + 1],
-            )
+            if np.sum(cond) > 0:
+                mus_, sigmas_, y_ = mus[cond], sigmas[cond], dataset.data.y_test[cond]
+                calibrations_intervals[i] = self.calibration_y(
+                    mus_, sigmas_, y_, return_mse=True
+                )
+                calibrations[i] = np.inner(
+                    counts[: i + 1] / np.sum(counts[: i + 1]),
+                    calibrations_intervals[: i + 1],
+                )
         #### for debugging:
         # plt.scatter(bins[1:], calibrations_intervals, label="Intervals")
         # plt.scatter(bins[1:], calibrations, label="All below")
@@ -262,9 +257,7 @@ class Metrics(object):
             mu_test, sigma_test = surrogate.predict(dataset.data.X_test)
             self.calibration_f(mu_test, sigma_test, dataset.data.f_test)
             self.calibration_y(mu_test, sigma_test, dataset.data.y_test)
-            self.calibration_y_local(
-                dataset, mu_test, sigma_test, dataset.data.X_test, dataset.data.y_test
-            )
+            self.calibration_y_local(dataset, mu_test, sigma_test)
             self.sharpness_gaussian(
                 mu_test,
                 sigma_test,
