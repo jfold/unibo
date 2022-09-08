@@ -7,11 +7,11 @@ from src.parameters import Parameters
 class Loader(object):
     def __init__(
         self,
-        loadpths: list[str] = [],
+        loadpth: str = "./results/",
         settings: Dict[str, str] = {},
         update: bool = True,
     ):
-        self.loadpths = loadpths
+        self.loadpths = [f"{loadpth}{x}" for x in os.listdir(loadpth)]
         self.settings = settings
         if update:
             self.load_data()
@@ -75,8 +75,9 @@ class Loader(object):
             "uct-scoring_rule-nll": ["nll", -1, [], r"NLL"],
         }
 
-    def load_params_tocheck(self):
-        """These will be our D-1 dimensions and constitute experimental grid"""
+    def define_check_params(self):
+        """These will be our D-1 dimensions and constitute experimental grid.
+        All data loaded will have these keys in their parameters.json file """
         self.check_params = [
             "seed",
             "d",
@@ -84,8 +85,7 @@ class Loader(object):
             "n_initial",
             "n_evals",
             "problem",
-            "data_location",
-            "data_object",
+            "data_name",
             "change_std",
             "surrogate",
             "acquisition",
@@ -123,9 +123,11 @@ class Loader(object):
         self.dims = []
         self.names = []
         for key, val in self.data_summary.items():
-            self.values.append(sorted(set(val)))
-            self.dims.append(len(self.values[-1]))
-            self.names.append(key)
+            if len(val) > 0:
+                self.values.append(sorted(set(val)))
+                self.dims.append(len(self.values[-1]))
+                self.names.append(key)
+
         self.values.append(
             list(range(1 + int(np.max(self.values[self.names.index("n_evals")]))))
         )
@@ -143,7 +145,7 @@ class Loader(object):
 
     def load_data(self, save: bool = True):
         self.load_metric_dict()
-        self.load_params_tocheck()
+        self.define_check_params()
         self.peak_data()
         self.init_data_object()
         for pth, parameters in self.data_settings.items():
@@ -180,10 +182,6 @@ class Loader(object):
                     self.data[tuple(data_idx)] = uct_scores[entries[1]][entries[2]]
                 # elif metric == "true_regret":
                 #     self.data[tuple(data_idx)] = true_regrets[-1]
-                elif metric == "mahalanobis_dist":
-                    self.data[tuple(data_idx)] = mahalanobis_dists[-1]
-                elif metric == "running_inner_product":
-                    self.data[tuple(data_idx)] = running_inner_product[-1]
 
             # Running over epochs
             files_in_path = [
