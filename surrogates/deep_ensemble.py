@@ -78,12 +78,10 @@ class DeepEnsemble(BatchedMultiOutputGPyTorchModel):
 
             # Compute observation_noise
             pre = pre.cpu().detach().numpy()
-            preds.append(np.mean(pre))
+            # preds.append(np.mean(pre))
             sigmas.append(np.mean((pre - y_train_torch.cpu().detach().numpy()) ** 2))
 
-        self.observation_noise = np.sqrt(
-            np.mean(sigmas) + np.mean(preds - np.mean(preds))
-        )
+        self.observation_noise = np.sqrt(np.mean(sigmas))
         # plt.figure()
         # plt.plot(loss)
         # plt.show()

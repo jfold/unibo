@@ -61,12 +61,12 @@ class RBFSampler(object):
             self.y_std = np.std(y)
 
         # Find true glob. min
-        self.f_min_idx = np.argmin(f)
+        self.f_min_idx = int(np.argmin(f))
         self.f_min_loc = X[[self.f_min_idx], :]
         self.f_min = f[[self.f_min_idx]]
 
         # Find noisy glob. min
-        self.y_min_idx = np.argmin(y)
+        self.y_min_idx = int(np.argmin(y))
         self.y_min_loc = X[[self.y_min_idx], :]
         self.y_min = y[[self.y_min_idx]]
 
