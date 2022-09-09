@@ -1,13 +1,9 @@
 ### VisualStudioCode ###
 .vscode/*   
 **/.DS_Store
-results/tests/*
 results/*
-visualizations/figures/*
-visualizations/tables/*
 cluster
 #**/TODO.txt
-**/result*/*
 **/*.pdf
 **/*.zip
 **/*.sh

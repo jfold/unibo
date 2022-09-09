@@ -11,7 +11,7 @@ class Loader(object):
         settings: Dict[str, str] = {},
         update: bool = True,
     ):
-        self.loadpths = [f"{loadpth}{x}" for x in os.listdir(loadpth)]
+        self.loadpths = [f"{loadpth}{x}/" for x in os.listdir(loadpth)]
         self.settings = settings
         if update:
             self.load_data()
@@ -92,57 +92,6 @@ class Loader(object):
             "bo",
         ]
 
-    def peak_data(self):
-        self.data_settings = {}
-        self.data_summary = {k: [] for k in self.check_params}
-        for i_e, experiment in enumerate(p for p in self.loadpths):
-            if (
-                os.path.isdir(experiment)
-                and os.path.isfile(f"{experiment}parameters.json")
-                and os.path.isfile(f"{experiment}metrics.json")
-                and os.path.isfile(f"{experiment}dataset.json")
-            ):
-                with open(f"{experiment}parameters.json") as json_file:
-                    parameters = json.load(json_file)
-                if not self.settings.items() <= parameters.items() or not all(
-                    param in parameters for param in self.check_params
-                ):
-                    continue
-                self.data_settings.update(
-                    {experiment: {k: parameters[k] for k in self.check_params}}
-                )
-
-                for k in self.check_params:
-                    if k in parameters.keys():
-                        lst = self.data_summary[k]
-                        lst.append(parameters[k])
-                        self.data_summary.update({k: lst})
-
-    def init_data_object(self):
-        self.values = []
-        self.dims = []
-        self.names = []
-        for key, val in self.data_summary.items():
-            if len(val) > 0:
-                self.values.append(sorted(set(val)))
-                self.dims.append(len(self.values[-1]))
-                self.names.append(key)
-
-        self.values.append(
-            list(range(1 + int(np.max(self.values[self.names.index("n_evals")]))))
-        )
-        self.dims.append(len(self.values[-1]))
-        self.names.append("epoch")
-
-        self.values.append(list(self.metric_dict.keys()))
-        self.dims.append(len(self.values[-1]))
-        self.names.append("metric")
-        self.loader_summary = {
-            self.names[i]: {"d": self.dims[i], "axis": i, "vals": self.values[i]}
-            for i in range(len(self.values))
-        }
-        self.data = np.full(tuple(self.dims), np.nan)
-
     def load_data(self, save: bool = True):
         self.load_metric_dict()
         self.define_check_params()
@@ -180,8 +129,6 @@ class Loader(object):
                 elif "uct-" in metric and uct_scores is not None:
                     entries = metric.split("-")
                     self.data[tuple(data_idx)] = uct_scores[entries[1]][entries[2]]
-                # elif metric == "true_regret":
-                #     self.data[tuple(data_idx)] = true_regrets[-1]
 
             # Running over epochs
             files_in_path = [
@@ -212,12 +159,6 @@ class Loader(object):
                         self.data[tuple(data_idx)] = uct_scores_epoch_i[entries[1]][
                             entries[2]
                         ]
-                    # elif metric == "true_regret":
-                    #     self.data[tuple(data_idx)] = true_regrets[data_idx[-2]]
-                    elif metric == "mahalanobis_dist":
-                        self.data[tuple(data_idx)] = mahalanobis_dists[data_idx[-2]]
-                    elif metric == "running_inner_product":
-                        self.data[tuple(data_idx)] = running_inner_product[data_idx[-2]]
 
         if save:
             with open(os.getcwd() + "/results/metrics.pkl", "wb") as pkl:
@@ -288,3 +229,61 @@ class Loader(object):
         with open(f"{self.savepth_tables}/{name}.tex", "w") as file:
             file.write(df.to_latex(escape=False))
         file.close()
+
+    def peak_data(self):
+        self.data_settings = {}
+        self.experiments_summary = {k: [] for k in self.check_params}
+        for loadpth in self.loadpths:
+            if (
+                os.path.isdir(loadpth)
+                and os.path.isfile(f"{loadpth}parameters.json")
+                and os.path.isfile(f"{loadpth}metrics.json")
+                and os.path.isfile(f"{loadpth}dataset.json")
+            ):
+                with open(f"{loadpth}parameters.json") as json_file:
+                    parameters = json.load(json_file)
+                if not self.settings.items() <= parameters.items() or not all(
+                    param in parameters for param in self.check_params
+                ):
+                    continue
+                self.data_settings.update(
+                    {loadpth: {k: parameters[k] for k in self.check_params}}
+                )
+
+                for k in self.check_params:
+                    if k in parameters.keys():
+                        lst = self.experiments_summary[k]
+                        if parameters[k] not in lst:
+                            lst.append(parameters[k])
+                            self.experiments_summary.update({k: lst})
+
+                # sort
+                self.values = []
+                self.dims = []
+                self.names = []
+                for key, val in self.experiments_summary.items():
+                    if len(val) > 0:
+                        lst = sorted(val)
+                        self.experiments_summary.update({key: lst})
+                        self.values.append(sorted(set(val)))
+                        self.dims.append(len(self.values[-1]))
+                        self.names.append(key)
+                    else:
+                        raise ValueError(f"Key {key} empty!")
+        print(self.experiments_summary)
+
+    def init_data_object(self):
+        self.values.append(
+            list(range(1 + int(np.max(self.values[self.names.index("n_evals")]))))
+        )
+        self.dims.append(len(self.values[-1]))
+        self.names.append("epoch")
+
+        self.values.append(list(self.metric_dict.keys()))
+        self.dims.append(len(self.values[-1]))
+        self.names.append("metric")
+        self.loader_summary = {
+            self.names[i]: {"d": self.dims[i], "axis": i, "vals": self.values[i]}
+            for i in range(len(self.values))
+        }
+        self.data = np.full(tuple(self.dims), np.nan)
