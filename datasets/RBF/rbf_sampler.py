@@ -50,12 +50,15 @@ class RBFSampler(object):
             self.X_mean = np.mean(X, axis=0)
             self.X_std = np.std(X, axis=0)
             self.f_mean = np.mean(f)
-            self.f_std = np.std(f)
-            # Compute noise levels w.r.t. SNR
-            self.signal_std = self.f_std
-            self.noise_std = np.sqrt(self.signal_std ** 2 / self.params.snr)
+
+        # Standardize
+        X = (X - self.X_mean) / self.X_std
+        f = (f - self.f_mean) / np.max(np.abs(f))  # (f - self.f_mean) / self.f_std
 
         ## Noisify output with gaussian additive
+        self.f_std = np.std(f)
+        self.signal_std = self.f_std
+        self.noise_std = np.sqrt(self.signal_std ** 2 / self.params.snr)
         noise = np.random.normal(loc=0, scale=self.noise_std, size=f.shape)
         y = f + noise
 
@@ -63,6 +66,8 @@ class RBFSampler(object):
             self.ne_true = -norm.entropy(loc=0, scale=self.noise_std)
             self.y_mean = np.mean(y)
             self.y_std = np.std(y)
+
+        # y = (y - self.y_mean) / np.max(np.abs(f))  # (y - self.y_mean) / self.y_std
 
         # Find true glob. min
         self.f_min_idx = int(np.argmin(f))
@@ -73,11 +78,6 @@ class RBFSampler(object):
         self.y_min_idx = int(np.argmin(y))
         self.y_min_loc = X[[self.y_min_idx], :]
         self.y_min = y[[self.y_min_idx]]
-
-        # Standardize
-        X = (X - self.X_mean) / self.X_std
-        f = f / np.max(np.abs(f))  # (f - self.f_mean) / self.f_std
-        y = y / np.max(np.abs(y))  # (y - self.y_mean) / self.y_std
 
         return X, y, f
 

@@ -80,6 +80,9 @@ class Benchmark(object):
             self.signal_std = np.std(f)
             self.noise_std = np.sqrt(self.signal_std ** 2 / self.snr)
 
+        X = (X - self.X_mean) / self.X_std
+        f = (f - self.f_mean) / np.max(np.abs(f))  # (f - self.f_mean) / self.f_std
+
         noise = np.random.normal(loc=0, scale=self.noise_std, size=f.shape)
         y = f + noise
 
@@ -88,9 +91,7 @@ class Benchmark(object):
             self.y_mean = np.mean(y)
             self.y_std = np.std(y)
 
-        X = (X - self.X_mean) / self.X_std
-        f = f / np.max(np.abs(f))  # (f - self.f_mean) / self.f_std
-        y = y / np.max(np.abs(y))  # (y - self.y_mean) / self.y_std
+        # y = (y - self.y_mean) / np.max(np.abs(f))  # (y - self.y_mean) / self.y_std
 
         return X, y[:, np.newaxis], f[:, np.newaxis]
 
