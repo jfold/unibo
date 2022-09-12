@@ -41,13 +41,13 @@ class Experiment(object):
 
                 # BO iteration
                 x_next, acq_val, i_choice = self.optimizer.bo_iter(
-                    self.dataset, return_idx=True
-                )  # , X_test=self.dataset.data.X_test
+                    self.dataset, X_test=self.dataset.data.X_test, return_idx=True
+                )
                 y_next = self.dataset.data.y_test[[i_choice]]
                 f_next = self.dataset.data.f_test[[i_choice]]
 
                 # Add to dataset
-                self.dataset.add_data(x_next, y_next, f_next)
+                self.dataset.add_data(x_next, y_next, f_next, i_choice)
 
                 # Update dataset
                 self.dataset.update_solution()

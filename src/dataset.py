@@ -24,9 +24,9 @@ class Dataset(object):
             "noise_std": float(self.data.noise_std),
             "x_ubs": self.data.x_ubs.tolist(),
             "x_lbs": self.data.x_lbs.tolist(),
-            # "X_test": self.data.X_test.tolist(),
-            # "f_test": self.data.f_test.tolist(),
-            # "y_test": self.data.y_test.tolist(),
+            "X_test": self.data.X_test.tolist(),
+            "f_test": self.data.f_test.tolist(),
+            "y_test": self.data.y_test.tolist(),
             "X_train": self.data.X_train.tolist(),
             "f_train": self.data.f_train.tolist(),
             "y_train": self.data.y_train.tolist(),
@@ -76,11 +76,16 @@ class Dataset(object):
         x_new: np.ndarray,
         y_new: np.ndarray,
         f_new: np.ndarray,
+        i_choice: int = None,
         acq_val: np.ndarray = None,
     ) -> None:
         self.data.X_train = np.append(self.data.X_train, x_new, axis=0)
         self.data.y_train = np.append(self.data.y_train, y_new, axis=0)
         self.data.f_train = np.append(self.data.f_train, f_new, axis=0)
+        if i_choice is not None:
+            self.data.X_test = np.delete(self.data.X_test, i_choice, axis=0)
+            self.data.f_test = np.delete(self.data.f_test, i_choice, axis=0)
+            self.data.y_test = np.delete(self.data.y_test, i_choice, axis=0)
         self.actual_improvement = y_new - self.y_opt if self.bo else None
         self.expected_improvement = acq_val
         self.update_solution()

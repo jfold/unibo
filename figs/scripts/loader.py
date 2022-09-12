@@ -47,6 +47,8 @@ class Loader(object):
             "nmse": ["nMSE", -1, [0, 2], r"nMSE"],
             "elpd": ["ELPD", 1, [-5, 5], r"ELPD"],
             "mean_sharpness": ["Sharpness", 1, [-5, 5], r"$ \mathcal{S}$"],
+            "sharpness_abs_error": ["Sharpness Error", 1, [], r"$ \mathcal{S}_e$"],
+            "bias_mse": ["Bias", 1, [], r"$ \mathcal{S}$"],
             "x_opt_mean_dist": [
                 "Solution mean distance",
                 -1,
@@ -56,7 +58,6 @@ class Loader(object):
             "regret": ["Regret", -1, [], r"$ \mathcal{R}$"],
             "true_regret": ["true_regret", -1, [], r"$ \mathcal{R}_t$"],
             "mahalanobis_dist": ["mahalanobis_dist", -1, [], r"$ D_M$"],
-            # "running_inner_product": ["running_inner_product", -1, [], r"$ RC$"],
             "y_calibration_mse": [
                 "Calibration MSE",
                 -1,
@@ -82,6 +83,7 @@ class Loader(object):
             "seed",
             "d",
             "n_test",
+            "snr",
             "n_initial",
             "n_evals",
             "problem",
@@ -270,7 +272,6 @@ class Loader(object):
                         self.names.append(key)
                     else:
                         raise ValueError(f"Key {key} empty!")
-        print(self.experiments_summary)
 
     def init_data_object(self):
         self.values.append(
@@ -287,3 +288,4 @@ class Loader(object):
             for i in range(len(self.values))
         }
         self.data = np.full(tuple(self.dims), np.nan)
+

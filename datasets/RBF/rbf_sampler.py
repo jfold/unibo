@@ -21,16 +21,20 @@ class RBFSampler(object):
         self.f_min_idx = None
         self.y_min_loc = None
         self.ne_true = None
-        self.sample_testset_and_compute_data_stats()
-        self.X_train, self.y_train, self.f_train = self.sample_data(
-            parameters.n_initial
-        )
+        self.sample_dataset_and_compute_data_stats()
 
-    def sample_testset_and_compute_data_stats(self, n_samples: int = 3000) -> None:
+    def sample_dataset_and_compute_data_stats(self, n_samples: int = 3000) -> None:
+        np.random.seed(self.params.seed)
         self.sample_data(n_samples=n_samples, first_time=True)
+        np.random.seed(self.params.seed)
         self.X_test, self.y_test, self.f_test = self.sample_data(
             n_samples=self.params.n_test
         )
+        ## Sample random initial training points
+        idxs = np.random.choice(list(range(self.params.n_test)), self.params.n_initial)
+        self.X_train = self.X_test[tuple(idxs), :]
+        self.f_train = self.f_test[tuple([idxs])]
+        self.y_train = self.y_test[tuple([idxs])]
 
     def sample_data(self, n_samples: int = 1, first_time: bool = False):
         ## Make d-dimensional index set (GP input)
@@ -74,12 +78,6 @@ class RBFSampler(object):
         X = (X - self.X_mean) / self.X_std
         f = f / np.max(np.abs(f))  # (f - self.f_mean) / self.f_std
         y = y / np.max(np.abs(y))  # (y - self.y_mean) / self.y_std
-
-        # ## Sample random initial training points
-        # idxs = np.random.choice(list(range(self.params.n_test)), self.params.n_initial)
-        # self.X_train = self.X_test[idxs, :]
-        # self.f_train = self.f_test[[idxs]]
-        # self.y_train = self.y_test[[idxs]]
 
         return X, y, f
 
