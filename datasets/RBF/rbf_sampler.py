@@ -14,7 +14,7 @@ class RBFSampler(object):
         self.gp = GaussianProcessRegressor(kernel=self.kernel)
         self.problem_idx = parameters.problem_idx + 1
         self.x_ubs = np.ones(self.params.d)
-        self.x_lbs = np.zeros(self.params.d)
+        self.x_lbs = -np.ones(self.params.d)
         self.X_mean = None
         self.f_mean = None
         self.y_mean = None
@@ -71,14 +71,9 @@ class RBFSampler(object):
         self.y_min = y[[self.y_min_idx]]
 
         # Standardize
-        if (
-            self.X_mean is not None
-            and self.f_mean is not None
-            and self.y_mean is not None
-        ):
-            X = (X - self.X_mean) / self.X_std
-            f = (f - self.f_mean) / self.f_std
-            y = (y - self.y_mean) / self.y_std
+        X = (X - self.X_mean) / self.X_std
+        f = f / np.max(np.abs(f))  # (f - self.f_mean) / self.f_std
+        y = y / np.max(np.abs(y))  # (y - self.y_mean) / self.y_std
 
         # ## Sample random initial training points
         # idxs = np.random.choice(list(range(self.params.n_test)), self.params.n_initial)

@@ -88,14 +88,9 @@ class Benchmark(object):
             self.y_mean = np.mean(y)
             self.y_std = np.std(y)
 
-        if (
-            self.X_mean is not None
-            and self.f_mean is not None
-            and self.y_mean is not None
-        ):
-            X = (X - self.X_mean) / self.X_std
-            f = (f - self.f_mean) / self.f_std
-            y = (y - self.y_mean) / self.y_std
+        X = (X - self.X_mean) / self.X_std
+        f = f / np.max(np.abs(f))  # (f - self.f_mean) / self.f_std
+        y = y / np.max(np.abs(y))  # (y - self.y_mean) / self.y_std
 
         return X, y[:, np.newaxis], f[:, np.newaxis]
 
