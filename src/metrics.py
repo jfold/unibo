@@ -197,14 +197,17 @@ class Metrics(object):
     def regret(self, dataset: Dataset) -> None:
         y_regret = np.abs(dataset.data.y_min - dataset.y_opt)
         f_regret = np.abs(dataset.data.f_min - dataset.f_opt)
-        self.summary.update({"y_regret": y_regret, "f_regret": f_regret})
+        self.summary.update(
+            {"y_regret": y_regret.squeeze(), "f_regret": f_regret.squeeze()}
+        )
 
     def glob_min_dist(self, dataset: Dataset) -> None:
-        squared_error = (dataset.X_opt - np.array(dataset.data.y_min_loc)) ** 2
+        y_squared_error = (dataset.X_y_opt - np.array(dataset.data.y_min_loc)) ** 2
+        f_squared_error = (dataset.X_f_opt - np.array(dataset.data.f_min_loc)) ** 2
         self.summary.update(
             {
-                "x_opt_dist": np.sqrt(np.sum(squared_error)),
-                "x_opt_mean_dist": np.mean(squared_error),
+                "x_y_opt_dist": np.sqrt(np.sum(y_squared_error)),
+                "x_f_opt_dist": np.sqrt(np.sum(f_squared_error)),
             }
         )
 

@@ -50,8 +50,15 @@ class Dataset(object):
             else np.argmin(self.data.y_train)
         )
         self.y_opt = self.data.y_train[[self.opt_idx], :]
-        self.X_opt = self.data.X_train[[self.opt_idx], :]
+        self.X_y_opt = self.data.X_train[[self.opt_idx], :]
+
+        self.opt_idx = (
+            np.argmax(self.data.f_train)
+            if self.maximization
+            else np.argmin(self.data.f_train)
+        )
         self.f_opt = self.data.f_train[[self.opt_idx], :]
+        self.X_f_opt = self.data.X_train[[self.opt_idx], :]
 
         self.summary.update(
             {
@@ -59,7 +66,8 @@ class Dataset(object):
                 "X_train": self.data.X_train.tolist(),
                 "y_train": self.data.y_train.tolist(),
                 "opt_idx": int(self.opt_idx),
-                "X_opt": self.X_opt.tolist(),
+                "X_y_opt": self.X_y_opt.tolist(),
+                "X_f_opt": self.X_f_opt.tolist(),
                 "y_opt": self.y_opt.tolist(),
             }
         )
