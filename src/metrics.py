@@ -195,10 +195,9 @@ class Metrics(object):
         self.summary.update({"mse": mse, "nmse": nmse})
 
     def regret(self, dataset: Dataset) -> None:
-        y_solution = dataset.data.f_max if self.maximization else dataset.data.f_min
-        y_opt = dataset.y_opt
-        regret = np.abs(y_opt - y_solution)
-        self.summary.update({"regret": np.sum(regret)})
+        y_regret = np.abs(dataset.data.y_min - dataset.y_opt)
+        f_regret = np.abs(dataset.data.f_min - dataset.f_opt)
+        self.summary.update({"y_regret": y_regret, "f_regret": f_regret})
 
     def glob_min_dist(self, dataset: Dataset) -> None:
         squared_error = (dataset.X_opt - np.array(dataset.data.y_min_loc)) ** 2
