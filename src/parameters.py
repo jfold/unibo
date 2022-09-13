@@ -25,7 +25,7 @@ class Parameters:
     fully_bayes: bool = False  # if fully bayes in BO rutine (marginalize hyperparams)
     prob_acq: bool = False  # if acqusition function should sample like a prob dist. If False, argmax is used.
     std_change: float = 2.0  # how to manipulate predictive std
-    snr: float = 1000.0
+    snr: float = 100.0
     sigma_data: float = None  # follows from problem
     sigma_noise: float = None  # computed as function of SNR and sigma_data
     noisify: bool = True
