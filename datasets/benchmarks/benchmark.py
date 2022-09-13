@@ -17,6 +17,7 @@ class Benchmark(object):
         self.noisify = parameters.noisify
         self.snr = parameters.snr
         self.n_test = parameters.n_test
+        self.n_initial = parameters.n_initial
         np.random.seed(self.seed)
         self.benchmarks = test_funcs
         all_problems = inspect.getmembers(self.benchmarks)
@@ -38,27 +39,44 @@ class Benchmark(object):
         self.problem = getattr(self.benchmarks, parameters.problem)(dim=self.d)
         self.x_lbs = np.array([b[0] for b in self.problem.bounds])
         self.x_ubs = np.array([b[1] for b in self.problem.bounds])
-        self.X_mean = None
-        self.f_mean = None
-        self.y_mean = None
-        self.f_min_idx = np.nan
-        self.y_min_idx = np.nan
-        self.ne_true = None
-        self.y_max = np.maximum(np.abs(self.problem.fmax), np.abs(self.problem.fmin))
+
+        self.sample_initial_dataset()
+
+    def sample_initial_dataset(self, n_samples: int = 3000) -> None:
+        _ = self.sample_data(n_samples=n_samples, first_time=True)
+        self.X_test, self.y_test, self.f_test = self.sample_data(n_samples=self.n_test)
+        idxs = np.random.choice(list(range(self.n_test)), self.n_initial)
+        self.X_train = self.X_test[tuple(idxs), :]
+        self.f_train = self.f_test[tuple([idxs])]
+        self.y_train = self.y_test[tuple([idxs])]
+
+    def compute_set_properties(self, X: np.ndarray, f: np.ndarray) -> None:
         self.f_max = self.problem.fmax
         self.f_min = self.problem.fmin
-        self.y_min = self.f_min
         self.f_min_loc = np.array([self.problem.min_loc])
-        self.y_min_loc = self.f_min_loc
-        self.sample_testset_and_compute_data_stats()
-        self.X_train, self.y_train, self.f_train = self.sample_data(
-            parameters.n_initial
-        )
+        self.f_min_idx = np.nan
+        self.y_min_idx = np.nan
 
-    def sample_testset_and_compute_data_stats(self, n_samples: int = 3000) -> None:
+        self.X_mean = np.mean(X, axis=0)
+        self.X_std = np.std(X, axis=0)
+        self.f_mean = np.mean(f)
+        self.f_std = np.std(f)
+        self.signal_std = np.std(f)
+        self.noise_std = np.sqrt(self.signal_std ** 2 / self.snr)
+        self.ne_true = -norm.entropy(loc=0, scale=self.noise_std)
+        self.y_mean = self.f_mean
+        self.y_std = np.sqrt(self.f_std ** 2 + self.noise_std ** 2)
 
-        self.sample_data(n_samples=n_samples, first_time=True)
-        self.X_test, self.y_test, self.f_test = self.sample_data(n_samples=self.n_test)
+        self.f_max = (self.f_max - self.f_mean) / self.f_std
+        self.f_min = (self.f_min - self.f_mean) / self.f_std
+
+    def standardize(
+        self, X: np.ndarray, y: np.ndarray, f: np.ndarray
+    ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+        X = (X - self.X_mean) / self.X_std  # (f - self.X_mean) / np.max(np.abs(X))  #
+        f = (f - self.f_mean) / self.f_std  # (f - self.f_mean) / np.max(np.abs(f))  #
+        y = (y - self.y_mean) / self.y_std  # (f - self.f_mean) / np.max(np.abs(f))  #
+        return X, y, f
 
     def sample_data(
         self, n_samples: int = 1, first_time: bool = False
@@ -73,54 +91,19 @@ class Benchmark(object):
         f = np.array(f)
 
         if first_time:
-            self.X_mean = np.mean(X, axis=0)
-            self.X_std = np.std(X, axis=0)
-            self.f_mean = np.mean(f)
-            self.f_std = np.std(f)
-            self.signal_std = np.std(f)
-            self.noise_std = np.sqrt(self.signal_std ** 2 / self.snr)
-
-        X = (X - self.X_mean) / self.X_std
-        f = (f - self.f_mean) / np.max(np.abs(f))  # (f - self.f_mean) / self.f_std
+            self.compute_set_properties(X, f)
 
         noise = np.random.normal(loc=0, scale=self.noise_std, size=f.shape)
         y = f + noise
 
         if first_time:
-            self.ne_true = -norm.entropy(loc=0, scale=self.noise_std)
-            self.y_mean = np.mean(y)
-            self.y_std = np.std(y)
+            self.y_min_loc = np.argmin(y)
+            self.y_min = y[self.y_min_loc]
+            self.y_max = np.max(y)
 
-        # y = (y - self.y_mean) / np.max(np.abs(f))  # (y - self.y_mean) / self.y_std
+        X, y, f = self.standardize(X, y, f)
 
         return X, y[:, np.newaxis], f[:, np.newaxis]
-
-    # def sample_X(self, n_samples: int = 1) -> np.ndarray:
-    #     X = np.random.uniform(low=self.x_lbs, high=self.x_ubs, size=(n_samples, self.d))
-    #     if self.X_mean is not None:
-    #         # Standardize
-    #         X = (X - self.X_mean) / self.X_std
-
-    #     return X
-
-    # def get_y(self, X: np.ndarray, add_noise: bool = True) -> np.ndarray:
-    #     f = []
-    #     for x in X:
-    #         f.append(self.problem.evaluate(x))
-    #     f = np.array(f)
-
-    #     if self.f_mean is not None:
-    #         f = (f - self.f_mean) / self.f_std
-
-    #     if self.noisify and add_noise:
-    #         noise = np.random.normal(loc=0, scale=self.noise_std, size=f.shape)
-    #         y = f + noise
-
-    #         if self.y_mean is not None:
-    #             y = y / self.noise_std
-    #         return y[:, np.newaxis]
-
-    #     return f
 
     def __str__(self):
         return str(self.problem)
