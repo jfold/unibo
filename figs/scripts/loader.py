@@ -55,7 +55,8 @@ class Loader(object):
                 [],
                 r"$ \mathbb{E}[|| \mathbf{x}_o - \mathbf{x}_s ||_2] $",
             ],
-            "regret": ["Regret", -1, [], r"$ \mathcal{R}$"],
+            "y_regret": ["Regret on y", -1, [], r"$ \mathcal{R}_y$"],
+            "f_regret": ["Regret on f", -1, [], r"$ \mathcal{R}_f$"],
             "true_regret": ["true_regret", -1, [], r"$ \mathcal{R}_t$"],
             "mahalanobis_dist": ["mahalanobis_dist", -1, [], r"$ D_M$"],
             "y_calibration_mse": [

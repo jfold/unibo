@@ -71,9 +71,3 @@ class DummySurrogate(BatchedMultiOutputGPyTorchModel):
 
         return np.array(mean_x)[:, np.newaxis], np.array(var_x)[:, np.newaxis]
 
-    def calculate_y_std(self, X: np.ndarray) -> np.ndarray:
-        predictions = None
-        sigma_predictive = np.nanstd(predictions, axis=0)
-        if self.change_std:
-            sigma_predictive *= self.std_change
-        return sigma_predictive
