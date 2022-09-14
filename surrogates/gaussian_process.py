@@ -25,7 +25,6 @@ class GaussianProcess(object):
     ):
         self.name = name
         self.gp_kernel = parameters.gp_kernel
-        self.change_std = parameters.change_std
         self.std_change = parameters.std_change
         self.opt_hyp_pars = opt_hyp_pars
         self.kernel = ScaleKernel(
@@ -106,60 +105,7 @@ class GaussianProcess(object):
             if sigma_predictive.ndim == 1
             else sigma_predictive
         )
-        if self.change_std:
+        if self.std_change != 1.0:
             sigma_predictive *= self.std_change
         return mu_predictive, sigma_predictive
 
-
-# class GaussianProcess(BatchedMultiOutputGPyTorchModel):
-#     """Gaussian process wrapper surrogate class. """
-
-#     def __init__(
-#         self,
-#         parameters: Parameters,
-#         dataset: Dataset,
-#         name: str = "GP",
-#         opt_hyp_pars: bool = True,
-#     ):
-#         self.name = name
-#         self.gp_kernel = parameters.gp_kernel
-#         self.change_std = parameters.change_std
-#         self.std_change = parameters.std_change
-#         self.opt_hyp_pars = opt_hyp_pars
-#         # torch stuff ...
-#         self._modules = {}
-#         self._backward_hooks = {}
-#         self._forward_hooks = {}
-#         self._forward_pre_hooks = {}
-#         self._set_dimensions(train_X=dataset.data.X_train, train_Y=dataset.data.y_train)
-#         self.fit(parameters, dataset)
-
-#     def fit(self, parameters, dataset):
-#         np.random.seed(parameters.seed)
-#         self.model = GaussianProcessRegressor(
-#             kernel=1.0 * RBF(length_scale_bounds=(0.001, 10))
-#             + WhiteKernel(noise_level_bounds=(0.0001, 10))
-#         )
-#         self.model.fit(dataset.data.X_train, dataset.data.y_train)
-
-#     def predict(
-#         self, X_test: np.ndarray, stabilizer: float = 1e-8
-#     ) -> Tuple[np.ndarray, np.ndarray]:
-#         """Calculates mean (prediction) and variance (uncertainty)"""
-#         X_test = (
-#             X_test.cpu().detach().numpy().squeeze()
-#             if torch.is_tensor(X_test)
-#             else X_test.squeeze()
-#         )
-#         X_test = X_test[:, np.newaxis] if X_test.ndim == 1 else X_test
-#         mu_predictive, sigma_predictive = self.model.predict(X_test, return_std=True)
-#         sigma_predictive = sigma_predictive + stabilizer
-#         if self.change_std:
-#             sigma_predictive *= self.std_change
-#         return mu_predictive, sigma_predictive
-
-#     def forward(self, x: Tensor) -> MultivariateNormal:
-#         mean_x, covar_x = self.predict(x)
-#         mean_x = torch.tensor(mean_x.squeeze())
-#         covar_x = torch.tensor(np.diag(covar_x.squeeze()))
-#         return MultivariateNormal(mean_x, covar_x)

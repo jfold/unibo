@@ -13,7 +13,6 @@ class BayesianNeuralNetwork(BatchedMultiOutputGPyTorchModel):
         super().__init__()
         self.name = name
         self.d = parameters.d
-        self.change_std = parameters.change_std
         self.std_change = parameters.std_change
         self.model = nn.Sequential(
             bnn.BayesLinear(
@@ -88,6 +87,6 @@ class BayesianNeuralNetwork(BatchedMultiOutputGPyTorchModel):
             else sigma_predictive
         )
 
-        if self.change_std:
+        if self.std_change != 1.0:
             sigma_predictive *= self.std_change
         return mu_predictive, sigma_predictive
