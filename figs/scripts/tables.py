@@ -1,73 +1,17 @@
 from typing import Dict
 from imports.general import *
 from imports.ml import *
-from visualizations.scripts.loader import Loader
+from figs.scripts.loader import Loader
 
 
 class Tables(Loader):
-    def __init__(
-        self,
-        loadpths: list[str] = [],
-        settings: Dict[str, str] = {},
-        update_data: bool = True,
-    ):
-        super(Tables, self).__init__(loadpths, settings, update=update_data)
+    def __init__(self, loader: Loader):
+        self.loader = loader
         self.savepth = (
             os.getcwd()
-            + "/visualizations/tables/"
+            + "/figs/tables/"
             + str.join("-", [f"{key}-{val}-" for key, val in settings.items()])
         )
-
-    def load_raw(self):
-        metrics = [
-            "nmse",
-            "elpd",
-            "y_calibration_mse",
-            "y_calibration_nmse",
-            "mean_sharpness",
-            "x_opt_mean_dist",
-            "x_opt_dist",
-            "regret",
-        ]
-        results = np.full(
-            (len(self.surrogates), len(metrics), len(self.loadpths)), np.nan
-        )
-        for i_s, surrogate in enumerate(self.surrogates):
-            for i_e, experiment in enumerate(
-                [
-                    p
-                    for p in self.loadpths
-                    if p.split("|")[1] == surrogate and "Benchmark" in p
-                ]
-            ):
-                if os.path.isfile(experiment + f"metrics.json") and os.path.isfile(
-                    experiment + "parameters.json"
-                ):
-
-                    with open(experiment + f"metrics.json") as json_file:
-                        metrics = json.load(json_file)
-                    with open(experiment + "parameters.json") as json_file:
-                        parameters = json.load(json_file)
-
-                    if self.settings.items() <= parameters.items():
-                        for i_m, metric in enumerate(metrics):
-                            results[i_s, i_m, i_e] = metrics[metric]
-                else:
-                    print(f"No such file: {experiment}metrics.json")
-
-        self.means = pd.DataFrame(
-            data=np.nanmean(results, axis=-1), index=self.surrogates, columns=metrics
-        )
-        self.stds = pd.DataFrame(
-            data=np.nanstd(results, axis=-1), index=self.surrogates, columns=metrics
-        )
-
-        self.means.to_csv(self.savepth + f"means.csv", float_format="%.2e")
-        self.stds.to_csv(self.savepth + f"stds.csv", float_format="%.2e")
-
-    def generate(self):
-        self.load_raw()
-        self.summary_table()
 
     def rank_regression(
         self,
@@ -217,3 +161,95 @@ class Tables(Loader):
 
     def expected_vs_actual_improv_correlation(self):
         return None
+
+    def to_scientific(self, x):
+        if np.abs(x) < 10 ** (-3):
+            return f"${x:.1E}".replace("E-", "\cdot 10^{-").replace("E+", "10^{") + "}$"
+        else:
+            return f"${x:.3f}$"
+
+    def table_linear_correlation(
+        self,
+        settings: Dict = {"data_name": "benchmark"},
+        ds: list = [1, 5, 10],
+        surrogates: list = ["GP", "RF", "BNN", "DE", "DS"],
+        metrics=["f_regret", "y_calibration_mse"],
+    ):
+        print(
+            " & $\mathcal\{R\}_I(f)$ & $\mathcal{R}(f)$ & $\mathcal{C}_{R}(y)$ & $\mathcal{C}_{BO}(y)$ & \textbf{$\rho$} & \textit{p} \\"
+        )
+        settings_ = dict(settings)
+        for d in ds:
+            plt.figure()
+            for surrogate in surrogates:
+                # Instant regret
+                settings = dict(settings_)
+                settings.update(
+                    {
+                        "d": d,
+                        "bo": True,
+                        "surrogate": surrogate,
+                        "metric": metrics[0],
+                        "epoch": 90,
+                    }
+                )
+                instant_regret = self.loader.extract(settings=settings).flatten()
+
+                # Accumulated regret
+                settings = dict(settings_)
+                settings.update(
+                    {"d": d, "bo": True, "surrogate": surrogate, "metric": metrics[0]}
+                )
+                regret = self.loader.extract(settings=settings)
+                regret = np.nancumsum(regret, axis=self.loader.names.index("epoch"))
+
+                # Calibration (regression)
+                settings = dict(settings_)
+                settings.update(
+                    {
+                        "d": d,
+                        "bo": False,
+                        "surrogate": surrogate,
+                        "metric": metrics[1],
+                        "epoch": 90,
+                    }
+                )
+                calibration = self.loader.extract(settings=settings).flatten()
+
+                # Calibration (BO)
+                settings = dict(settings_)
+                settings.update(
+                    {
+                        "d": d,
+                        "bo": True,
+                        "surrogate": surrogate,
+                        "metric": metrics[1],
+                        "epoch": 90,
+                    }
+                )
+                calibration_bo = self.loader.extract(settings=settings).flatten()
+
+                # Correlation test
+                instant_regret_, calibration_ = self.loader.remove_nans(
+                    instant_regret, calibration
+                )
+                rho, p = pearsonr(instant_regret_, calibration_)
+                plt.plot(instant_regret_, calibration_, ".", label=surrogate)
+
+                # Compute means
+                instant_regret_mean = np.mean(instant_regret_)
+                calibration_mean = np.mean(calibration_)
+                regret_mean = np.nanmean(regret)
+                calibration_bo_mean = np.nanmean(calibration_bo)
+
+                # Make table
+                row = f"{surrogate}({d})&" + self.to_scientific(instant_regret_mean)
+                row += "&" + self.to_scientific(regret_mean)
+                row += "&" + self.to_scientific(calibration_mean)
+                row += "&" + self.to_scientific(calibration_bo_mean)
+                row += "&" + self.to_scientific(rho)
+                row += "&" + self.to_scientific(p)
+                print(row + "\\\\")
+            print("\\hline")
+            plt.xscale("log")
+            plt.legend()

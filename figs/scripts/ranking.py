@@ -69,34 +69,6 @@ class Ranking(Loader):
             self.rankings[idx] = ranking
 
         print("missing:", np.sum(np.isnan(self.rankings)) / self.rankings.size)
-        # raise ValueError()
-        # for problem in self.loader_summary["problem"]["vals"]:
-        #     for dim in self.loader_summary["d"]["vals"]:
-        #         if f"({dim}){problem}" not in all_probs:
-        #             continue
-        #         for seed in self.loader_summary["seed"]["vals"]:
-        #             for change_std in self.loader_summary["change_std"]["vals"]:
-        #                 for metric in self.loader_summary["metric"]["vals"]:
-        #                     settings.update(
-        #                         {
-        #                             "problem": problem,
-        #                             "d": dim,
-        #                             "metric": metric,
-        #                             "change_std": change_std,
-        #                             "seed": seed,
-        #                             "acquisition": "EI",
-        #                         }
-        #                     )
-        #                     data = self.extract(settings=settings)
-        #                     ranking, idx = self.rank(
-        #                         data, settings, rank_axis, self.metric_dict[metric][1]
-        #                     )
-        #                     self.rankings[idx] = ranking
-        #                     ############### When debugging:
-        #                 #     print(metric, self.metric_dict[metric])
-        #                 #     print(data.squeeze()[:, :2])
-        #                 #     print(ranking.squeeze()[:, :2])
-        #                 # raise ValueError()
 
         if save:
             with open(f"{os.getcwd()}/results/rankings-{add_str}-bo.npy", "wb") as f:
@@ -318,7 +290,6 @@ class Ranking(Loader):
                 "bo": False,
                 "epoch": 90,
                 "d": d,
-                "change_std": False,
                 "acquisition": "EI",
             }
             ranking = self.extract(rankings, settings=settings)
