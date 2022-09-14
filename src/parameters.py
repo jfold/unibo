@@ -52,7 +52,7 @@ class Parameters:
             folder_name = f"test{self.experiment}"
         else:
             folder_name = (
-                f"{self.experiment}---{datetime.now().strftime('%d%m%y-%H%M%S')}-"
+                f"{self.experiment}---{datetime.now().strftime('%d%m%y-%H%M%S')}"
                 # + "".join(random.choice(string.ascii_lowercase) for x in range(4))
             )
         setattr(self, "savepth", f"{self.savepth}{folder_name}/")
