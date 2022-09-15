@@ -142,8 +142,9 @@ class Metrics(object):
                 calibrations_intervals[i] = self.calibration_y(
                     mus_, sigmas_, y_, return_mse=True
                 )
-                calibrations[i] = (
-                    np.nansum(counts[: i + 1] / np.sum(counts[: i + 1]))
+                calibrations[i] = np.nansum(
+                    counts[: i + 1]
+                    / np.sum(counts[: i + 1])
                     * calibrations_intervals[: i + 1]
                 )
         #### for debugging:
