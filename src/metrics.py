@@ -142,9 +142,9 @@ class Metrics(object):
                 calibrations_intervals[i] = self.calibration_y(
                     mus_, sigmas_, y_, return_mse=True
                 )
-                calibrations[i] = np.inner(
-                    counts[: i + 1] / np.sum(counts[: i + 1]),
-                    calibrations_intervals[: i + 1],
+                calibrations[i] = (
+                    np.nansum(counts[: i + 1] / np.sum(counts[: i + 1]))
+                    * calibrations_intervals[: i + 1]
                 )
         #### for debugging:
         # plt.scatter(bins[1:], calibrations_intervals, label="Intervals")
@@ -155,9 +155,9 @@ class Metrics(object):
         # raise ValueError()
         self.summary.update(
             {
-                "calibration_local_dists_to_nearest_train_sample": bins[1:],
-                "calibration_local_intervals": calibrations_intervals,
-                "calibration_y_local": calibrations,
+                "calibration_local_dist_to_nearest_train_sample": bins[1:],
+                "calibration_local_y": calibrations_intervals,
+                # "calibration_y_local": calibrations,
             }
         )
 
