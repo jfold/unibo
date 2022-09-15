@@ -7,11 +7,7 @@ from figs.scripts.loader import Loader
 class Tables(Loader):
     def __init__(self, loader: Loader):
         self.loader = loader
-        self.savepth = (
-            os.getcwd()
-            + "/figs/tables/"
-            + str.join("-", [f"{key}-{val}-" for key, val in settings.items()])
-        )
+        self.savepth = os.getcwd() + "/figs/tables/"
 
     def rank_regression(
         self,
@@ -163,21 +159,24 @@ class Tables(Loader):
         return None
 
     def to_scientific(self, x):
-        if np.abs(x) < 10 ** (-3):
-            return f"${x:.1E}".replace("E-", "\cdot 10^{-").replace("E+", "10^{") + "}$"
+        if np.abs(x) < 10 ** (-2):
+            return (
+                f"{x:.1E}".replace("E-0", "E-")
+                .replace("E+0", "E+")
+                .replace("E-", "\cdot 10^{-")
+                .replace("E+", "10^{")
+                + "}"
+            )
         else:
-            return f"${x:.3f}$"
+            return f"{x:.2f}"
 
     def table_linear_correlation(
         self,
         settings: Dict = {"data_name": "benchmark"},
         ds: list = [1, 5, 10],
-        surrogates: list = ["GP", "RF", "BNN", "DE", "DS"],
+        surrogates: list = ["GP", "RF", "BNN", "DE", "RS"],
         metrics=["f_regret", "y_calibration_mse"],
     ):
-        print(
-            " & $\mathcal\{R\}_I(f)$ & $\mathcal{R}(f)$ & $\mathcal{C}_{R}(y)$ & $\mathcal{C}_{BO}(y)$ & \textbf{$\rho$} & \textit{p} \\"
-        )
         settings_ = dict(settings)
         for d in ds:
             plt.figure()
@@ -196,59 +195,99 @@ class Tables(Loader):
                 instant_regret = self.loader.extract(settings=settings).flatten()
 
                 # Accumulated regret
-                settings = dict(settings_)
-                settings.update(
-                    {"d": d, "bo": True, "surrogate": surrogate, "metric": metrics[0]}
-                )
-                regret = self.loader.extract(settings=settings)
-                regret = np.nancumsum(regret, axis=self.loader.names.index("epoch"))
+                # settings = dict(settings_)
+                # settings.update(
+                #     {"d": d, "bo": True, "surrogate": surrogate, "metric": metrics[0]}
+                # )
+                # regret = self.loader.extract(settings=settings)
+                # regret = np.nancumsum(regret, axis=self.loader.names.index("epoch"))
 
-                # Calibration (regression)
-                settings = dict(settings_)
-                settings.update(
-                    {
-                        "d": d,
-                        "bo": False,
-                        "surrogate": surrogate,
-                        "metric": metrics[1],
-                        "epoch": 90,
-                    }
-                )
-                calibration = self.loader.extract(settings=settings).flatten()
+                if surrogate not in ["RS", "DS"]:
+                    # Calibration (regression)
+                    settings = dict(settings_)
+                    settings.update(
+                        {
+                            "d": d,
+                            "bo": False,
+                            "surrogate": surrogate,
+                            "metric": metrics[1],
+                            "epoch": 90,
+                        }
+                    )
+                    calibration = self.loader.extract(settings=settings).flatten()
 
-                # Calibration (BO)
-                settings = dict(settings_)
-                settings.update(
-                    {
-                        "d": d,
-                        "bo": True,
-                        "surrogate": surrogate,
-                        "metric": metrics[1],
-                        "epoch": 90,
-                    }
-                )
-                calibration_bo = self.loader.extract(settings=settings).flatten()
+                    # Calibration (BO)
+                    settings = dict(settings_)
+                    settings.update(
+                        {
+                            "d": d,
+                            "bo": True,
+                            "surrogate": surrogate,
+                            "metric": metrics[1],
+                            "epoch": 90,
+                        }
+                    )
+                    calibration_bo = self.loader.extract(settings=settings).flatten()
 
-                # Correlation test
-                instant_regret_, calibration_ = self.loader.remove_nans(
-                    instant_regret, calibration
-                )
-                rho, p = pearsonr(instant_regret_, calibration_)
-                plt.plot(instant_regret_, calibration_, ".", label=surrogate)
+                    # Correlation test (regression)
+                    instant_regret_, calibration_ = self.loader.remove_nans(
+                        instant_regret, calibration
+                    )
+                    rho_reg, p_reg = pearsonr(instant_regret_, calibration_)
+                    plt.plot(instant_regret_, calibration_, ".", label=surrogate)
 
-                # Compute means
-                instant_regret_mean = np.mean(instant_regret_)
-                calibration_mean = np.mean(calibration_)
-                regret_mean = np.nanmean(regret)
-                calibration_bo_mean = np.nanmean(calibration_bo)
+                    # Correlation test (BO)
+                    instant_regret_, calibration_ = self.loader.remove_nans(
+                        instant_regret, calibration_bo
+                    )
+                    rho_bo, p_bo = pearsonr(instant_regret_, calibration_)
 
                 # Make table
-                row = f"{surrogate}({d})&" + self.to_scientific(instant_regret_mean)
-                row += "&" + self.to_scientific(regret_mean)
-                row += "&" + self.to_scientific(calibration_mean)
-                row += "&" + self.to_scientific(calibration_bo_mean)
-                row += "&" + self.to_scientific(rho)
-                row += "&" + self.to_scientific(p)
+                row = (
+                    f"{surrogate}({d})&$"
+                    + self.to_scientific(np.mean(instant_regret_))
+                    + " (\pm "
+                    + self.to_scientific(np.std(instant_regret_))
+                    + ")$"
+                )
+                if surrogate not in ["RS", "DS"]:
+                    # row += "&"  # + self.to_scientific(np.nanmean(regret)) + "(\pm "+ self.to_scientific(np.std(regret)) + ")"
+                    row += (
+                        "&$"
+                        + self.to_scientific(np.mean(calibration_))
+                        + " (\pm "
+                        + self.to_scientific(np.std(calibration_))
+                        + ")$"
+                    )
+                    row += (
+                        "&$"
+                        + self.to_scientific(np.nanmean(calibration_bo))
+                        + " (\pm "
+                        + self.to_scientific(np.nanstd(calibration_bo))
+                        + ")$"
+                    )
+                    # regression rho
+                    row += "&$" + self.to_scientific(rho_reg)
+                    stars = ""
+                    if p_reg < 0.05:
+                        stars = "^{*}"
+                    if p_reg < 0.001:
+                        stars = "^{**}"
+                    if p_reg < 0.0001:
+                        stars = "^{***}"
+                    row += stars + "$"
+                    # bo rho
+                    row += "&$" + self.to_scientific(rho_bo)
+                    stars = ""
+                    if p_bo < 0.05:
+                        stars = "^{*}"
+                    if p_bo < 0.001:
+                        stars = "^{**}"
+                    if p_bo < 0.0001:
+                        stars = "^{***}"
+                    row += stars + "$"
+                else:
+                    row += "&-&-&-&-"
                 print(row + "\\\\")
             print("\\hline")
             plt.xscale("log")
