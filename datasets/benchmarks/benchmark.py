@@ -42,21 +42,16 @@ class Benchmark(object):
 
         self.sample_initial_dataset()
 
-    def sample_initial_dataset(self, n_samples: int = 3000) -> None:
-        _ = self.sample_data(n_samples=n_samples, first_time=True)
-        self.X_test, self.y_test, self.f_test = self.sample_data(n_samples=self.n_test)
-        idxs = np.random.choice(list(range(self.n_test)), self.n_initial)
-        self.X_train = self.X_test[tuple(idxs), :]
-        self.f_train = self.f_test[tuple([idxs])]
-        self.y_train = self.y_test[tuple([idxs])]
+    def sample_initial_dataset(self) -> None:
+        self.X_test, self.y_test, self.f_test = self.sample_data(
+            n_samples=self.n_test, first_time=True
+        )
+
+        self.X_train, self.y_train, self.f_train = self.sample_data(
+            n_samples=self.n_initial
+        )
 
     def compute_set_properties(self, X: np.ndarray, f: np.ndarray) -> None:
-        self.f_max = self.problem.fmax
-        self.f_min = self.problem.fmin
-        self.f_min_loc = np.array([self.problem.min_loc])
-        self.f_min_idx = np.nan
-        self.y_min_idx = np.nan
-
         self.X_mean = np.mean(X, axis=0)
         self.X_std = np.std(X, axis=0)
         self.f_mean = np.mean(f)
@@ -66,9 +61,6 @@ class Benchmark(object):
         self.ne_true = -norm.entropy(loc=0, scale=self.noise_std)
         self.y_mean = self.f_mean
         self.y_std = np.sqrt(self.f_std ** 2 + self.noise_std ** 2)
-
-        self.f_max = (self.f_max - self.f_mean) / self.f_std
-        self.f_min = (self.f_min - self.f_mean) / self.f_std
 
     def standardize(
         self, X: np.ndarray, y: np.ndarray, f: np.ndarray
@@ -96,12 +88,17 @@ class Benchmark(object):
         noise = np.random.normal(loc=0, scale=self.noise_std, size=f.shape)
         y = f + noise
 
-        if first_time:
-            self.y_min_loc = np.argmin(y)
-            self.y_min = y[self.y_min_loc]
-            self.y_max = np.max(y)
-
         X, y, f = self.standardize(X, y, f)
+
+        if first_time:
+            self.y_min_idx = np.argmin(y)
+            self.y_min_loc = X[self.y_min_idx, :]
+            self.y_min = y[self.y_min_idx]
+            self.y_max = np.max(y)
+            self.f_min_idx = np.argmin(f)
+            self.f_min_loc = X[self.f_min_idx, :]
+            self.f_min = f[self.f_min_idx]
+            self.f_max = np.max(f)
 
         return X, y[:, np.newaxis], f[:, np.newaxis]
 
