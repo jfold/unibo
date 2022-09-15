@@ -54,12 +54,21 @@ class Experiment(object):
 
                 # Update surrogate
                 self.optimizer.fit_surrogate(self.dataset)
+
+                if self.analyze_all_epochs:
+                    self.metrics.analyze(
+                        self.optimizer.surrogate_object,
+                        self.dataset,
+                        save_settings=save_settings,
+                    )
+            self.dataset.save()
+
+            if not self.analyze_all_epochs:
                 self.metrics.analyze(
                     self.optimizer.surrogate_object,
                     self.dataset,
                     save_settings=save_settings,
                 )
-            self.dataset.save()
         else:
             X, y, f = self.dataset.data.sample_data(self.n_evals)
             self.dataset.add_data(X, y, f)
