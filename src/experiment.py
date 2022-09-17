@@ -25,6 +25,11 @@ class Experiment(object):
         )
 
     def run(self) -> None:
+        # No data
+        # self.optimizer.fit_surrogate()
+        # self.metrics.analyze(
+        #     self.optimizer.surrogate_object, self.dataset, save_settings="---prior",
+        # )
         if self.bo:
             # Epoch 0
             self.optimizer.fit_surrogate(self.dataset)
@@ -70,11 +75,24 @@ class Experiment(object):
                     save_settings=save_settings,
                 )
         else:
-            X, y, f = self.dataset.data.sample_data(self.n_evals)
-            self.dataset.add_data(X, y, f)
-            self.optimizer.fit_surrogate(self.dataset)
-            self.metrics.analyze(self.optimizer.surrogate_object, self.dataset)
-            self.dataset.save()
+            if self.analyze_all_epochs:
+                for e in tqdm(range(self.n_evals), leave=False):
+                    save_settings = f"---epoch-{e+1}" if e < self.n_evals - 1 else ""
+                    X, y, f = self.dataset.data.sample_data(n_samples=1)
+                    self.dataset.add_data(X, y, f)
+                    self.optimizer.fit_surrogate(self.dataset)
+                    self.metrics.analyze(
+                        self.optimizer.surrogate_object,
+                        self.dataset,
+                        save_settings=save_settings,
+                    )
+                    self.dataset.save()
+            else:
+                X, y, f = self.dataset.data.sample_data(self.n_evals)
+                self.dataset.add_data(X, y, f)
+                self.optimizer.fit_surrogate(self.dataset)
+                self.metrics.analyze(self.optimizer.surrogate_object, self.dataset)
+                self.dataset.save()
 
 
 if __name__ == "__main__":
