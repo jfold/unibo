@@ -30,6 +30,7 @@ class Parameters:
     noisify: bool = True
     test: bool = True
     analyze_all_epochs: bool = False
+    n_calibration_bins: int = 20
     K: int = 1  # number of terms in sum for VerificationData
     surrogate: str = "RF"  # surrogate function name
     gp_kernel: str = "RBFKernel"  # surrogate function name

@@ -19,6 +19,7 @@ from gpytorch.distributions.multivariate_normal import MultivariateNormal
 from botorch.models.gpytorch import BatchedMultiOutputGPyTorchModel
 import torch.nn as nn
 import torch.optim as optim
+import torch.distributions as tdist
 import torch.nn.functional as F
 import torchbnn as bnn
 import uncertainty_toolbox as uct  # https://github.com/uncertainty-toolbox/uncertainty-toolbox

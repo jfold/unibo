@@ -14,7 +14,8 @@ class Metrics(object):
 
     def __init__(self, parameters: Parameters) -> None:
         self.__dict__.update(asdict(parameters))
-        self.summary = {}
+        self.p_array = np.linspace(0.001, 0.999, self.n_calibration_bins)
+        self.summary = {"p_array": self.p_array}
 
     def sharpness_gaussian(
         self, mus: np.ndarray, sigmas: np.ndarray, ne_true: float = None, name: str = ""
@@ -48,7 +49,7 @@ class Metrics(object):
         )
 
     def sharpness_histogram(
-        self, model: Model, X: np.ndarray, n_bins: int = 50
+        self, model: Model, X: np.ndarray, n_bins: int = 20
     ) -> None:
         """Calculates the sharpness (negative entropy) of the histogram distributions 
         calculated from input X
@@ -64,13 +65,10 @@ class Metrics(object):
                 }
             )
 
-    def calibration_f(
-        self, mus: np.ndarray, sigmas: np.ndarray, f: np.ndarray, n_bins: int = 50,
-    ) -> None:
-        p_array = np.linspace(0.01, 0.99, n_bins)
-        calibrations = np.full((n_bins,), np.nan)
+    def calibration_f(self, mus: np.ndarray, sigmas: np.ndarray, f: np.ndarray) -> None:
+        calibrations = np.full((self.n_calibration_bins,), np.nan)
         assert mus.size == sigmas.size == f.size
-        for i_p, p in enumerate(p_array):
+        for i_p, p in enumerate(self.p_array):
             fractiles = [norm.ppf(0.5 - p / 2, loc=0, scale=sig) for sig in sigmas]
             lb_indicators = mus + fractiles < f
             ub_indicators = f < mus - fractiles
@@ -79,25 +77,86 @@ class Metrics(object):
 
         self.summary.update(
             {
-                "f_p_array": p_array,
                 "f_calibration": calibrations,
-                "f_calibration_mse": np.mean((p_array - calibrations) ** 2),
+                "f_calibration_mse": np.mean((self.p_array - calibrations) ** 2),
             }
         )
+
+    def calibration_f_batched(
+        self, mus: np.ndarray, sigmas: np.ndarray, f: np.ndarray
+    ) -> None:
+        f = np.tile(f, self.n_calibration_bins)
+        p_array_ = np.tile(self.p_array[:, np.newaxis], sigmas.size)
+        norms = tdist.Normal(
+            torch.tensor(np.zeros(sigmas.size)), torch.tensor(sigmas.squeeze())
+        )
+        fractiles = norms.icdf(torch.tensor(0.5 - p_array_ / 2))
+        f_tensor = torch.tensor(f)
+        mus_tensor = torch.tensor(mus.squeeze())
+        calibrations = (
+            torch.mean(
+                (
+                    torch.logical_and(
+                        mus_tensor + fractiles < f_tensor.T,
+                        f_tensor.T < mus_tensor - fractiles,
+                    )
+                ).float(),
+                dim=1,
+            )
+            .cpu()
+            .numpy()
+        )
+
+        self.summary.update(
+            {
+                "f_calibration": calibrations,
+                "f_calibration_mse": np.mean((self.p_array - calibrations) ** 2),
+                "f_calibration_nmse": np.mean((self.p_array - calibrations) ** 2)
+                / np.var(self.p_array),
+            }
+        )
+
+    def calibration_y_batched(
+        self,
+        mus: np.ndarray,
+        sigmas: np.ndarray,
+        y: np.ndarray,
+        return_mse: bool = False,
+    ) -> None:
+        y_ = np.tile(y, self.n_calibration_bins)
+        p_array_ = np.tile(self.p_array[:, np.newaxis], sigmas.size)
+        norms = tdist.Normal(
+            torch.tensor(mus.squeeze()), torch.tensor(sigmas.squeeze())
+        )
+        icdfs = norms.icdf(torch.tensor(p_array_))
+        calibrations = (
+            torch.mean((torch.tensor(y_).T <= icdfs).float(), dim=1).cpu().numpy()
+        )
+
+        if return_mse:
+            return np.nanmean((calibrations - self.p_array) ** 2)
+        else:
+            self.summary.update(
+                {
+                    "y_calibration": calibrations,
+                    "y_calibration_mse": np.nanmean((calibrations - self.p_array) ** 2),
+                    "y_calibration_nmse": np.nanmean((calibrations - self.p_array) ** 2)
+                    / np.var(self.p_array),
+                }
+            )
 
     def calibration_y(
         self,
         mus: np.ndarray,
         sigmas: np.ndarray,
         y: np.ndarray,
-        n_bins: int = 50,
         return_mse: bool = False,
     ) -> None:
         """Calculates the calibration of the target (y).
         ### eq. (3) in "Accurate Uncertainties for Deep Learning Using Calibrated Regression"
         """
-        p_array = np.linspace(0, 1, n_bins)
-        calibrations = np.full((n_bins,), np.nan)
+        p_array = np.linspace(0, 1, self.n_calibration_bins)
+        calibrations = np.full((self.n_calibration_bins,), np.nan)
         for i_p, p in enumerate(p_array):
             indicators = y <= [
                 norm.ppf(p, loc=mu, scale=sig) for mu, sig in zip(mus, sigmas)
@@ -109,7 +168,6 @@ class Metrics(object):
         else:
             self.summary.update(
                 {
-                    "y_p_array": p_array,
                     "y_calibration": calibrations,
                     "y_calibration_mse": np.nanmean((calibrations - p_array) ** 2),
                     "y_calibration_nmse": np.nanmean((calibrations - p_array) ** 2)
@@ -118,7 +176,7 @@ class Metrics(object):
             )
 
     def calibration_y_local(
-        self, dataset: Dataset, mus: np.ndarray, sigmas: np.ndarray, n_bins: int = 50,
+        self, dataset: Dataset, mus: np.ndarray, sigmas: np.ndarray, n_bins: int = 20,
     ) -> None:
         """Calculates the calibration of the target (y).
         # eq. (3) in "Accurate Uncertainties for Deep Learning Using Calibrated Regression"
@@ -132,14 +190,14 @@ class Metrics(object):
         )  # only take radius of nearest training point
         counts, bins = np.histogram(
             pair_dists.flatten(), bins=n_bins
-        )  # get histogram with 50 bins
+        )  # get histogram with n_bins
         calibrations_intervals = np.full((n_bins,), np.nan)
         calibrations = np.full((n_bins,), np.nan)
         for i in range(len(bins) - 1):
             cond = np.logical_and(bins[i] <= pair_dists, pair_dists <= bins[i + 1])
             if np.sum(cond) > 0:
                 mus_, sigmas_, y_ = mus[cond], sigmas[cond], dataset.data.y_test[cond]
-                calibrations_intervals[i] = self.calibration_y(
+                calibrations_intervals[i] = self.calibration_y_batched(
                     mus_, sigmas_, y_, return_mse=True
                 )
                 calibrations[i] = np.nansum(
@@ -212,36 +270,6 @@ class Metrics(object):
             }
         )
 
-    # def calc_true_regret(self, parameters: Dict, dataset: Dict):
-    #     # inferring true regret
-    #     dataobj = Dataset(Parameters(parameters))
-    #     X = np.array(dataset["X"])
-    #     y_clean = dataobj.data.get_y(X, add_noise=False)
-    #     y_clean = np.array([np.min(y_clean[:i]) for i in range(1, len(y_clean) + 1)])
-    #     y_clean = y_clean[dataset["n_initial"] - 1 :]
-    #     true_regrets = np.abs(dataobj.data.f_min - y_clean)
-    #     return true_regrets
-
-    # def calc_running_inner_product(self, dataset: Dataset) -> np.ndarray:
-    #     X = np.array(dataset["X"])
-    #     running_inner_product = np.cumsum(np.diag(X @ X.T)).squeeze()[
-    #         dataset["n_initial"] - 1 :
-    #     ]
-    #     return running_inner_product
-
-    def calc_mahalanobis_dist_to_current_best(self, dataset: Dataset) -> np.ndarray:
-        X = np.array(dataset.X)[: dataset.n_initial, :]
-        y = np.array(dataset.y)[: dataset.n_initial, :]
-        Sigma = np.diag((np.array(dataset.x_ubs) - np.array(dataset.x_lbs)) / 12)
-        idx_opt = np.argmin(y)
-        y_opt = y[[idx_opt], :]
-        X_opt = X[[idx_opt], :].T
-        mahalanobis_dists = [np.nan]
-        cur_y = y[[i], :]
-        cur_X = X[[-1], :].T
-        dist = mahalanobis(cur_X, X_opt, Sigma)
-        self.summary.update({"mahalanobis_dist": dist})
-
     def save(self, save_settings: str = "") -> None:
         final_dict = {k: v.tolist() for k, v in self.summary.items()}
         json_dump = json.dumps(final_dict)
@@ -258,8 +286,8 @@ class Metrics(object):
         if surrogate is not None:
             self.ne_true = dataset.data.ne_true
             mu_test, sigma_test = surrogate.predict(dataset.data.X_test)
-            self.calibration_f(mu_test, sigma_test, dataset.data.f_test)
-            self.calibration_y(mu_test, sigma_test, dataset.data.y_test)
+            self.calibration_f_batched(mu_test, sigma_test, dataset.data.f_test)
+            self.calibration_y_batched(mu_test, sigma_test, dataset.data.y_test)
             self.calibration_y_local(dataset, mu_test, sigma_test)
             self.sharpness_gaussian(
                 mu_test,
