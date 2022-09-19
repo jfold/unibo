@@ -1,11 +1,11 @@
 ### VisualStudioCode ###
 .vscode/*   
 **/.DS_Store
-results/*
 cluster
 #**/TODO.txt
 **/*.pdf
 **/*.zip
+results*/*
 **/*.sh
 **/.DS_Store
 **/__pycache__

@@ -11,6 +11,7 @@ class Loader(object):
         settings: Dict[str, str] = {},
         update: bool = True,
     ):
+        self.loadpth = loadpth
         self.loadpths = [f"{loadpth}{x}/" for x in os.listdir(loadpth)]
         self.settings = settings
         if update:
@@ -36,7 +37,7 @@ class Loader(object):
         )
 
     def load_from_file(self):
-        with open(os.getcwd() + "/results/metrics.pkl", "rb") as pkl:
+        with open(os.getcwd() + f"/{self.loadpth}/metrics.pkl", "rb") as pkl:
             dict = pickle.load(pkl)
         for key, value in dict.items():
             setattr(self, key, value)
@@ -163,7 +164,7 @@ class Loader(object):
                         ]
 
         if save:
-            with open(os.getcwd() + "/results/metrics.pkl", "wb") as pkl:
+            with open(os.getcwd() + f"/{self.loadpth}/metrics.pkl", "wb") as pkl:
                 pickle.dump(self.__dict__, pkl)
 
     def extract(

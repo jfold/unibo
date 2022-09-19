@@ -82,7 +82,7 @@ class Optimizer(object):
         self.construct_acquisition_function(dataset)
 
         if X_test is None:
-            X_test, _ = dataset.sample_testset(self.n_test)
+            X_test, _, _ = dataset.sample_testset(self.n_test)
 
         X_test_torch = torch.from_numpy(np.expand_dims(X_test, 1))
         acquisition_values = (
