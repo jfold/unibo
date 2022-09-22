@@ -6,16 +6,11 @@ from src.parameters import Parameters
 from figs.scripts.loader import Loader
 
 
-class Figures(Loader):
-    def __init__(
-        self,
-        loadpths: list[str] = [],
-        settings: Dict[str, str] = {},
-        update_data: bool = True,
-    ):
-        super(Figures, self).__init__(loadpths, settings, update=update_data)
-        if not self.data_was_loaded:
-            raise ValueError("No data could be loaded")
+class Figures(object):
+    def __init__(self, loader: Loader):
+        self.loader = loader
+        self.scientific_notation = False
+        self.savepth = os.getcwd() + "/figs/pdfs/"
 
     def calibration(self):
         fig = plt.figure()
@@ -408,3 +403,41 @@ class Figures(Loader):
             plt.ylabel("Count")
             fig.savefig(self.savepth + f"sharpness-histogram{name}.pdf")
             plt.close()
+
+    def figure_regret_calibration(
+        self,
+        settings: Dict = {"data_name": "benchmark", "epoch": 90, "snr": 100},
+        settings_x: Dict = {"bo": True, "metric": "f_regret"},
+        settings_y: Dict = {"bo": False, "metric": "y_calibration_mse"},
+        x_figsettings: Dict = {"label": r"$\mathcal{R}_I(f)$", "log": True},
+        y_figsettings: Dict = {"label": r"$\mathcal{C}_{R}(y)$", "log": True},
+        surrogates: list = ["BNN", "DE", "GP", "RF"],
+        markers: list = ["o", "v", "s", "x", "d"],
+    ):
+        colors = plt.cm.plasma(np.linspace(0, 1, len(markers)))
+        loader = self.loader
+        fig = plt.figure()
+        ax = fig.add_subplot(111)
+        for i_s, sur in enumerate(surrogates):
+            x = loader.extract(
+                settings=self.merge_two_dicts(
+                    self.merge_two_dicts(settings, settings_x), {"surrogate": sur}
+                )
+            ).flatten()
+
+            y = loader.extract(
+                settings=self.merge_two_dicts(
+                    self.merge_two_dicts(settings, settings_y), {"surrogate": sur}
+                )
+            ).flatten()
+            ax.plot(x, y, markers[i_s], color=colors[i_s], label=sur)
+
+        if x_figsettings["log"]:
+            ax.set_xscale("log")
+        if y_figsettings["log"]:
+            ax.set_yscale("log")
+        ax.legend()
+        ax.set_xlabel(x_figsettings["label"])
+        ax.set_ylabel(y_figsettings["label"])
+        fig.savefig("./figs/pdfs/r-c-bo.pdf")
+        plt.show()

@@ -70,9 +70,7 @@ class Experiment(object):
 
             if not self.analyze_all_epochs:
                 self.metrics.analyze(
-                    self.optimizer.surrogate_object,
-                    self.dataset,
-                    save_settings=save_settings,
+                    self.optimizer.surrogate_object, self.dataset, save_settings="",
                 )
         else:
             if self.analyze_all_epochs:

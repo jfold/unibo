@@ -23,6 +23,7 @@ import torch.distributions as tdist
 import torch.nn.functional as F
 import torchbnn as bnn
 import uncertainty_toolbox as uct  # https://github.com/uncertainty-toolbox/uncertainty-toolbox
+import statsmodels.api as sm
 
 matplotlib.rcParams["mathtext.fontset"] = "cm"
 matplotlib.rcParams["font.family"] = "STIXGeneral"

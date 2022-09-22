@@ -48,7 +48,12 @@ class Loader(object):
             "nmse": ["nMSE", -1, [0, 2], r"nMSE"],
             "elpd": ["ELPD", 1, [-5, 5], r"ELPD"],
             "mean_sharpness": ["Sharpness", 1, [-5, 5], r"$ \mathcal{S}$"],
-            "sharpness_abs_error": ["Sharpness Error", 1, [], r"$ \mathcal{S}_e$"],
+            "sharpness_error_true_minus_model": [
+                "Sharpness Error",
+                1,
+                [],
+                r"$ \mathcal{S}_e$",
+            ],
             "bias_mse": ["Bias", 1, [], r"$ \mathcal{S}$"],
             "x_opt_mean_dist": [
                 "Solution mean distance",
@@ -59,12 +64,7 @@ class Loader(object):
             "y_regret": ["Regret on y", -1, [], r"$ \mathcal{R}(y)$"],
             "f_regret": ["Regret on f", -1, [], r"$ \mathcal{R}(f)$"],
             "mahalanobis_dist": ["mahalanobis_dist", -1, [], r"$ D_M$"],
-            "y_calibration_mse": [
-                "Calibration MSE",
-                -1,
-                [],
-                r"$ \mathbb{E}[( \mathcal{C}_{\mathbf{y}}(p) - p)^2] $",
-            ],
+            "y_calibration_mse": ["Calibration MSE", -1, [], r"$ \\mathcal{C}(y)$",],
             "uct-accuracy-corr": ["corr", 1, [0, 2], r"Corr"],
             "uct-avg_calibration-rms_cal": ["rms_cal", -1, [], r"RMSCE"],
             "uct-avg_calibration-miscal_area": ["miscal_area", -1, [], r"MA"],
@@ -168,7 +168,10 @@ class Loader(object):
                 pickle.dump(self.__dict__, pkl)
 
     def extract(
-        self, data: np.ndarray = None, settings: Dict[str, list] = {}
+        self,
+        data: np.ndarray = None,
+        settings: Dict[str, list] = {},
+        return_values: bool = False,
     ) -> np.ndarray:
         """Example: 
         >>> extract(settings = {"bo": [True]})
@@ -183,6 +186,7 @@ class Loader(object):
             for k in settings.keys()
         }
         data = self.data if data is None else data
+        values = []
         for k, vals in settings.items():
             bool_arr = np.ones(len(del_idx_dict[k]["idxs"]), dtype=bool)
             vals = vals if type(vals) is list else [vals]
@@ -192,8 +196,13 @@ class Loader(object):
 
             idxs = list(reversed(sorted(np.argwhere(bool_arr.squeeze()).tolist())))
             axis = del_idx_dict[k]["axis"]
+            values_ = self.loader_summary[k]["vals"]
             for idx in idxs:
                 data = np.delete(data, idx, axis=axis)
+                values_ = np.delete(values_, idx)
+            values.append(values_)
+        if return_values:
+            return data, values[-1]
         return data
 
     def remove_nans(
