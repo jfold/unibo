@@ -16,7 +16,7 @@ class Parameters:
     vanilla: bool = False  # simplest implementation (used for test)
     plot_it: bool = False  # whether to plot during BO loop
     save_it: bool = True  # whether to save progress
-    csi: float = 0.0  # exploration parameter for BO
+    xi: float = 0.0  # exploration parameter for BO
     data_name: str = "Benchmark"  # dataclass name
     problem: str = ""  # e.g. "Alpine01" # subproblem name, overwrites problem_idx
     problem_idx: int = 0
@@ -29,10 +29,12 @@ class Parameters:
     sigma_noise: float = None  # computed as function of SNR and sigma_data
     noisify: bool = True
     test: bool = True
+    recalibrate_with_cv: bool = False
+    recalibrate_with_testset: bool = False
     analyze_all_epochs: bool = False
     n_calibration_bins: int = 20
     K: int = 1  # number of terms in sum for VerificationData
-    surrogate: str = "RF"  # surrogate function name
+    surrogate: str = "GP"  # surrogate function name
     gp_kernel: str = "RBFKernel"  # surrogate function name
     acquisition: str = "EI"  # acquisition function name
     savepth: str = os.getcwd() + "/results/"
@@ -47,6 +49,11 @@ class Parameters:
             problem = self.find_benchmark_problem_i()
             kwargs["problem"] = problem
             self.update(kwargs)
+
+        assert not (self.recalibrate_with_testset and self.recalibrate_with_cv)
+        self.analyze_all_epochs = (
+            self.recalibrate_with_testset or self.recalibrate_with_cv
+        )
 
         if mkdir and not os.path.isdir(self.savepth):
             os.mkdir(self.savepth)
