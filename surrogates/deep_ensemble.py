@@ -47,7 +47,7 @@ class DeepEnsemble(BatchedMultiOutputGPyTorchModel):
         self,
         X_train: np.ndarray,
         y_train: np.ndarray,
-        n_epochs: int = 1500,
+        n_epochs: int = 500,
         rand_portion: float = 1.0,
     ):
         n_samples = X_train.shape[0]
@@ -62,7 +62,7 @@ class DeepEnsemble(BatchedMultiOutputGPyTorchModel):
             X_train_torch = torch.tensor(X_train[idxs, :], dtype=torch.float32)
             y_train_torch = torch.tensor(y_train[idxs, :], dtype=torch.float32)
             model = MLP(self.d)
-            self.optimizer = torch.optim.Adam(model.parameters(), lr=1 * 1e-2)
+            self.optimizer = torch.optim.Adam(model.parameters(), lr=4 * 1e-3)
             loss = []
             for _ in range(n_epochs):
                 pre = model(X_train_torch)
