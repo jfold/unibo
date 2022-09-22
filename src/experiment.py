@@ -34,7 +34,7 @@ class Experiment(object):
             # Epoch 0
             self.optimizer.fit_surrogate(self.dataset)
             self.metrics.analyze(
-                self.optimizer.surrogate_object,
+                self.optimizer.surrogate_model,
                 self.dataset,
                 save_settings="---epoch-0",
             )
@@ -62,7 +62,7 @@ class Experiment(object):
 
                 if self.analyze_all_epochs:
                     self.metrics.analyze(
-                        self.optimizer.surrogate_object,
+                        self.optimizer.surrogate_model,
                         self.dataset,
                         save_settings=save_settings,
                     )
@@ -70,7 +70,7 @@ class Experiment(object):
 
             if not self.analyze_all_epochs:
                 self.metrics.analyze(
-                    self.optimizer.surrogate_object, self.dataset, save_settings="",
+                    self.optimizer.surrogate_model, self.dataset, save_settings="",
                 )
         else:
             if self.analyze_all_epochs:
@@ -80,7 +80,7 @@ class Experiment(object):
                     self.dataset.add_data(X, y, f)
                     self.optimizer.fit_surrogate(self.dataset)
                     self.metrics.analyze(
-                        self.optimizer.surrogate_object,
+                        self.optimizer.surrogate_model,
                         self.dataset,
                         save_settings=save_settings,
                     )
@@ -89,7 +89,7 @@ class Experiment(object):
                 X, y, f = self.dataset.data.sample_data(self.n_evals)
                 self.dataset.add_data(X, y, f)
                 self.optimizer.fit_surrogate(self.dataset)
-                self.metrics.analyze(self.optimizer.surrogate_object, self.dataset)
+                self.metrics.analyze(self.optimizer.surrogate_model, self.dataset)
                 self.dataset.save()
 
 
