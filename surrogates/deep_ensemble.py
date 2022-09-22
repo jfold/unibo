@@ -79,7 +79,7 @@ class DeepEnsemble(BatchedMultiOutputGPyTorchModel):
             sigmas.append(np.mean((pre - y_train_torch.cpu().detach().numpy()) ** 2))
 
         self.observation_noise = np.sqrt(np.mean(sigmas))
-        print(loss[-1])
+        # print(loss[-1])
         # plt.figure()
         # plt.plot(loss)
         # plt.show()
