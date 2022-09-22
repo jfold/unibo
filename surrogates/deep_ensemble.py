@@ -9,8 +9,8 @@ from imports.ml import *
 class MLP(nn.Module):
     def __init__(self, input_dim: int, output_dim: int = 1):
         super().__init__()
-        self.input_fc = nn.Linear(input_dim, 50)
-        self.hidden_fc = nn.Linear(50, 10)
+        self.input_fc = nn.Linear(input_dim, 30)
+        self.hidden_fc = nn.Linear(30, 10)
         self.output_fc = nn.Linear(10, output_dim)
 
     def forward(self, x):
@@ -62,9 +62,7 @@ class DeepEnsemble(BatchedMultiOutputGPyTorchModel):
             X_train_torch = torch.tensor(X_train[idxs, :], dtype=torch.float32)
             y_train_torch = torch.tensor(y_train[idxs, :], dtype=torch.float32)
             model = MLP(self.d)
-            self.optimizer = torch.optim.Adam(
-                model.parameters(), lr=1e-2, weight_decay=1e-3
-            )
+            self.optimizer = torch.optim.Adam(model.parameters(), lr=1 * 1e-2)
             loss = []
             for _ in range(n_epochs):
                 pre = model(X_train_torch)
@@ -81,6 +79,7 @@ class DeepEnsemble(BatchedMultiOutputGPyTorchModel):
             sigmas.append(np.mean((pre - y_train_torch.cpu().detach().numpy()) ** 2))
 
         self.observation_noise = np.sqrt(np.mean(sigmas))
+        print(loss[-1])
         # plt.figure()
         # plt.plot(loss)
         # plt.show()
