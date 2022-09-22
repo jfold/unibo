@@ -59,6 +59,8 @@ class RandomForest(BatchedMultiOutputGPyTorchModel):
         #     )
         grid_search = GridSearchCV(
             estimator=RandomForestRegressor(),
+            scoring="r2",
+            error_score="raise",
             param_grid=self.rf_params_grid,
             cv=self.rf_cv_splits,
             n_jobs=-1,
@@ -105,5 +107,5 @@ class RandomForest(BatchedMultiOutputGPyTorchModel):
             width = bins[1] - bins[0]
             p = hist * width
             nentropies.append(-entropy(p))
-        mean_nentropy = np.mean(nentropies)
+        mean_nentropy = np.nanmean(nentropies)
         return np.array(nentropies), mean_nentropy
