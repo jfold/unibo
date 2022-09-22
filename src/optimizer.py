@@ -29,22 +29,16 @@ class Optimizer(object):
 
     def fit_surrogate(self, dataset: Dataset) -> None:
         if self.surrogate == "GP":
-            self.surrogate_object = GaussianProcess(self.parameters, dataset)
-            self.surrogate_model = self.surrogate_object.model
+            self.surrogate_model = GaussianProcess(self.parameters, dataset)
         elif self.surrogate == "RF":
-            self.surrogate_object = RandomForest(self.parameters, dataset)
-            self.surrogate_model = self.surrogate_object
+            self.surrogate_model = RandomForest(self.parameters, dataset)
         elif self.surrogate == "BNN":
-            self.surrogate_object = BayesianNeuralNetwork(self.parameters, dataset)
-            self.surrogate_model = self.surrogate_object
+            self.surrogate_model = BayesianNeuralNetwork(self.parameters, dataset)
         elif self.surrogate == "DE":
-            self.surrogate_object = DeepEnsemble(self.parameters, dataset)
-            self.surrogate_model = self.surrogate_object
+            self.surrogate_model = DeepEnsemble(self.parameters, dataset)
         elif self.surrogate == "DS":
-            self.surrogate_object = DummySurrogate(self.parameters, dataset)
-            self.surrogate_model = self.surrogate_object
+            self.surrogate_model = DummySurrogate(self.parameters, dataset)
         elif self.surrogate == "RS":
-            self.surrogate_object = None
             self.surrogate_model = None
         else:
             raise ValueError(f"Surrogate function {self.surrogate} not supported.")
@@ -60,7 +54,7 @@ class Optimizer(object):
             )
         elif self.acquisition == "UCB":
             self.acquisition_function = UpperConfidenceBound(
-                self.surrogate_model, best_f=y_opt_tensor, maximize=self.maximization
+                self.surrogate_model, beta=1.0, maximize=self.maximization
             )
         elif self.acquisition == "RS":
             self.acquisition_function = RandomSearch()
