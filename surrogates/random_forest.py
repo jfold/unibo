@@ -68,7 +68,7 @@ class RandomForest(BatchedMultiOutputGPyTorchModel):
         ).fit(X_train, y_train.squeeze())
         self.model = grid_search.best_estimator_
         self.loss = grid_search.score(X_train, y_train.squeeze())
-        print(self.loss)
+        # print(self.loss)
 
     def predict(
         self, X_test: Any, stabilizer: float = 1e-8
