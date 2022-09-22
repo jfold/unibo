@@ -59,7 +59,7 @@ class RandomForest(BatchedMultiOutputGPyTorchModel):
         #     )
         grid_search = GridSearchCV(
             estimator=RandomForestRegressor(),
-            scoring="r2",
+            scoring="neg_mean_squared_error",
             error_score="raise",
             param_grid=self.rf_params_grid,
             cv=self.rf_cv_splits,
@@ -67,6 +67,8 @@ class RandomForest(BatchedMultiOutputGPyTorchModel):
             verbose=0,
         ).fit(X_train, y_train.squeeze())
         self.model = grid_search.best_estimator_
+        self.loss = grid_search.score(X_train, y_train.squeeze())
+        print(self.loss)
 
     def predict(
         self, X_test: Any, stabilizer: float = 1e-8
