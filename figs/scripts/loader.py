@@ -36,6 +36,24 @@ class Loader(object):
             + str.join("-", [f"{key}-{val}-" for key, val in settings.items()])
         )
 
+    def p2stars(self, p: float):
+        assert 0.0 <= p <= 1.0
+        stars = ""
+        if p < 0.05:
+            stars = "^{*}"
+        if p < 0.001:
+            stars = "^{**}"
+        if p < 0.0001:
+            stars = "^{***}"
+        if p < 1e-10:
+            stars = "^{****}"
+        return stars
+
+    def merge_two_dicts(self, x, y):
+        z = x.copy()  # start with keys and values of x
+        z.update(y)  # modifies z with keys and values of y
+        return z
+
     def load_from_file(self):
         with open(os.getcwd() + f"/{self.loadpth}/metrics.pkl", "rb") as pkl:
             dict = pickle.load(pkl)
