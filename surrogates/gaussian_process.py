@@ -15,7 +15,7 @@ from gpytorch.priors import *
 from src.metrics import Metrics
 
 
-class GaussianProcess(BatchedMultiOutputGPyTorchModel):
+class GaussianProcessSklearn(BatchedMultiOutputGPyTorchModel):
     """Gaussian process wrapper surrogate class. """
 
     def __init__(
@@ -40,8 +40,7 @@ class GaussianProcess(BatchedMultiOutputGPyTorchModel):
         if self.recalibrate_with_cv or self.recalibrate_with_testset:
             self.metrics = Metrics(parameters)
         self.opt_hyp_pars = opt_hyp_pars
-        self.kernel = 1.0 * RBF(0.1) + WhiteKernel()
-        self.model = GaussianProcessRegressor(kernel=self.kernel)
+        self.kernel = 1.0 * RBF() + WhiteKernel()
         self.fit(parameters, dataset)
 
     def forward(self, x: Tensor) -> MultivariateNormal:
@@ -62,6 +61,7 @@ class GaussianProcess(BatchedMultiOutputGPyTorchModel):
                 torch.tensor(X).double(),
                 torch.tensor(y).double(),
                 covar_module=self.kernel,
+                std_change=self.std_change,
             )
             X_test_torch = torch.from_numpy(x_test)
             posterior = model.posterior(X_test_torch.double(), observation_noise=True)
@@ -116,6 +116,7 @@ class GaussianProcess(BatchedMultiOutputGPyTorchModel):
                     torch.from_numpy(X).double(),
                     torch.from_numpy(y).double(),
                     covar_module=self.kernel,
+                    std_change=self.std_change,
                 )
                 likelihood = ExactMarginalLogLikelihood(model.likelihood, model)
                 if self.opt_hyp_pars:
@@ -144,6 +145,7 @@ class GaussianProcess(BatchedMultiOutputGPyTorchModel):
     def fit(self, parameters, dataset):
 
         np.random.seed(parameters.seed)
+        self.model = GaussianProcessRegressor(kernel=self.kernel)
         self.model.fit(dataset.data.X_train, dataset.data.y_train)
         if self.recalibrate_with_cv or self.recalibrate_with_testset:
             self.recalibrate_search(dataset)
@@ -164,7 +166,7 @@ class GaussianProcess(BatchedMultiOutputGPyTorchModel):
         return mu_predictive, sigma_predictive + stabilizer
 
 
-class GaussianProcessOLD(object):
+class GaussianProcess(object):
     """Gaussian process wrapper surrogate class. """
 
     def __init__(
@@ -207,6 +209,7 @@ class GaussianProcessOLD(object):
                 torch.tensor(X).double(),
                 torch.tensor(y).double(),
                 covar_module=self.kernel,
+                std_change=self.std_change,
             )
             X_test_torch = torch.from_numpy(x_test)
             posterior = model.posterior(X_test_torch.double(), observation_noise=True)
@@ -261,6 +264,7 @@ class GaussianProcessOLD(object):
                     torch.from_numpy(X).double(),
                     torch.from_numpy(y).double(),
                     covar_module=self.kernel,
+                    std_change=self.std_change,
                 )
                 likelihood = ExactMarginalLogLikelihood(model.likelihood, model)
                 if self.opt_hyp_pars:
@@ -296,6 +300,7 @@ class GaussianProcessOLD(object):
             torch.tensor(dataset.data.X_train).double(),
             torch.tensor(dataset.data.y_train).double(),
             covar_module=self.kernel,
+            std_change=self.std_change,
         )
 
         self.likelihood = ExactMarginalLogLikelihood(self.model.likelihood, self.model)

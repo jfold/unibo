@@ -122,6 +122,7 @@ class Metrics(object):
         sigmas: np.ndarray,
         y: np.ndarray,
         return_mse: bool = False,
+        plot: bool = False,
     ) -> None:
         y_ = np.tile(y, self.n_calibration_bins)
         p_array_ = np.tile(self.p_array[:, np.newaxis], sigmas.size)
@@ -132,6 +133,11 @@ class Metrics(object):
         calibrations = (
             torch.mean((torch.tensor(y_).T <= icdfs).float(), dim=1).cpu().numpy()
         )
+
+        if plot:
+            fig = plt.figure()
+            plt.plot(self.p_array, calibrations)
+            plt.plot(self.p_array, self.p_array, "--")
 
         if return_mse:
             return np.nanmean((calibrations - self.p_array) ** 2)

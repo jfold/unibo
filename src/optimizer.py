@@ -29,16 +29,22 @@ class Optimizer(object):
 
     def fit_surrogate(self, dataset: Dataset) -> None:
         if self.surrogate == "GP":
-            self.surrogate_model = GaussianProcess(self.parameters, dataset)
+            self.surrogate_object = GaussianProcess(self.parameters, dataset)
+            self.surrogate_model = self.surrogate_object.model
         elif self.surrogate == "RF":
-            self.surrogate_model = RandomForest(self.parameters, dataset)
+            self.surrogate_object = RandomForest(self.parameters, dataset)
+            self.surrogate_model = self.surrogate_object
         elif self.surrogate == "BNN":
-            self.surrogate_model = BayesianNeuralNetwork(self.parameters, dataset)
+            self.surrogate_object = BayesianNeuralNetwork(self.parameters, dataset)
+            self.surrogate_model = self.surrogate_object
         elif self.surrogate == "DE":
-            self.surrogate_model = DeepEnsemble(self.parameters, dataset)
+            self.surrogate_object = DeepEnsemble(self.parameters, dataset)
+            self.surrogate_model = self.surrogate_object
         elif self.surrogate == "DS":
-            self.surrogate_model = DummySurrogate(self.parameters, dataset)
+            self.surrogate_object = DummySurrogate(self.parameters, dataset)
+            self.surrogate_model = self.surrogate_object
         elif self.surrogate == "RS":
+            self.surrogate_object = None
             self.surrogate_model = None
         else:
             raise ValueError(f"Surrogate function {self.surrogate} not supported.")

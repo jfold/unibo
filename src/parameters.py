@@ -53,7 +53,7 @@ class Parameters:
         assert not (self.recalibrate_with_testset and self.recalibrate_with_cv)
         self.analyze_all_epochs = (
             self.recalibrate_with_testset or self.recalibrate_with_cv
-        )
+        ) or self.analyze_all_epochs
 
         if mkdir and not os.path.isdir(self.savepth):
             os.mkdir(self.savepth)
