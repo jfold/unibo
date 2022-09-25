@@ -61,7 +61,6 @@ class GaussianProcessSklearn(BatchedMultiOutputGPyTorchModel):
                 torch.tensor(X).double(),
                 torch.tensor(y).double(),
                 covar_module=self.kernel,
-                std_change=self.std_change,
             )
             X_test_torch = torch.from_numpy(x_test)
             posterior = model.posterior(X_test_torch.double(), observation_noise=True)
@@ -116,7 +115,6 @@ class GaussianProcessSklearn(BatchedMultiOutputGPyTorchModel):
                     torch.from_numpy(X).double(),
                     torch.from_numpy(y).double(),
                     covar_module=self.kernel,
-                    std_change=self.std_change,
                 )
                 likelihood = ExactMarginalLogLikelihood(model.likelihood, model)
                 if self.opt_hyp_pars:
@@ -191,12 +189,6 @@ class GaussianProcess(object):
         )
         self.fit(parameters, dataset)
 
-    def forward(self, x: Tensor) -> MultivariateNormal:
-        mean_x, covar_x = self.predict(x)
-        mean_x = torch.tensor(mean_x.squeeze())
-        covar_x = torch.tensor(np.diag(covar_x.squeeze()))
-        return MultivariateNormal(mean_x, covar_x)
-
     def recalibrate_kuleshov(self, stabilizer: float = 1e-8):
         assert self.X_train_ is not None and self.y_train_ is not None
 
@@ -209,7 +201,6 @@ class GaussianProcess(object):
                 torch.tensor(X).double(),
                 torch.tensor(y).double(),
                 covar_module=self.kernel,
-                std_change=self.std_change,
             )
             X_test_torch = torch.from_numpy(x_test)
             posterior = model.posterior(X_test_torch.double(), observation_noise=True)
@@ -264,7 +255,6 @@ class GaussianProcess(object):
                     torch.from_numpy(X).double(),
                     torch.from_numpy(y).double(),
                     covar_module=self.kernel,
-                    std_change=self.std_change,
                 )
                 likelihood = ExactMarginalLogLikelihood(model.likelihood, model)
                 if self.opt_hyp_pars:
@@ -300,7 +290,6 @@ class GaussianProcess(object):
             torch.tensor(dataset.data.X_train).double(),
             torch.tensor(dataset.data.y_train).double(),
             covar_module=self.kernel,
-            std_change=self.std_change,
         )
 
         self.likelihood = ExactMarginalLogLikelihood(self.model.likelihood, self.model)

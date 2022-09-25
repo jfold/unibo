@@ -8,15 +8,20 @@ from surrogates.gaussian_process import GaussianProcess
 from surrogates.random_forest import RandomForest
 from surrogates.bayesian_neural_network import BayesianNeuralNetwork
 from botorch.optim import optimize_acqf
-from botorch.acquisition.analytic import (
+from acquisitions.botorch_acqs import (
     ExpectedImprovement,
     UpperConfidenceBound,
-    # AnalyticAcquisitionFunction,
-    # ConstrainedExpectedImprovement,
-    # NoisyExpectedImprovement,
-    # PosteriorMean,
-    # ProbabilityOfImprovement,
 )
+
+# from botorch.acquisition.analytic import (
+#     ExpectedImprovement,
+#     UpperConfidenceBound,
+#     # AnalyticAcquisitionFunction,
+#     # ConstrainedExpectedImprovement,
+#     # NoisyExpectedImprovement,
+#     # PosteriorMean,
+#     # ProbabilityOfImprovement,
+# )
 
 
 class Optimizer(object):
