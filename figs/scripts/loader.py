@@ -63,36 +63,30 @@ class Loader(object):
     def load_metric_dict(self):
         """These will be our final dimensionl in data array"""
         self.metric_dict = {
-            "nmse": ["nMSE", -1, [0, 2], r"nMSE"],
-            "elpd": ["ELPD", 1, [-5, 5], r"ELPD"],
-            "mean_sharpness": ["Sharpness", 1, [-5, 5], r"$ \mathcal{S}$"],
+            "nmse": ["nMSE", -1, [0, 2], "nMSE"],
+            "elpd": ["ELPD", 1, [-5, 5], "$\mathcal{L}$"],
+            "mean_sharpness": ["Sharpness", 1, [-5, 5], "$\mathcal{S}$"],
             "sharpness_error_true_minus_model": [
                 "Sharpness Error",
                 1,
                 [],
-                r"$ \mathcal{S}_e$",
+                "$\mathcal{S}_E$",
             ],
-            "bias_mse": ["Bias", 1, [], r"$ \mathcal{S}$"],
+            "bias_mse": ["Bias", 1, [], "$\mathcal{E}$"],
             "x_opt_mean_dist": [
                 "Solution mean distance",
                 -1,
                 [],
-                r"$ \mathbb{E}[|| \mathbf{x}_o - \mathbf{x}_s ||_2] $",
+                "$\mathbb{E}[||\mathbf{x}_o - \mathbf{x}_s ||_2] $",
             ],
-            "y_regret": ["Regret on y", -1, [], r"$ \mathcal{R}(y)$"],
-            "f_regret": ["Regret on f", -1, [], r"$ \mathcal{R}(f)$"],
-            "mahalanobis_dist": ["mahalanobis_dist", -1, [], r"$ D_M$"],
-            "y_calibration_mse": ["Calibration MSE", -1, [], r"$ \\mathcal{C}(y)$",],
-            "uct-accuracy-corr": ["corr", 1, [0, 2], r"Corr"],
-            "uct-avg_calibration-rms_cal": ["rms_cal", -1, [], r"RMSCE"],
-            "uct-avg_calibration-miscal_area": ["miscal_area", -1, [], r"MA"],
-            # "uct-adv_group_calibration-rms_adv_group_cal": [
-            #     "rms_adv_group_cal",
-            #     -1,
-            #     [],
-            #     r"RMSACE",
-            # ],
-            "uct-scoring_rule-nll": ["nll", -1, [], r"NLL"],
+            "y_regret": ["Regret on y", -1, [], "$\mathcal{R}(y)$"],
+            "f_regret": ["Regret on f", -1, [], "$\mathcal{R}(f)$"],
+            "mahalanobis_dist": ["mahalanobis_dist", -1, [], "$D_M$"],
+            "y_calibration_mse": ["Calibration MSE", -1, [], "$\mathcal{C}(y)$",],
+            "uct-accuracy-corr": ["corr", 1, [0, 2], "Corr"],
+            "uct-avg_calibration-rms_cal": ["rms_cal", -1, [], "RMSCE"],
+            "uct-avg_calibration-miscal_area": ["miscal_area", -1, [], "MA"],
+            "uct-scoring_rule-nll": ["nll", -1, [], "NLL"],
         }
 
     def define_check_params(self):

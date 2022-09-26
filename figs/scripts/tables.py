@@ -168,16 +168,16 @@ class Tables(object):
         else:
             return f"{x:.3f}"
 
-    def p2stars(self, p: float):
+    def p2stars(self, p: float, bonferoni_correction: float = 1.0):
         assert 0.0 <= p <= 1.0
         stars = ""
-        if p < 0.05:
+        if p < 0.05 / bonferoni_correction:
             stars = "^{*}"
-        if p < 0.001:
+        if p < 0.001 / bonferoni_correction:
             stars = "^{**}"
-        if p < 0.0001:
+        if p < 0.0001 / bonferoni_correction:
             stars = "^{***}"
-        if p < 1e-10:
+        if p < 1e-10 / bonferoni_correction:
             stars = "^{****}"
         return stars
 
@@ -189,12 +189,136 @@ class Tables(object):
     def table_linear_correlation(
         self,
         settings: Dict = {"data_name": "benchmark", "epoch": 90, "snr": 100},
-        ds: list = [1, 5, 10],
-        surrogates: list = ["BNN", "DE", "GP", "RF", "RS"],
-        scientific: bool = True,
+        surrogates: list = None,
     ):
-        self.scientific_notation = scientific
         loader = self.loader
+        surrogates = (
+            loader.loader_summary["surrogate"]["vals"]
+            if surrogates is None
+            else surrogates
+        )
+        bonferoni_correction = (
+            loader.loader_summary["surrogate"]["d"] + loader.loader_summary["d"]["d"]
+        )
+        # Across dimensions
+        for sur in surrogates:
+            r_f = loader.extract(
+                settings=self.merge_two_dicts(
+                    settings, {"bo": True, "surrogate": sur, "metric": "f_regret",},
+                )
+            )
+            c_r = loader.extract(
+                settings=self.merge_two_dicts(
+                    settings,
+                    {"bo": False, "surrogate": sur, "metric": "y_calibration_mse",},
+                )
+            )
+            c_bo = loader.extract(
+                settings=self.merge_two_dicts(
+                    settings,
+                    {"bo": True, "surrogate": sur, "metric": "y_calibration_mse",},
+                )
+            )
+            row = (
+                f"{sur}&$"
+                + self.format_num(np.nanmean(r_f))
+                + "\,\,(\pm "
+                + self.format_num(np.nanstd(r_f))
+                + ")$"
+            )
+
+            if sur not in ["RS", "DS"]:
+                x, y = loader.remove_nans(r_f.flatten(), c_r.flatten())
+                rho_reg, p_reg = pearsonr(x, y)
+                x, y = loader.remove_nans(r_f.flatten(), c_bo.flatten())
+                rho_bo, p_bo = pearsonr(x, y)
+                row += (
+                    "&$"
+                    + self.format_num(np.nanmean(c_r))
+                    + "\,\,(\pm "
+                    + self.format_num(np.nanstd(c_r))
+                    + ")$"
+                )
+                row += (
+                    "&$"
+                    + self.format_num(np.nanmean(c_bo))
+                    + "\,\,(\pm "
+                    + self.format_num(np.nanstd(c_bo))
+                    + ")$"
+                )
+                # regression rho
+                row += (
+                    "&$"
+                    + self.format_num(rho_reg)
+                    + self.p2stars(p_reg, bonferoni_correction)
+                    + "$"
+                )
+
+                # bo rho
+                row += (
+                    "&$"
+                    + self.format_num(rho_bo)
+                    + self.p2stars(p_bo, bonferoni_correction)
+                    + "$"
+                )
+            else:
+                row += "&-&-&-&-"
+
+            print(row + "\\\\")
+        print("\\hline")
+
+        row = "All&&&"
+        r_f = loader.extract(
+            settings=self.merge_two_dicts(settings, {"bo": True, "metric": "f_regret"})
+        )
+        c_r = loader.extract(
+            settings=self.merge_two_dicts(
+                settings, {"bo": False, "metric": "y_calibration_mse",}
+            )
+        )
+        c_bo = loader.extract(
+            settings=self.merge_two_dicts(
+                settings, {"bo": True, "metric": "y_calibration_mse",}
+            )
+        )
+        x, y = loader.remove_nans(r_f.flatten(), c_r.flatten())
+        rho_reg, p_reg = pearsonr(x, y)
+        x, y = loader.remove_nans(r_f.flatten(), c_bo.flatten())
+        rho_bo, p_bo = pearsonr(x, y)
+        # regression rho
+        row += (
+            "&$"
+            + self.format_num(rho_reg)
+            + self.p2stars(p_reg, bonferoni_correction=bonferoni_correction)
+            + "$"
+        )
+        # bo rho
+        row += (
+            "&$"
+            + self.format_num(rho_bo)
+            + self.p2stars(p_bo, bonferoni_correction=bonferoni_correction)
+            + "$"
+        )
+        print(row + "\\\\")
+
+    def table_linear_correlation_dims(
+        self,
+        settings: Dict = {"data_name": "benchmark", "epoch": 90, "snr": 100},
+        ds: list = None,
+        surrogates: list = None,
+    ):
+        loader = self.loader
+        surrogates = (
+            loader.loader_summary["surrogate"]["vals"]
+            if surrogates is None
+            else surrogates
+        )
+        ds = loader.loader_summary["d"]["vals"] if surrogates is None else surrogates
+
+        bonferoni_correction = (
+            loader.loader_summary["surrogate"]["d"] + loader.loader_summary["d"]["d"]
+        )
+
         for d in ds:
             for sur in surrogates:
                 r_f = loader.extract(
@@ -253,96 +377,27 @@ class Tables(object):
                         + ")$"
                     )
                     # regression rho
-                    row += "&$" + self.format_num(rho_reg) + self.p2stars(p_reg) + "$"
+                    row += (
+                        "&$"
+                        + self.format_num(rho_reg)
+                        + self.p2stars(p_reg, bonferoni_correction)
+                        + "$"
+                    )
 
                     # bo rho
-                    row += "&$" + self.format_num(rho_bo) + self.p2stars(p_bo) + "$"
+                    row += (
+                        "&$"
+                        + self.format_num(rho_bo)
+                        + self.p2stars(p_bo, bonferoni_correction)
+                        + "$"
+                    )
                 else:
                     row += "&-&-&-&-"
 
                 print(row + "\\\\")
             print("\\hline")
 
-        # Across dimensions
-        for sur in surrogates:
-            r_f = loader.extract(
-                settings=self.merge_two_dicts(
-                    settings, {"bo": True, "surrogate": sur, "metric": "f_regret",},
-                )
-            )
-            c_r = loader.extract(
-                settings=self.merge_two_dicts(
-                    settings,
-                    {"bo": False, "surrogate": sur, "metric": "y_calibration_mse",},
-                )
-            )
-            c_bo = loader.extract(
-                settings=self.merge_two_dicts(
-                    settings,
-                    {"bo": True, "surrogate": sur, "metric": "y_calibration_mse",},
-                )
-            )
-            row = (
-                f"{sur}&$"
-                + self.format_num(np.nanmean(r_f))
-                + "\,\,(\pm "
-                + self.format_num(np.nanstd(r_f))
-                + ")$"
-            )
-
-            if sur not in ["RS", "DS"]:
-                x, y = loader.remove_nans(r_f.flatten(), c_r.flatten())
-                rho_reg, p_reg = pearsonr(x, y)
-                x, y = loader.remove_nans(r_f.flatten(), c_bo.flatten())
-                rho_bo, p_bo = pearsonr(x, y)
-                row += (
-                    "&$"
-                    + self.format_num(np.nanmean(c_r))
-                    + "\,\,(\pm "
-                    + self.format_num(np.nanstd(c_r))
-                    + ")$"
-                )
-                row += (
-                    "&$"
-                    + self.format_num(np.nanmean(c_bo))
-                    + "\,\,(\pm "
-                    + self.format_num(np.nanstd(c_bo))
-                    + ")$"
-                )
-                # regression rho
-                row += "&$" + self.format_num(rho_reg) + self.p2stars(p_reg) + "$"
-
-                # bo rho
-                row += "&$" + self.format_num(rho_bo) + self.p2stars(p_bo) + "$"
-            else:
-                row += "&-&-&-&-"
-
-            print(row + "\\\\")
-        print("\\hline")
-
-        row = "All&&&"
-        r_f = loader.extract(
-            settings=self.merge_two_dicts(settings, {"bo": True, "metric": "f_regret"})
-        )
-        c_r = loader.extract(
-            settings=self.merge_two_dicts(
-                settings, {"bo": False, "metric": "y_calibration_mse",}
-            )
-        )
-        c_bo = loader.extract(
-            settings=self.merge_two_dicts(
-                settings, {"bo": True, "metric": "y_calibration_mse",}
-            )
-        )
-        x, y = loader.remove_nans(r_f.flatten(), c_r.flatten())
-        rho_reg, p_reg = pearsonr(x, y)
-        x, y = loader.remove_nans(r_f.flatten(), c_bo.flatten())
-        rho_bo, p_bo = pearsonr(x, y)
-        # regression rho
-        row += "&$" + self.format_num(rho_reg) + self.p2stars(p_reg) + "$"
-        # bo rho
-        row += "&$" + self.format_num(rho_bo) + self.p2stars(p_bo) + "$"
-        print(row + "\\\\")
+        self.table_linear_correlation(settings=settings, surrogates=surrogates)
 
     def extract_pandasframes(
         self,
@@ -384,7 +439,7 @@ class Tables(object):
             coeffs = res.params.to_dict()
             return p_values, coeffs
 
-    def table_linear_model(
+    def table_linear_model_dims(
         self,
         target: str = "f_regret",
         predictors: list = ["y_calibration_mse", "mean_sharpness", "elpd",],
@@ -393,6 +448,11 @@ class Tables(object):
     ):
         loader = self.loader
         predictors_ = list(predictors)
+
+        bonferoni_correction = (
+            loader.loader_summary["surrogate"]["d"] + loader.loader_summary["d"]["d"]
+        )
+
         # Surrogates, dimensions
         for d in [1, 5, 10]:
             for sur in ["BNN", "DE", "GP", "RF"]:
@@ -411,7 +471,11 @@ class Tables(object):
                 for predictor in predictors:
                     c1 = self.format_num(c025[predictor])
                     c2 = self.format_num(c975[predictor])
-                    row += f"&$({c1},{c2})" + self.p2stars(p_values[predictor]) + "$"
+                    row += (
+                        f"&$({c1},{c2})"
+                        + self.p2stars(p_values[predictor], bonferoni_correction)
+                        + "$"
+                    )
                 print(row + "\\\\")
             print("\\hline")
 
@@ -425,7 +489,11 @@ class Tables(object):
             for predictor in predictors:
                 c1 = self.format_num(c025[predictor])
                 c2 = self.format_num(c975[predictor])
-                row += f"&$({c1},{c2})" + self.p2stars(p_values[predictor]) + "$"
+                row += (
+                    f"&$({c1},{c2})"
+                    + self.p2stars(p_values[predictor], bonferoni_correction)
+                    + "$"
+                )
             print(row + "\\\\")
         print("\\hline")
 
@@ -438,7 +506,57 @@ class Tables(object):
         for predictor in predictors:
             c1 = self.format_num(c025[predictor])
             c2 = self.format_num(c975[predictor])
-            row += f"&$({c1},{c2})" + self.p2stars(p_values[predictor]) + "$"
+            row += (
+                f"&$({c1},{c2})"
+                + self.p2stars(p_values[predictor], bonferoni_correction)
+                + "$"
+            )
         print(row + "\\\\")
 
-        print(predictors)
+    def table_linear_model(
+        self,
+        target: str = "f_regret",
+        predictors: list = ["y_calibration_mse", "mean_sharpness", "elpd",],
+        X_bo: bool = False,
+        y_bo: bool = True,
+    ):
+        loader = self.loader
+        predictors_ = list(predictors)
+
+        bonferoni_correction = (
+            loader.loader_summary["surrogate"]["d"] + loader.loader_summary["d"]["d"]
+        )
+        # Surrogates
+        for sur in ["BNN", "DE", "GP", "RF"]:
+            settings_X = {"bo": X_bo, "surrogate": sur, "metric": predictors_}
+            settings_y = {"bo": y_bo, "surrogate": sur, "metric": target}
+            X, y, predictors = self.extract_pandasframes(loader, settings_X, settings_y)
+            p_values, c025, c975 = self.fit_linearmodel(X, y)
+            row = f"{sur}"
+            for predictor in predictors:
+                c1 = self.format_num(c025[predictor])
+                c2 = self.format_num(c975[predictor])
+                row += (
+                    f"&$({c1},{c2})"
+                    + self.p2stars(p_values[predictor], bonferoni_correction)
+                    + "$"
+                )
+            print(row + "\\\\")
+        print("\\hline")
+
+        # All
+        settings_X = {"bo": X_bo, "metric": predictors_}
+        settings_y = {"bo": y_bo, "metric": target}
+        X, y, predictors = self.extract_pandasframes(loader, settings_X, settings_y)
+        p_values, c025, c975 = self.fit_linearmodel(X, y)
+        row = "All"
+        for predictor in predictors:
+            c1 = self.format_num(c025[predictor])
+            c2 = self.format_num(c975[predictor])
+            row += (
+                f"&$({c1},{c2})"
+                + self.p2stars(p_values[predictor], bonferoni_correction)
+                + "$"
+            )
+        print(row + "\\\\")
+

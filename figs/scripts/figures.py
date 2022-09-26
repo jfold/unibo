@@ -11,6 +11,7 @@ class Figures(object):
         self.loader = loader
         self.scientific_notation = False
         self.savepth = os.getcwd() + "/figs/pdfs/"
+        self.markers = ["o", "v", "s", "x", "d"]
 
     def calibration(self):
         fig = plt.figure()
@@ -412,25 +413,24 @@ class Figures(object):
         x_figsettings: Dict = {"label": r"$\mathcal{R}_I(f)$", "log": True},
         y_figsettings: Dict = {"label": r"$\mathcal{C}_{R}(y)$", "log": True},
         surrogates: list = ["BNN", "DE", "GP", "RF"],
-        markers: list = ["o", "v", "s", "x", "d"],
     ):
-        colors = plt.cm.plasma(np.linspace(0, 1, len(markers)))
+        colors = plt.cm.plasma(np.linspace(0, 1, len(self.markers)))
         loader = self.loader
         fig = plt.figure()
         ax = fig.add_subplot(111)
         for i_s, sur in enumerate(surrogates):
             x = loader.extract(
-                settings=self.merge_two_dicts(
-                    self.merge_two_dicts(settings, settings_x), {"surrogate": sur}
+                settings=loader.merge_two_dicts(
+                    loader.merge_two_dicts(settings, settings_x), {"surrogate": sur}
                 )
             ).flatten()
 
             y = loader.extract(
-                settings=self.merge_two_dicts(
-                    self.merge_two_dicts(settings, settings_y), {"surrogate": sur}
+                settings=loader.merge_two_dicts(
+                    loader.merge_two_dicts(settings, settings_y), {"surrogate": sur}
                 )
             ).flatten()
-            ax.plot(x, y, markers[i_s], color=colors[i_s], label=sur)
+            ax.plot(x, y, self.markers[i_s], color=colors[i_s], label=sur)
 
         if x_figsettings["log"]:
             ax.set_xscale("log")
@@ -439,5 +439,58 @@ class Figures(object):
         ax.legend()
         ax.set_xlabel(x_figsettings["label"])
         ax.set_ylabel(y_figsettings["label"])
-        fig.savefig("./figs/pdfs/r-c-bo.pdf")
+        if settings_y["bo"]:
+            fig.savefig("./figs/pdfs/r-c-bo.pdf")
+        else:
+            fig.savefig("./figs/pdfs/r-c.pdf")
         plt.show()
+
+    def figure_std_vs_metric(
+        self,
+        loader: Loader,
+        settings: Dict = {
+            "data_name": "benchmark",
+            "epoch": 90,
+            "snr": 100,
+            "bo": False,
+        },
+        y_settings: Dict = {"metric": "y_calibration_mse"},
+    ):
+        colors = plt.cm.plasma(np.linspace(0, 1, len(self.markers)))
+        cs = loader.loader_summary["std_change"]["vals"]
+        settings_ = loader.merge_two_dicts(y_settings, settings)
+        fig = plt.figure()
+        ax = fig.add_subplot(111)
+        for i_s, sur in tqdm(enumerate(loader.loader_summary["surrogate"]["vals"])):
+            mus = []
+            stds = []
+            for i_c, c in enumerate(cs):
+                data = loader.extract(
+                    settings=loader.merge_two_dicts(
+                        settings_, {"std_change": c, "surrogate": sur,},
+                    )
+                )
+                mus.append(np.nanmean(data))
+                stds.append(np.nanstd(data) / np.sqrt(np.sum(np.isfinite(data))))
+            ax.errorbar(
+                cs,
+                mus,
+                yerr=stds,
+                marker=self.markers[i_s],
+                color=colors[i_s],
+                label=sur,
+            )
+        y_str = y_settings["metric"]
+        plt.legend()
+        plt.xlabel(r"$c$")
+        plt.ylabel(rf"{loader.metric_dict[y_str][-1]}")
+        plt.xscale("log")
+        plt.yscale("log")
+        if y_settings["metric"] == "y_calibration_mse":
+            plt.ylim([1e-3, 0.15])
+        if settings["bo"]:
+            fig.savefig(f"./figs/pdfs/c-{y_str}-bo.pdf")
+        else:
+            fig.savefig(f"./figs/pdfs/c-{y_str}.pdf")
+        plt.show()
+
