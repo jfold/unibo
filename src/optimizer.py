@@ -12,16 +12,7 @@ from acquisitions.botorch_acqs import (
     ExpectedImprovement,
     UpperConfidenceBound,
 )
-
-# from botorch.acquisition.analytic import (
-#     ExpectedImprovement,
-#     UpperConfidenceBound,
-#     # AnalyticAcquisitionFunction,
-#     # ConstrainedExpectedImprovement,
-#     # NoisyExpectedImprovement,
-#     # PosteriorMean,
-#     # ProbabilityOfImprovement,
-# )
+from src.recalibrator import Recalibrator
 
 
 class Optimizer(object):
@@ -55,7 +46,9 @@ class Optimizer(object):
             raise ValueError(f"Surrogate function {self.surrogate} not supported.")
         self.is_fitted = True
 
-    def construct_acquisition_function(self, dataset: Dataset) -> None:
+    def construct_acquisition_function(
+        self, dataset: Dataset, recalibrator: Recalibrator = None
+    ) -> None:
         if not self.is_fitted:
             raise RuntimeError("Surrogate has not been fitted!")
         y_opt_tensor = torch.tensor(dataset.y_opt.squeeze())
@@ -65,6 +58,7 @@ class Optimizer(object):
                 best_f=y_opt_tensor,
                 maximize=self.maximization,
                 std_change=self.std_change,
+                recalibrator=recalibrator,
             )
         elif self.acquisition == "UCB":
             self.acquisition_function = UpperConfidenceBound(
@@ -72,6 +66,7 @@ class Optimizer(object):
                 beta=1.0,
                 maximize=self.maximization,
                 std_change=self.std_change,
+                recalibrator=recalibrator,
             )
         elif self.acquisition == "RS":
             self.acquisition_function = RandomSearch()
@@ -86,11 +81,15 @@ class Optimizer(object):
             )
 
     def bo_iter(
-        self, dataset: Dataset, X_test: np.ndarray = None, return_idx: bool = False
+        self,
+        dataset: Dataset,
+        X_test: np.ndarray = None,
+        recalibrator: Recalibrator = None,
+        return_idx: bool = False,
     ) -> Dict[np.ndarray, np.ndarray]:
         assert self.is_fitted
 
-        self.construct_acquisition_function(dataset)
+        self.construct_acquisition_function(dataset, recalibrator)
 
         if X_test is None:
             X_test, _, _ = dataset.sample_testset(self.n_test)

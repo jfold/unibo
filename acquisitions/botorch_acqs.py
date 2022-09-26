@@ -28,6 +28,8 @@ from botorch.utils.transforms import convert_to_target_pre_hook, t_batch_mode_tr
 from torch import Tensor
 from torch.distributions import Normal
 
+from src.recalibrator import Recalibrator
+
 
 class AnalyticAcquisitionFunction(AcquisitionFunction, ABC):
     r"""Base class for analytic acquisition functions."""
@@ -105,6 +107,7 @@ class ExpectedImprovement(AnalyticAcquisitionFunction):
         objective: Optional[ScalarizedObjective] = None,
         maximize: bool = True,
         std_change: float = 1.0,
+        recalibrator: Recalibrator = None,
     ) -> None:
         r"""Single-outcome Expected Improvement (analytic).
 
@@ -117,6 +120,7 @@ class ExpectedImprovement(AnalyticAcquisitionFunction):
         """
         super().__init__(model=model, objective=objective)
         self.std_change = std_change
+        self.recalibrator = recalibrator
         self.maximize = maximize
         if not torch.is_tensor(best_f):
             best_f = torch.tensor(best_f)
@@ -145,6 +149,8 @@ class ExpectedImprovement(AnalyticAcquisitionFunction):
         sigma = (
             posterior.variance.clamp_min(1e-9).sqrt().view(view_shape) * self.std_change
         )
+        if self.recalibrator is not None:
+            mean, sigma = self.recalibrator.recalibrate(mean, sigma)
         u = (mean - self.best_f.expand_as(mean)) / sigma
         if not self.maximize:
             u = -u
@@ -294,6 +300,7 @@ class UpperConfidenceBound(AnalyticAcquisitionFunction):
         objective: Optional[ScalarizedObjective] = None,
         maximize: bool = True,
         std_change: float = 1.0,
+        recalibrator: Recalibrator = None,
     ) -> None:
         r"""Single-outcome Upper Confidence Bound.
 
@@ -308,6 +315,7 @@ class UpperConfidenceBound(AnalyticAcquisitionFunction):
         super().__init__(model=model, objective=objective)
         self.maximize = maximize
         self.std_change = std_change
+        self.recalibrator = recalibrator
         if not torch.is_tensor(beta):
             beta = torch.tensor(beta)
         self.register_buffer("beta", beta)
@@ -331,6 +339,10 @@ class UpperConfidenceBound(AnalyticAcquisitionFunction):
         variance = torch.pow(
             posterior.variance.view(batch_shape).sqrt() * self.std_change, 2
         )
+        if self.recalibrator is not None:
+            mean, sigma = self.recalibrator.recalibrate(mean, variance.sqrt())
+            variance = torch.pow(sigma, 2)
+
         delta = (self.beta.expand_as(mean) * variance).sqrt()
         if self.maximize:
             return mean + delta

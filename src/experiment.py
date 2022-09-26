@@ -5,6 +5,7 @@ from src.metrics import Metrics
 from src.dataset import Dataset
 from src.optimizer import Optimizer
 from .parameters import Parameters
+from src.recalibrator import Recalibrator
 
 
 class Experiment(object):
@@ -25,11 +26,6 @@ class Experiment(object):
         )
 
     def run(self) -> None:
-        # No data
-        # self.optimizer.fit_surrogate()
-        # self.metrics.analyze(
-        #     self.optimizer.surrogate_object, self.dataset, save_settings="---prior",
-        # )
         if self.bo:
             # Epoch 0
             self.optimizer.fit_surrogate(self.dataset)
@@ -44,9 +40,21 @@ class Experiment(object):
             for e in tqdm(range(self.n_evals), leave=False):
                 save_settings = f"---epoch-{e+1}" if e < self.n_evals - 1 else ""
 
+                recalibrator = (
+                    Recalibrator(
+                        self.dataset,
+                        self.optimizer.surrogate_object,
+                        mode=self.recal_mode,
+                    )
+                    if self.recalibrate
+                    else None
+                )
                 # BO iteration
                 x_next, acq_val, i_choice = self.optimizer.bo_iter(
-                    self.dataset, X_test=self.dataset.data.X_test, return_idx=True
+                    self.dataset,
+                    X_test=self.dataset.data.X_test,
+                    recalibrator=recalibrator,
+                    return_idx=True,
                 )
                 y_next = self.dataset.data.y_test[[i_choice]]
                 f_next = self.dataset.data.f_test[[i_choice]]

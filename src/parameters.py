@@ -11,6 +11,7 @@ class Parameters:
     d: int = 1  # number of input dimensions
     n_test: int = 1000  # number of test samples for calibration analysis
     n_initial: int = 10  # number of starting points
+    n_validation: int = 100  # number of iid samples for recalibration
     n_evals: int = 90  # number of BO iterations
     rf_cv_splits: int = 5  # number of CV splits for random forest hyperparamtuning
     vanilla: bool = False  # simplest implementation (used for test)
@@ -29,14 +30,13 @@ class Parameters:
     sigma_noise: float = None  # computed as function of SNR and sigma_data
     noisify: bool = True
     test: bool = True
-    recalibrate_with_cv: bool = False
-    recalibrate_with_testset: bool = False
+    recalibrate: bool = False
     analyze_all_epochs: bool = False
     n_calibration_bins: int = 20
     K: int = 1  # number of terms in sum for VerificationData
     surrogate: str = "GP"  # surrogate function name
-    gp_kernel: str = "RBFKernel"  # surrogate function name
     acquisition: str = "EI"  # acquisition function name
+    recal_mode: str = "iid"
     savepth: str = os.getcwd() + "/results/"
     experiment: str = ""  # folder name
     bo: bool = False  # performing bo to sample X or merely randomly sample X
@@ -49,11 +49,6 @@ class Parameters:
             problem = self.find_benchmark_problem_i()
             kwargs["problem"] = problem
             self.update(kwargs)
-
-        assert not (self.recalibrate_with_testset and self.recalibrate_with_cv)
-        self.analyze_all_epochs = (
-            self.recalibrate_with_testset or self.recalibrate_with_cv
-        ) or self.analyze_all_epochs
 
         if mkdir and not os.path.isdir(self.savepth):
             os.mkdir(self.savepth)
