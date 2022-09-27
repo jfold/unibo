@@ -36,7 +36,7 @@ class Parameters:
     K: int = 1  # number of terms in sum for VerificationData
     surrogate: str = "GP"  # surrogate function name
     acquisition: str = "EI"  # acquisition function name
-    recal_mode: str = "iid"
+    recal_mode: str = "cv"
     savepth: str = os.getcwd() + "/results/"
     experiment: str = ""  # folder name
     bo: bool = False  # performing bo to sample X or merely randomly sample X
