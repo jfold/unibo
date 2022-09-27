@@ -29,9 +29,17 @@ class Experiment(object):
         if self.bo:
             # Epoch 0
             self.optimizer.fit_surrogate(self.dataset)
+            recalibrator = (
+                Recalibrator(
+                    self.dataset, self.optimizer.surrogate_object, mode=self.recal_mode,
+                )
+                if self.recalibrate
+                else None
+            )
             self.metrics.analyze(
                 self.optimizer.surrogate_object,
                 self.dataset,
+                recalibrator=recalibrator,
                 save_settings="---epoch-0",
             )
             self.dataset.save(save_settings="---epoch-0")
@@ -72,13 +80,17 @@ class Experiment(object):
                     self.metrics.analyze(
                         self.optimizer.surrogate_object,
                         self.dataset,
+                        recalibrator=recalibrator,
                         save_settings=save_settings,
                     )
             self.dataset.save()
 
             if not self.analyze_all_epochs:
                 self.metrics.analyze(
-                    self.optimizer.surrogate_object, self.dataset, save_settings="",
+                    self.optimizer.surrogate_object,
+                    self.dataset,
+                    recalibrator=recalibrator,
+                    save_settings="",
                 )
         else:
             if self.analyze_all_epochs:
@@ -87,9 +99,19 @@ class Experiment(object):
                     X, y, f = self.dataset.data.sample_data(n_samples=1)
                     self.dataset.add_data(X, y, f)
                     self.optimizer.fit_surrogate(self.dataset)
+                    recalibrator = (
+                        Recalibrator(
+                            self.dataset,
+                            self.optimizer.surrogate_object,
+                            mode=self.recal_mode,
+                        )
+                        if self.recalibrate
+                        else None
+                    )
                     self.metrics.analyze(
                         self.optimizer.surrogate_object,
                         self.dataset,
+                        recalibrator=recalibrator,
                         save_settings=save_settings,
                     )
                     self.dataset.save()
@@ -97,7 +119,20 @@ class Experiment(object):
                 X, y, f = self.dataset.data.sample_data(self.n_evals)
                 self.dataset.add_data(X, y, f)
                 self.optimizer.fit_surrogate(self.dataset)
-                self.metrics.analyze(self.optimizer.surrogate_object, self.dataset)
+                recalibrator = (
+                    Recalibrator(
+                        self.dataset,
+                        self.optimizer.surrogate_object,
+                        mode=self.recal_mode,
+                    )
+                    if self.recalibrate
+                    else None
+                )
+                self.metrics.analyze(
+                    self.optimizer.surrogate_object,
+                    self.dataset,
+                    recalibrator=recalibrator,
+                )
                 self.dataset.save()
 
 

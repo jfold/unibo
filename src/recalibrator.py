@@ -30,6 +30,7 @@ class Recalibrator(object):
                     mus.append(mus_val)
                     sigmas.append(sigs_val)
                     ys_true.append(y_val.squeeze())
+
             return np.array(mus), np.array(sigmas), np.array(ys_true)
         elif self.mode == "iid":
             X_val_, y_val = dataset.data.X_test, dataset.data.y_test
@@ -52,10 +53,14 @@ class Recalibrator(object):
             Estimates the mean and variance from discritized CDF.
             Works by approximating the PDF by finite difference
         """
+        y_space = y_space.squeeze()
+        cdf_hat = cdf_hat.squeeze()
         pdf_hat = np.diff(cdf_hat)
         m1_hat = np.sum(y_space[1:] * pdf_hat)
         m2_hat = np.sum(y_space[1:] ** 2 * pdf_hat)
         v1_hat = m2_hat - m1_hat ** 2
+        if not np.isfinite(m1_hat) or not np.isfinite(np.sqrt(v1_hat)):
+            raise ValueError()
         return m1_hat, v1_hat
 
     def recalibrate(self, mu_preds, sig_preds):
@@ -69,7 +74,7 @@ class Recalibrator(object):
         mu_new, std_new = [], []
         for mu_i, std_i in zip(mu_preds, sig_preds):
             y_space = np.linspace(mu_i - 3 * std_i, mu_i + 3 * std_i, n_steps)
-            cdf = norm.cdf(y_space, mu_i, std_i)
+            cdf = norm.cdf(y_space, mu_i.squeeze(), std_i.squeeze())
             cdf_hat = self.recalibrator_model(cdf)
             mu_i_hat, v_i_hat = self.estimate_moments_from_ecdf(y_space, cdf_hat)
             mu_new.append(mu_i_hat)
@@ -81,4 +86,4 @@ class Recalibrator(object):
                 torch.from_numpy(np.array(std_new)),
             )
         else:
-            return np.array(mu_new), np.array(std_new)
+            return np.array(mu_new)[:, np.newaxis], np.array(std_new)[:, np.newaxis]

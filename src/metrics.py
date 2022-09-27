@@ -7,6 +7,7 @@ from imports.general import *
 from imports.ml import *
 from src.parameters import Parameters
 from src.dataset import Dataset
+from src.recalibrator import Recalibrator
 
 
 class Metrics(object):
@@ -287,11 +288,17 @@ class Metrics(object):
                 pickle.dump(self.uct_metrics, f)
 
     def analyze(
-        self, surrogate: Model, dataset: Dataset, save_settings: str = "",
+        self,
+        surrogate: Model,
+        dataset: Dataset,
+        recalibrator: Recalibrator = None,
+        save_settings: str = "",
     ) -> None:
         if surrogate is not None:
             self.ne_true = dataset.data.ne_true
             mu_test, sigma_test = surrogate.predict(dataset.data.X_test)
+            if recalibrator is not None:
+                mu_test, sigma_test = recalibrator.recalibrate(mu_test, sigma_test)
             self.calibration_f_batched(mu_test, sigma_test, dataset.data.f_test)
             self.calibration_y_batched(mu_test, sigma_test, dataset.data.y_test)
             self.calibration_y_local(dataset, mu_test, sigma_test)

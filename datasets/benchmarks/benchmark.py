@@ -17,6 +17,7 @@ class Benchmark(object):
         self.noisify = parameters.noisify
         self.snr = parameters.snr
         self.n_test = parameters.n_test
+        self.n_validation = parameters.n_validation
         self.n_initial = parameters.n_initial
         np.random.seed(self.seed)
         self.benchmarks = test_funcs
@@ -49,6 +50,10 @@ class Benchmark(object):
 
         self.X_train, self.y_train, self.f_train = self.sample_data(
             n_samples=self.n_initial
+        )
+
+        self.X_val, self.y_val, self.f_val = self.sample_data(
+            n_samples=self.n_validation
         )
 
     def compute_set_properties(self, X: np.ndarray, f: np.ndarray) -> None:
