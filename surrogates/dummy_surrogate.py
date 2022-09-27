@@ -51,7 +51,7 @@ class DummySurrogate(BatchedMultiOutputGPyTorchModel):
         X_test = (
             X_test.cpu().detach().numpy().squeeze()
             if torch.is_tensor(X_test)
-            else X_test.squeeze()
+            else X_test
         )
         X_test = X_test[:, np.newaxis] if X_test.ndim == 1 else X_test
         mean_x = []

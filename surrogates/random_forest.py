@@ -74,14 +74,12 @@ class RandomForest(BatchedMultiOutputGPyTorchModel):
         self, X_test: Any, stabilizer: float = 1e-8
     ) -> Tuple[np.ndarray, np.ndarray]:
         """Calculates mean (prediction) and variance (uncertainty)"""
-        n_test = X_test.shape[0]
         X_test = (
             X_test.cpu().detach().numpy().squeeze()
             if torch.is_tensor(X_test)
-            else X_test.squeeze()
+            else X_test
         )
         X_test = X_test[:, np.newaxis] if X_test.ndim == 1 else X_test
-        X_test = X_test.T if n_test == 1 else X_test
         mu_predictive = self.model.predict(X_test)
         sigma_predictive = self.calculate_y_std(X_test) + stabilizer
         if self.std_change != 1.0:
