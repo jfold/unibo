@@ -66,9 +66,15 @@ class Recalibrator(object):
 
     def recalibrate(self, mu_preds, sig_preds):
         is_tensor = torch.is_tensor(mu_preds)
-        mu_preds = mu_preds.cpu().detach().numpy().squeeze() if is_tensor else mu_preds
+        mu_preds = (
+            mu_preds.cpu().detach().numpy().squeeze()
+            if is_tensor
+            else mu_preds.squeeze()
+        )
         sig_preds = (
-            sig_preds.cpu().detach().numpy().squeeze() if is_tensor else sig_preds
+            sig_preds.cpu().detach().numpy().squeeze()
+            if is_tensor
+            else sig_preds.squeeze()
         )
 
         n_steps = 100
