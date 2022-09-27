@@ -39,7 +39,7 @@ class Recalibrator(object):
             return mus_val, sigs_val, y_val
 
     def train_recalibrator_model(self, mu_test, sig_test, y_val):
-        CDF = norm.cdf(y_val, mu_test, sig_test).squeeze()
+        CDF = norm.cdf(y_val.squeeze(), mu_test.squeeze(), sig_test.squeeze()).squeeze()
         P = np.vectorize(lambda p: np.mean(CDF < p))
         P_hat = P(CDF)
         ir = IsotonicRegression(
