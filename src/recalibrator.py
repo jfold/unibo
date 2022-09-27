@@ -2,13 +2,14 @@ from imports.general import *
 from imports.ml import *
 from sklearn.isotonic import IsotonicRegression
 from sklearn.model_selection import LeavePOut as LeaveKOut
+from sklearn.model_selection import KFold
 from src.dataset import Dataset
 
 
 class Recalibrator(object):
-    def __init__(self, dataset: Dataset, model, mode: str = "cv", K: int = 1) -> None:
+    def __init__(self, dataset: Dataset, model, mode: str = "cv", K: int = 10) -> None:
         self.K = K
-        self.cv_module = LeaveKOut(self.K)
+        self.cv_module = KFold(n_splits=self.K)
         self.mode = mode
         mus, sigmas, ys_true = self.make_recal_dataset(dataset, model)
         self.recalibrator_model = self.train_recalibrator_model(mus, sigmas, ys_true)
