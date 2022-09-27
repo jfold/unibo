@@ -47,7 +47,7 @@ class DeepEnsemble(BatchedMultiOutputGPyTorchModel):
         self,
         X_train: np.ndarray,
         y_train: np.ndarray,
-        n_epochs: int = 500,
+        n_epochs: int = 200,
         rand_portion: float = 1.0,
     ):
         n_samples = X_train.shape[0]

@@ -13,7 +13,7 @@ class Parameters:
     n_initial: int = 10  # number of starting points
     n_validation: int = 100  # number of iid samples for recalibration
     n_evals: int = 90  # number of BO iterations
-    rf_cv_splits: int = 5  # number of CV splits for random forest hyperparamtuning
+    rf_cv_splits: int = 2  # number of CV splits for random forest hyperparamtuning
     vanilla: bool = False  # simplest implementation (used for test)
     plot_it: bool = False  # whether to plot during BO loop
     save_it: bool = True  # whether to save progress

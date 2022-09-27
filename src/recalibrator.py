@@ -17,22 +17,17 @@ class Recalibrator(object):
     def make_recal_dataset(self, dataset: Dataset, model):
         if self.mode == "cv":
             X_train, y_train = dataset.data.X_train, dataset.data.y_train
-            mus, sigmas, ys_true = [], [], []
+            mus, sigmas, ys_true = np.array([]), np.array([]), np.array([])
             for train_index, val_index in self.cv_module.split(X_train):
                 X_train_, y_train_ = X_train[train_index, :], y_train[train_index]
                 X_val, y_val = X_train[val_index, :], y_train[val_index]
                 model.fit(X_train_, y_train_)
                 mus_val, sigs_val = model.predict(X_val)
-                if self.K > 1:
-                    mus.extend(mus_val)
-                    sigmas.extend(sigs_val)
-                    ys_true.extend(y_val)
-                else:
-                    mus.append(mus_val)
-                    sigmas.append(sigs_val)
-                    ys_true.append(y_val.squeeze())
+                mus = np.append(mus, mus_val)
+                sigmas = np.append(sigmas, sigs_val)
+                ys_true = np.append(ys_true, y_val.squeeze())
 
-            return np.array(mus), np.array(sigmas), np.array(ys_true)
+            return mus, sigmas, ys_true
         elif self.mode == "iid":
             X_val, y_val = dataset.data.X_val, dataset.data.y_val
             model.fit(dataset.data.X_train, dataset.data.y_train)

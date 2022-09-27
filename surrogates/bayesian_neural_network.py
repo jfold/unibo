@@ -14,6 +14,7 @@ class BayesianNeuralNetwork(BatchedMultiOutputGPyTorchModel):
         self.name = name
         self.d = parameters.d
         self.std_change = parameters.std_change
+        n_z = 10
         self.model = nn.Sequential(
             # bnn.BayesLinear(
             #     prior_mu=0.0,
@@ -23,13 +24,13 @@ class BayesianNeuralNetwork(BatchedMultiOutputGPyTorchModel):
             # ),
             # nn.ReLU(),
             bnn.BayesLinear(
-                prior_mu=0.0, prior_sigma=1.0, in_features=self.d, out_features=10,
+                prior_mu=0.0, prior_sigma=1.0, in_features=self.d, out_features=n_z,
             ),
             nn.ReLU(),
             bnn.BayesLinear(
                 prior_mu=0.0,
-                prior_sigma=10 ** (-2),
-                in_features=10,
+                prior_sigma=n_z ** (-2),
+                in_features=n_z,
                 out_features=1,  # / 10
             ),
         )
