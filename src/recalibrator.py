@@ -19,9 +19,9 @@ class Recalibrator(object):
             mus, sigmas, ys_true = [], [], []
             for train_index, val_index in self.cv_module.split(X_train):
                 X_train_, y_train_ = X_train[train_index, :], y_train[train_index]
-                X_val_, y_val = X_train[val_index, :], y_train[val_index]
+                X_val, y_val = X_train[val_index, :], y_train[val_index]
                 model.fit(X_train_, y_train_)
-                mus_val, sigs_val = model.predict(X_val_)
+                mus_val, sigs_val = model.predict(X_val)
                 if self.K > 1:
                     mus.extend(mus_val)
                     sigmas.extend(sigs_val)
@@ -33,9 +33,9 @@ class Recalibrator(object):
 
             return np.array(mus), np.array(sigmas), np.array(ys_true)
         elif self.mode == "iid":
-            X_val_, y_val = dataset.data.X_test, dataset.data.y_test
+            X_val, y_val = dataset.data.X_val, dataset.data.y_val
             model.fit(dataset.data.X_train, dataset.data.y_train)
-            mus_val, sigs_val = model.predict(X_val_)
+            mus_val, sigs_val = model.predict(X_val)
             return mus_val, sigs_val, y_val
 
     def train_recalibrator_model(self, mu_test, sig_test, y_val):
