@@ -44,6 +44,8 @@ class Parameters:
 
     def __init__(self, kwargs: Dict = {}, mkdir: bool = False) -> None:
         self.update(kwargs)
+        if self.surrogate == "RS" and (self.recalibrate or self.bo):
+            sys.exit(0)
         self.acquisition = "RS" if self.surrogate == "RS" else self.acquisition
 
         if self.problem == "" and self.data_name.lower() == "benchmark":

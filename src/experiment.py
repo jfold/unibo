@@ -26,24 +26,25 @@ class Experiment(object):
         )
 
     def run(self) -> None:
+        # Epoch 0
+        self.optimizer.fit_surrogate(self.dataset)
+        recalibrator = (
+            Recalibrator(
+                self.dataset, self.optimizer.surrogate_object, mode=self.recal_mode,
+            )
+            if self.recalibrate
+            else None
+        )
+        self.metrics.analyze(
+            self.optimizer.surrogate_object,
+            self.dataset,
+            recalibrator=recalibrator,
+            save_settings="---epoch-0",
+            extensive=True,
+        )
+        self.dataset.save(save_settings="---epoch-0")
+
         if self.bo:
-            # Epoch 0
-            self.optimizer.fit_surrogate(self.dataset)
-            recalibrator = (
-                Recalibrator(
-                    self.dataset, self.optimizer.surrogate_object, mode=self.recal_mode,
-                )
-                if self.recalibrate
-                else None
-            )
-            self.metrics.analyze(
-                self.optimizer.surrogate_object,
-                self.dataset,
-                recalibrator=recalibrator,
-                save_settings="---epoch-0",
-                extensive=True,
-            )
-            self.dataset.save(save_settings="---epoch-0")
 
             # Epochs > 0
             for e in tqdm(range(self.n_evals), leave=False):
