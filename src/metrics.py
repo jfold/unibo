@@ -17,6 +17,7 @@ class Metrics(object):
         self.__dict__.update(asdict(parameters))
         self.p_array = np.linspace(0.001, 0.999, self.n_calibration_bins)
         self.summary = {"p_array": self.p_array}
+        self.summary_short = {}
 
     def sharpness_gaussian(
         self, mus: np.ndarray, sigmas: np.ndarray, ne_true: float = None, name: str = ""
@@ -266,6 +267,9 @@ class Metrics(object):
         self.summary.update(
             {"y_regret": y_regret.squeeze(), "f_regret": f_regret.squeeze()}
         )
+        self.summary_short.update(
+            {"y_regret": y_regret.squeeze(), "f_regret": f_regret.squeeze()}
+        )
 
     def glob_min_dist(self, dataset: Dataset) -> None:
         y_squared_error = (dataset.X_y_opt - np.array(dataset.data.y_min_loc)) ** 2
@@ -277,15 +281,21 @@ class Metrics(object):
             }
         )
 
-    def save(self, save_settings: str = "") -> None:
-        final_dict = {k: v.tolist() for k, v in self.summary.items()}
-        json_dump = json.dumps(final_dict)
-        with open(self.savepth + f"metrics{save_settings}.json", "w") as f:
-            f.write(json_dump)
+    def save(self, save_settings: str = "", save_extensive: bool = True) -> None:
+        if save_extensive:
+            final_dict = {k: v.tolist() for k, v in self.summary.items()}
+            json_dump = json.dumps(final_dict)
+            with open(self.savepth + f"metrics{save_settings}.json", "w") as f:
+                f.write(json_dump)
 
-        if hasattr(self, "uct_metrics"):
-            with open(self.savepth + f"metrics-uct{save_settings}.pkl", "wb") as f:
-                pickle.dump(self.uct_metrics, f)
+            if hasattr(self, "uct_metrics"):
+                with open(self.savepth + f"metrics-uct{save_settings}.pkl", "wb") as f:
+                    pickle.dump(self.uct_metrics, f)
+        else:
+            final_dict = {k: v.tolist() for k, v in self.summary_short.items()}
+            json_dump = json.dumps(final_dict)
+            with open(self.savepth + f"metrics{save_settings}.json", "w") as f:
+                f.write(json_dump)
 
     def analyze(
         self,
@@ -293,8 +303,9 @@ class Metrics(object):
         dataset: Dataset,
         recalibrator: Recalibrator = None,
         save_settings: str = "",
+        extensive: bool = True,
     ) -> None:
-        if surrogate is not None:
+        if surrogate is not None and extensive:
             self.ne_true = dataset.data.ne_true
             mu_test, sigma_test = surrogate.predict(dataset.data.X_test)
             if recalibrator is not None:
@@ -325,6 +336,5 @@ class Metrics(object):
         self.glob_min_dist(dataset)
 
         # Save
-        if self.save_it:
-            self.save(save_settings)
+        self.save(save_settings, save_extensive=extensive)
 

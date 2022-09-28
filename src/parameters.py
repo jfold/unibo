@@ -31,7 +31,8 @@ class Parameters:
     noisify: bool = True
     test: bool = True
     recalibrate: bool = False
-    analyze_all_epochs: bool = False
+    analyze_all_epochs: bool = True
+    extensive_metrics: bool = False
     n_calibration_bins: int = 20
     K: int = 1  # number of terms in sum for VerificationData
     surrogate: str = "GP"  # surrogate function name

@@ -41,6 +41,7 @@ class Experiment(object):
                 self.dataset,
                 recalibrator=recalibrator,
                 save_settings="---epoch-0",
+                extensive=True,
             )
             self.dataset.save(save_settings="---epoch-0")
 
@@ -82,6 +83,7 @@ class Experiment(object):
                         self.dataset,
                         recalibrator=recalibrator,
                         save_settings=save_settings,
+                        extensive=self.extensive_metrics,
                     )
             self.dataset.save()
 
@@ -91,6 +93,7 @@ class Experiment(object):
                     self.dataset,
                     recalibrator=recalibrator,
                     save_settings="",
+                    extensive=self.extensive_metrics,
                 )
         else:
             if self.analyze_all_epochs:
@@ -113,6 +116,7 @@ class Experiment(object):
                         self.dataset,
                         recalibrator=recalibrator,
                         save_settings=save_settings,
+                        extensive=self.extensive_metrics,
                     )
                     self.dataset.save()
             else:
@@ -132,6 +136,7 @@ class Experiment(object):
                     self.optimizer.surrogate_object,
                     self.dataset,
                     recalibrator=recalibrator,
+                    extensive=self.extensive_metrics,
                 )
                 self.dataset.save()
 
