@@ -7,6 +7,10 @@ from dataclasses import dataclass, asdict
 
 @dataclass
 class Parameters:
+    surrogate: str = "GP"  # surrogate function name
+    acquisition: str = "EI"  # acquisition function name
+    recal_mode: str = "cv"
+    data_name: str = "Benchmark"  # dataclass name
     seed: bool = 0  # random seed
     d: int = 1  # number of input dimensions
     n_test: int = 1000  # number of test samples for calibration analysis
@@ -17,30 +21,26 @@ class Parameters:
     vanilla: bool = False  # simplest implementation (used for test)
     plot_it: bool = False  # whether to plot during BO loop
     save_it: bool = True  # whether to save progress
-    xi: float = 0.0  # exploration parameter for BO
-    data_name: str = "Benchmark"  # dataclass name
-    problem: str = ""  # e.g. "Alpine01" # subproblem name, overwrites problem_idx
-    problem_idx: int = 0
-    maximization: bool = False
-    fully_bayes: bool = False  # if fully bayes in BO rutine (marginalize hyperparams)
-    prob_acq: bool = False  # if acqusition function should sample like a prob dist. If False, argmax is used.
-    std_change: float = 1.0  # how to manipulate predictive std
-    snr: float = 100.0
-    sigma_data: float = None  # follows from problem
-    sigma_noise: float = None  # computed as function of SNR and sigma_data
+    bo: bool = False  # performing bo to sample X or merely randomly sample X
     noisify: bool = True
     test: bool = True
     recalibrate: bool = False
     analyze_all_epochs: bool = True
     extensive_metrics: bool = False
+    maximization: bool = False
+    fully_bayes: bool = False  # if fully bayes in BO rutine (marginalize hyperparams)
+    xi: float = 0.0  # exploration parameter for BO
+    problem: str = ""  # e.g. "Alpine01" # subproblem name, overwrites problem_idx
+    problem_idx: int = 0
+    prob_acq: bool = False  # if acqusition function should sample like a prob dist. If False, argmax is used.
+    std_change: float = 1.0  # how to manipulate predictive std
+    snr: float = 100.0
+    sigma_data: float = None  # follows from problem
+    sigma_noise: float = None  # computed as function of SNR and sigma_data
     n_calibration_bins: int = 20
     K: int = 1  # number of terms in sum for VerificationData
-    surrogate: str = "GP"  # surrogate function name
-    acquisition: str = "EI"  # acquisition function name
-    recal_mode: str = "cv"
     savepth: str = os.getcwd() + "/results/"
     experiment: str = ""  # folder name
-    bo: bool = False  # performing bo to sample X or merely randomly sample X
 
     def __init__(self, kwargs: Dict = {}, mkdir: bool = False) -> None:
         self.update(kwargs)
