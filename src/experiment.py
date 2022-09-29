@@ -39,16 +39,13 @@ class Experiment(object):
             self.optimizer.surrogate_object,
             self.dataset,
             recalibrator=recalibrator,
-            save_settings="---epoch-0",
             extensive=True,
         )
-        self.dataset.save(save_settings="---epoch-0")
 
         if self.bo:
 
             # Epochs > 0
             for e in tqdm(range(self.n_evals), leave=False):
-                save_settings = f"---epoch-{e+1}" if e < self.n_evals - 1 else ""
 
                 recalibrator = (
                     Recalibrator(
@@ -83,23 +80,19 @@ class Experiment(object):
                         self.optimizer.surrogate_object,
                         self.dataset,
                         recalibrator=recalibrator,
-                        save_settings=save_settings,
                         extensive=self.extensive_metrics,
                     )
-            self.dataset.save()
 
             if not self.analyze_all_epochs:
                 self.metrics.analyze(
                     self.optimizer.surrogate_object,
                     self.dataset,
                     recalibrator=recalibrator,
-                    save_settings="",
                     extensive=self.extensive_metrics,
                 )
         else:
             if self.analyze_all_epochs:
                 for e in tqdm(range(self.n_evals), leave=False):
-                    save_settings = f"---epoch-{e+1}" if e < self.n_evals - 1 else ""
                     X, y, f = self.dataset.data.sample_data(n_samples=1)
                     self.dataset.add_data(X, y, f)
                     self.optimizer.fit_surrogate(self.dataset)
@@ -116,10 +109,8 @@ class Experiment(object):
                         self.optimizer.surrogate_object,
                         self.dataset,
                         recalibrator=recalibrator,
-                        save_settings=save_settings,
                         extensive=self.extensive_metrics,
                     )
-                    self.dataset.save()
             else:
                 X, y, f = self.dataset.data.sample_data(self.n_evals)
                 self.dataset.add_data(X, y, f)
@@ -139,7 +130,9 @@ class Experiment(object):
                     recalibrator=recalibrator,
                     extensive=self.extensive_metrics,
                 )
-                self.dataset.save()
+
+        self.dataset.save()
+        self.metrics.save()
 
 
 if __name__ == "__main__":

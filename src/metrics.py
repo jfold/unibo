@@ -16,11 +16,51 @@ class Metrics(object):
     def __init__(self, parameters: Parameters) -> None:
         self.__dict__.update(asdict(parameters))
         self.p_array = np.linspace(0.001, 0.999, self.n_calibration_bins)
-        self.summary = {"p_array": self.p_array}
-        self.summary_short = {}
+        self.summary = {
+            "p_array": self.p_array.tolist(),
+            "mean_sharpness": [],
+            "sharpness_error_true_minus_model": [],
+            "posterior_variance": [],
+            "bias_mse": [],
+            "bias_nmse": [],
+            "f_calibration": [],
+            "f_calibration_mse": [],
+            "f_calibration_nmse": [],
+            "y_calibration": [],
+            "y_calibration_mse": [],
+            "y_calibration_nmse": [],
+            "calibration_local_dist_to_nearest_train_sample": [],
+            "calibration_local_y": [],
+            "elpd": [],
+            "expected_improvement": [],
+            "actual_improvement": [],
+            "mse": [],
+            "nmse": [],
+            "y_regret": [],
+            "f_regret": [],
+            "x_y_opt_dist": [],
+            "x_f_opt_dist": [],
+        }
+
+    def save(self, save_settings: str = "") -> None:
+        # final_dict = {k: v.tolist() for k, v in self.summary.items()}
+        json_dump = json.dumps(self.summary)
+        with open(self.savepth + f"metrics{save_settings}.json", "w") as f:
+            f.write(json_dump)
+
+        if hasattr(self, "uct_metrics"):
+            with open(self.savepth + f"metrics-uct{save_settings}.pkl", "wb") as f:
+                pickle.dump(self.uct_metrics, f)
+
+    def update_summary(self, update: Dict) -> None:
+        for k, v in update.items():
+            lst = self.summary[k]
+            v = v.tolist() if isinstance(v, np.ndarray) else v
+            lst.append(v)
+            self.summary.update({k: lst})
 
     def sharpness_gaussian(
-        self, mus: np.ndarray, sigmas: np.ndarray, ne_true: float = None, name: str = ""
+        self, mus: np.ndarray, sigmas: np.ndarray, ne_true: float = None
     ) -> None:
         """Calculates the sharpness (negative entropy) of the gaussian distributions 
         with means: mus and standard deviation: sigmas
@@ -29,31 +69,28 @@ class Metrics(object):
             [-norm.entropy(mus[i], sigmas[i]) for i in range(mus.shape[0])]
         )
         mean_sharpness = np.mean(sharpness)
-        self.summary.update(
-            {"mean_sharpness": mean_sharpness}  # "sharpness": sharpness,
-        )
+        self.update_summary({"mean_sharpness": mean_sharpness})
         if ne_true is not None:
-            self.summary.update(
+            self.update_summary(
                 {
                     "sharpness_error_true_minus_model": ne_true - mean_sharpness,
                     "posterior_variance": np.mean(sigmas) ** 2,
                 }
             )
 
-        # if self.plot_it and self.save_it:
-        #     self.plot_sharpness_histogram(name=name)
-
     def bias(self, mus: np.ndarray, f: np.ndarray) -> None:
         mse = np.mean((mus - f) ** 2)
         nmse = mse / np.var(f)
-        self.summary.update(
+        self.update_summary(
             {"bias_mse": mse, "bias_nmse": nmse,}
         )
 
     def sharpness_histogram(
         self, model: Model, X: np.ndarray, n_bins: int = 20
     ) -> None:
-        """Calculates the sharpness (negative entropy) of the histogram distributions 
+        """
+        NOT USED
+        Calculates the sharpness (negative entropy) of the histogram distributions 
         calculated from input X
         """
         if hasattr(model, "histogram_sharpness"):
@@ -77,7 +114,7 @@ class Metrics(object):
             indicators = np.logical_and(lb_indicators, ub_indicators)
             calibrations[i_p] = np.mean(indicators)
 
-        self.summary.update(
+        self.update_summary(
             {
                 "f_calibration": calibrations,
                 "f_calibration_mse": np.mean((self.p_array - calibrations) ** 2),
@@ -109,7 +146,7 @@ class Metrics(object):
             .numpy()
         )
 
-        self.summary.update(
+        self.update_summary(
             {
                 "f_calibration": calibrations,
                 "f_calibration_mse": np.mean((self.p_array - calibrations) ** 2),
@@ -144,7 +181,7 @@ class Metrics(object):
         if return_mse:
             return np.nanmean((calibrations - self.p_array) ** 2)
         else:
-            self.summary.update(
+            self.update_summary(
                 {
                     "y_calibration": calibrations,
                     "y_calibration_mse": np.nanmean((calibrations - self.p_array) ** 2),
@@ -174,7 +211,7 @@ class Metrics(object):
         if return_mse:
             return np.nanmean((calibrations - p_array) ** 2)
         else:
-            self.summary.update(
+            self.update_summary(
                 {
                     "y_calibration": calibrations,
                     "y_calibration_mse": np.nanmean((calibrations - p_array) ** 2),
@@ -220,11 +257,10 @@ class Metrics(object):
         # plt.xlabel("Distance to nearest training sample")
         # plt.show()
         # raise ValueError()
-        self.summary.update(
+        self.update_summary(
             {
                 "calibration_local_dist_to_nearest_train_sample": bins[1:],
                 "calibration_local_y": calibrations_intervals,
-                # "calibration_y_local": calibrations,
             }
         )
 
@@ -242,10 +278,10 @@ class Metrics(object):
             ]
         )
         elpd = np.mean(log_pdfs)
-        self.summary.update({"elpd": elpd})
+        self.update_summary({"elpd": elpd})
 
     def improvement(self, dataset: Dataset):
-        self.summary.update(
+        self.update_summary(
             {
                 "expected_improvement": np.array(dataset.expected_improvement),
                 "actual_improvement": np.array(dataset.actual_improvement),
@@ -259,50 +295,30 @@ class Metrics(object):
         """
         mse = np.mean((y - predictions) ** 2)
         nmse = mse / np.var(y)
-        self.summary.update({"mse": mse, "nmse": nmse})
+        self.update_summary({"mse": mse, "nmse": nmse})
 
     def regret(self, dataset: Dataset) -> None:
         y_regret = np.abs(dataset.data.y_min - dataset.y_opt)
         f_regret = np.abs(dataset.data.f_min - dataset.f_opt)
-        self.summary.update(
-            {"y_regret": y_regret.squeeze(), "f_regret": f_regret.squeeze()}
-        )
-        self.summary_short.update(
+        self.update_summary(
             {"y_regret": y_regret.squeeze(), "f_regret": f_regret.squeeze()}
         )
 
     def glob_min_dist(self, dataset: Dataset) -> None:
         y_squared_error = (dataset.X_y_opt - np.array(dataset.data.y_min_loc)) ** 2
         f_squared_error = (dataset.X_f_opt - np.array(dataset.data.f_min_loc)) ** 2
-        self.summary.update(
+        self.update_summary(
             {
                 "x_y_opt_dist": np.sqrt(np.sum(y_squared_error)),
                 "x_f_opt_dist": np.sqrt(np.sum(f_squared_error)),
             }
         )
 
-    def save(self, save_settings: str = "", save_extensive: bool = True) -> None:
-        if save_extensive:
-            final_dict = {k: v.tolist() for k, v in self.summary.items()}
-            json_dump = json.dumps(final_dict)
-            with open(self.savepth + f"metrics{save_settings}.json", "w") as f:
-                f.write(json_dump)
-
-            if hasattr(self, "uct_metrics"):
-                with open(self.savepth + f"metrics-uct{save_settings}.pkl", "wb") as f:
-                    pickle.dump(self.uct_metrics, f)
-        else:
-            final_dict = {k: v.tolist() for k, v in self.summary_short.items()}
-            json_dump = json.dumps(final_dict)
-            with open(self.savepth + f"metrics{save_settings}.json", "w") as f:
-                f.write(json_dump)
-
     def analyze(
         self,
         surrogate: Model,
         dataset: Dataset,
         recalibrator: Recalibrator = None,
-        save_settings: str = "",
         extensive: bool = True,
     ) -> None:
         if surrogate is not None and extensive:
@@ -314,10 +330,7 @@ class Metrics(object):
             self.calibration_y_batched(mu_test, sigma_test, dataset.data.y_test)
             self.calibration_y_local(dataset, mu_test, sigma_test)
             self.sharpness_gaussian(
-                mu_test,
-                sigma_test,
-                ne_true=dataset.data.ne_true,
-                name=f"{save_settings}",
+                mu_test, sigma_test, ne_true=dataset.data.ne_true,
             )
             self.expected_log_predictive_density(
                 mu_test, sigma_test, dataset.data.y_test,
@@ -334,7 +347,4 @@ class Metrics(object):
 
         self.regret(dataset)
         self.glob_min_dist(dataset)
-
-        # Save
-        self.save(save_settings, save_extensive=extensive)
 
