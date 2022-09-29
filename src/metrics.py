@@ -40,17 +40,14 @@ class Metrics(object):
             "f_regret": [],
             "x_y_opt_dist": [],
             "x_f_opt_dist": [],
+            "uct_calibration": [],
+            "uct_sharpness": [],
         }
 
     def save(self, save_settings: str = "") -> None:
-        # final_dict = {k: v.tolist() for k, v in self.summary.items()}
         json_dump = json.dumps(self.summary)
         with open(self.savepth + f"metrics{save_settings}.json", "w") as f:
             f.write(json_dump)
-
-        if hasattr(self, "uct_metrics"):
-            with open(self.savepth + f"metrics-uct{save_settings}.pkl", "wb") as f:
-                pickle.dump(self.uct_metrics, f)
 
     def update_summary(self, update: Dict) -> None:
         for k, v in update.items():
@@ -59,9 +56,7 @@ class Metrics(object):
             lst.append(v)
             self.summary.update({k: lst})
 
-    def sharpness_gaussian(
-        self, mus: np.ndarray, sigmas: np.ndarray, ne_true: float = None
-    ) -> None:
+    def sharpness_gaussian(self, mus: np.ndarray, sigmas: np.ndarray) -> None:
         """Calculates the sharpness (negative entropy) of the gaussian distributions 
         with means: mus and standard deviation: sigmas
         """
@@ -70,10 +65,10 @@ class Metrics(object):
         )
         mean_sharpness = np.mean(sharpness)
         self.update_summary({"mean_sharpness": mean_sharpness})
-        if ne_true is not None:
+        if self.ne_true is not None:
             self.update_summary(
                 {
-                    "sharpness_error_true_minus_model": ne_true - mean_sharpness,
+                    "sharpness_error_true_minus_model": self.ne_true - mean_sharpness,
                     "posterior_variance": np.mean(sigmas) ** 2,
                 }
             )
@@ -314,6 +309,17 @@ class Metrics(object):
             }
         )
 
+    def run_uct(self, mu_test, sigma_test, y_test):
+        uct_metrics = uct.metrics.get_all_metrics(
+            mu_test.squeeze(), sigma_test.squeeze(), y_test.squeeze(), verbose=False,
+        )
+        self.update_summary(
+            {
+                "uct_calibration": uct_metrics["avg_calibration"]["rms_cal"],
+                "uct_sharpness": uct_metrics["sharpness"]["sharp"],
+            }
+        )
+
     def analyze(
         self,
         surrogate: Model,
@@ -329,20 +335,13 @@ class Metrics(object):
             self.calibration_f_batched(mu_test, sigma_test, dataset.data.f_test)
             self.calibration_y_batched(mu_test, sigma_test, dataset.data.y_test)
             self.calibration_y_local(dataset, mu_test, sigma_test)
-            self.sharpness_gaussian(
-                mu_test, sigma_test, ne_true=dataset.data.ne_true,
-            )
+            self.sharpness_gaussian(mu_test, sigma_test)
             self.expected_log_predictive_density(
                 mu_test, sigma_test, dataset.data.y_test,
             )
             self.nmse(dataset.data.y_test, mu_test)
             self.bias(mu_test, dataset.data.f_test)
-            self.uct_metrics = uct.metrics.get_all_metrics(
-                mu_test.squeeze(),
-                sigma_test.squeeze(),
-                dataset.data.y_test.squeeze(),
-                verbose=False,
-            )
+            self.run_uct(mu_test, sigma_test, dataset.data.y_test)
             self.improvement(dataset)
 
         self.regret(dataset)
