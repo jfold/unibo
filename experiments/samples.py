@@ -19,9 +19,9 @@ class SamplesExperiment(object):
             self.x_linspace, loc=self.mu_true, scale=self.sigma_true
         )
 
-        sample_sizes = np.linspace(5, 100, 20).astype(np.int_)
-        sample_sizes = np.append(sample_sizes, [200, 500, 1000, 1000])
-        self.n_sample_sizes = len(sample_sizes)
+        self.sample_sizes = np.linspace(5, 100, 20).astype(np.int_)
+        self.sample_sizes = np.append(self.sample_sizes, [200, 500, 1000, 1000])
+        self.n_sample_sizes = len(self.sample_sizes)
 
         self.models = np.array(
             [[0, 1], [0, 2], [0, 0.1], [0.5, 1], [-1.5, 1], [0.5, 1.5]]
@@ -46,7 +46,7 @@ class SamplesExperiment(object):
         self, samples: np.ndarray, mus: np.ndarray, sigmas: np.ndarray
     ) -> np.ndarray:
         y_ = np.tile(samples, self.n_calibration_bins)
-        p_array_ = np.tile(p[:, np.newaxis], sigmas.size)
+        p_array_ = np.tile(self.p[:, np.newaxis], sigmas.size)
         norms = tdist.Normal(
             torch.tensor(mus.squeeze()), torch.tensor(sigmas.squeeze())
         )
@@ -134,17 +134,26 @@ class SamplesExperiment(object):
         fig = plt.figure()
         mu = np.mean(std_max, axis=0)
         std = np.std(std_max, axis=0)
-        popt = self.fit_fun(self.sample_sizes, np.mean(std_max, axis=0))
-        fitted_fun = self.fun2fit(self.sample_sizes, popt[0], popt[1], popt[2])
-        print(f"{popt[0]:.2E},{popt[1]:.2f},{popt[2]:2f}")
+        # popt = self.fit_fun(self.sample_sizes, np.mean(std_max, axis=0))
+        # fitted_fun = self.fun2fit(self.sample_sizes, popt[0], popt[1], popt[2])
+        # print(f"{popt[0]:.2E},{popt[1]:.2f},{popt[2]:2f}")
         plt.plot(self.sample_sizes, mu, "-*", color="blue", label="Data")
-        plt.plot(self.sample_sizes, fitted_fun, "--", color="red", label="Fit")
+        # plt.plot(self.sample_sizes, fitted_fun, "--", color="red", label="Fit")
+        plt.plot(
+            self.sample_sizes,
+            np.sqrt(5) * mu[0] / np.sqrt(self.sample_sizes),
+            "--",
+            color="green",
+            label=r"$1/\sqrt{n}$",
+        )
         plt.legend()
         plt.fill_between(
             self.sample_sizes, mu - 2 * std, mu + 2 * std, color="blue", alpha=0.2
         )
-        plt.ylabel(r"Sup $2\sqrt{\mathbb{V} [C_p(y)]}$ ")
+        plt.ylabel(r"Max $2\sqrt{\mathbb{V} [C_y(p)]}$ ")
         plt.xlabel(r"$N$")
         plt.xscale("log")
         fig.savefig("./figs/pdfs/sup_std_calibration.pdf")
+
+        # UDREGN: middelfejl og middelvarians ift. perf. kalibrering for hvert plot
 
