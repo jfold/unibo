@@ -1,6 +1,29 @@
-from imports.general import *
-from src.experiment import Experiment
 from src.parameters import Parameters
+from src.dataset import Dataset
+from surrogates.bayesian_neural_network import BayesianNeuralNetwork
+from surrogates.gaussian_process import GaussianProcess
+from surrogates.random_forest import RandomForest
+from surrogates.dummy_surrogate import DummySurrogate
+from surrogates.deep_ensemble import DeepEnsemble
+import torch
+import numpy as np
+import torchvision
+from torchvision import datasets
+from src.MNIST_utility import *
+import torch.optim as optim
+import matplotlib.pyplot as plt
+from botorch.acquisition.analytic import ExpectedImprovement
+from sklearn.model_selection import train_test_split
+from torch.utils.data import Subset
+import random
+from torch.utils.data.sampler import SubsetRandomSampler
+import json
+from sklearn.preprocessing import StandardScaler
+import itertools
+from experiments.MNIST import *
+from datetime import datetime
+import time
+
 
 
 def run():
@@ -35,8 +58,7 @@ def run():
 
     parameters = Parameters(kwargs, mkdir=True)
     print("Running with:", parameters)
-    experiment = Experiment(parameters)
-    experiment.run()
+    MNIST()
     print("FINISHED EXPERIMENT")
     print("------------------------------------")
 
