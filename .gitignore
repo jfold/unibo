@@ -5,7 +5,6 @@ cluster
 #**/TODO.txt
 **/*.pdf
 **/*.zip
-results*/*
 **/*.sh
 **/.DS_Store
 **/__pycache__
