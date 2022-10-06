@@ -39,6 +39,8 @@ class Parameters:
     sigma_noise: float = None  # computed as function of SNR and sigma_data
     n_calibration_bins: int = 20
     K: int = 1  # number of terms in sum for VerificationData
+    b_train: int = 64 # Batch size while training NN on MNIST
+    hidden_size: int = 100 # hidden layer number of neurons for NN on MNIST
     savepth: str = os.getcwd() + "/results/"
     experiment: str = ""  # folder name
 

@@ -38,13 +38,13 @@ def MNIST(params):
     get_new_init = True
     input_size = 28*28
     valid_size = 0.25
-    batch_size_train = (params.b_train).astype(int)
-    hidden_size = (params.hidden_size).astype(int)
+    batch_size_train = params.b_train
+    hidden_size = params.hidden_size
     
-    epochs = np.linspace(1, 10, num=1).astype(int)
-    dropout_rates = np.linspace(0, 0.8, num=1).astype(float)
+    epochs = np.linspace(1, 10, num=10).astype(int)
+    dropout_rates = np.linspace(0, 0.8, num=10).astype(float)
     #ln(0.00001)= -11.51, ln(0.1) = - 2.23, 
-    learning_rates = np.linspace(-11.51, -2.23, num=1)
+    learning_rates = np.linspace(-11.51, -2.23, num=10)
     initial_setting_dict['batch_size_test']=batch_size_test
     initial_setting_dict['output_size']=output_size
     initial_setting_dict['input_size']=input_size
@@ -73,7 +73,7 @@ def MNIST(params):
     accuracies = []
     hyperparam_list = []
     for epoch in epochs:
-        for dropout in dropout_rate:
+        for dropout in dropout_rates:
             for learning_rate in learning_rates:
                 MNIST_experiment = {}
                 hyperparams = np.array([hidden_size, learning_rate, batch_size_train, epoch, dropout])
@@ -91,7 +91,7 @@ def MNIST(params):
     MNIST_results["valid_losses"] = valid_losses
     MNIST_results["accuracies"] = accuracies
     experiment_dict['MNIST_results'] = MNIST_results
-    with open("/zhome/49/2/135395/PhD/unibo/MNIST/experimental_results/experiment_data" + file_name+ ".json", 'w') as fp:
+    with open("/zhome/49/2/135395/PhD/unibo/results/MNIST/" + file_name+ ".json", 'w') as fp:
         json.dump(experiment_dict, fp, indent=4)
 if __name__ == "__main__":
     MNIST()

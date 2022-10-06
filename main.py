@@ -23,7 +23,7 @@ import itertools
 from experiments.MNIST import *
 from datetime import datetime
 import time
-
+import sys
 
 
 def run():
@@ -58,7 +58,7 @@ def run():
 
     parameters = Parameters(kwargs, mkdir=True)
     print("Running with:", parameters)
-    MNIST()
+    MNIST(parameters)
     print("FINISHED EXPERIMENT")
     print("------------------------------------")
 
