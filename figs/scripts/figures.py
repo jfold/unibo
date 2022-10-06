@@ -6,12 +6,13 @@ from src.parameters import Parameters
 from figs.scripts.loader import Loader
 
 
-class Figures(object):
-    def __init__(self, loader: Loader):
-        self.loader = loader
-        self.scientific_notation = False
+class Figures(Loader):
+    def __init__(self, scientific_notation: bool = False):
+        super().__init__()
+        self.scientific_notation = scientific_notation
         self.savepth = os.getcwd() + "/figs/pdfs/"
         self.markers = ["o", "v", "s", "x", "d"]
+        self.colors = plt.cm.plasma(np.linspace(0, 1, len(self.markers)))
 
     def calibration(self):
         fig = plt.figure()
@@ -447,50 +448,146 @@ class Figures(object):
 
     def figure_std_vs_metric(
         self,
-        loader: Loader,
+        x="std_change",
+        y="y_calibration_mse",
+        groups="surrogate",
         settings: Dict = {
             "data_name": "benchmark",
             "epoch": 90,
             "snr": 100,
-            "bo": False,
+            "bo": True,
         },
-        y_settings: Dict = {"metric": "y_calibration_mse"},
+        table_name="results_change_std",
     ):
-        colors = plt.cm.plasma(np.linspace(0, 1, len(self.markers)))
-        cs = loader.loader_summary["std_change"]["vals"]
-        settings_ = loader.merge_two_dicts(y_settings, settings)
+        cnx = sqlite3.connect("./results.db")
+        query = self.dict2query(table_name=table_name, columns=[groups, x],)
+        df = pd.read_sql(query, cnx)
+        groups_ = sorted(df[groups].unique())
+        xs = sorted(df[x].unique())
+
         fig = plt.figure()
-        ax = fig.add_subplot(111)
-        for i_s, sur in tqdm(enumerate(loader.loader_summary["surrogate"]["vals"])):
-            mus = []
-            stds = []
-            for i_c, c in enumerate(cs):
-                data = loader.extract(
-                    settings=loader.merge_two_dicts(
-                        settings_, {"std_change": c, "surrogate": sur,},
-                    )
+        for i_g, group in enumerate(groups_):
+            data_mu = []
+            data_std = []
+            for x_ in xs:
+                query = self.dict2query(
+                    self.merge_two_dicts(settings, {groups: group, x: x_}),
+                    table_name,
+                    [y],
                 )
-                mus.append(np.nanmean(data))
-                stds.append(np.nanstd(data) / np.sqrt(np.sum(np.isfinite(data))))
-            ax.errorbar(
-                cs,
-                mus,
-                yerr=stds,
-                marker=self.markers[i_s],
-                color=colors[i_s],
-                label=sur,
+                data = pd.read_sql(query, cnx).to_numpy()
+                data_mu.append(np.nanmean(data))
+                data_std.append(np.nanstd(data) / np.sqrt(np.sum(np.isfinite(data))))
+            plt.errorbar(
+                xs,
+                data_mu,
+                yerr=data_std,
+                marker=self.markers[i_g],
+                color=self.colors[i_g],
+                label=group,
             )
-        y_str = y_settings["metric"]
-        plt.legend()
-        plt.xlabel(r"$c$")
-        plt.ylabel(rf"{loader.metric_dict[y_str][-1]}")
         plt.xscale("log")
         plt.yscale("log")
-        if y_settings["metric"] == "y_calibration_mse":
+        plt.legend()
+        plt.xlabel(r"$c$")
+        plt.ylabel(rf"{self.metric_dict[y][-1]}")
+        plt.xscale("log")
+        plt.yscale("log")
+        if y == "y_calibration_mse":
             plt.ylim([1e-3, 0.15])
         if settings["bo"]:
-            fig.savefig(f"./figs/pdfs/c-{y_str}-bo.pdf")
+            fig.savefig(f"./figs/pdfs/c-{y}-bo.pdf")
         else:
-            fig.savefig(f"./figs/pdfs/c-{y_str}.pdf")
+            fig.savefig(f"./figs/pdfs/c-{y}.pdf")
         plt.show()
 
+    def scatter_regret_calibration_std_change(
+        self,
+        x="y_calibration_mse",
+        y="f_regret",
+        groups="surrogate",
+        settings: Dict = {
+            "data_name": "benchmark",
+            "epoch": 90,
+            "snr": 100,
+            "bo": True,
+        },
+        table_name="results_change_std",
+        average: bool = False,
+    ):
+        cnx = sqlite3.connect("./results.db")
+        fig = plt.figure()
+
+        if average:
+            query = self.dict2query(
+                table_name=table_name, columns=[groups, "std_change"],
+            )
+            df = pd.read_sql(query, cnx)
+            groups_ = sorted(df[groups].unique())
+            xs = sorted(df["std_change"].unique())
+
+            for i_g, group in enumerate(groups_):
+                data_x = []
+                data_y = []
+                for x_ in xs:
+                    xaxis = self.dict2query(
+                        self.merge_two_dicts(
+                            settings, {groups: group, "std_change": x_}
+                        ),
+                        table_name,
+                        [x],
+                    )
+                    yaxis = self.dict2query(
+                        self.merge_two_dicts(
+                            settings, {groups: group, "std_change": x_}
+                        ),
+                        table_name,
+                        [y],
+                    )
+                    data = pd.read_sql(xaxis, cnx).to_numpy()
+                    data_x.append(np.nanmean(data))
+                    data = pd.read_sql(yaxis, cnx).to_numpy()
+                    data_y.append(np.nanmean(data))
+
+                plt.scatter(
+                    data_x,
+                    data_y,
+                    marker=self.markers[i_g],
+                    color=self.colors[i_g],
+                    label=group,
+                    alpha=0.6,
+                )
+            # plt.xscale("log")
+            plt.yscale("log")
+
+        else:
+            query = self.dict2query(table_name=table_name, columns=[groups],)
+            df = pd.read_sql(query, cnx)
+            groups_ = sorted(df[groups].unique())
+
+            for i_g, group in enumerate(groups_):
+                query = self.dict2query(
+                    self.merge_two_dicts(settings, {groups: group}), table_name, [x, y],
+                )
+                df = pd.read_sql(query, cnx)
+                x_ = df[[x]].to_numpy() + 1e-10
+                y_ = df[[y]].to_numpy() + 1e-10
+                plt.scatter(
+                    x_,
+                    y_,
+                    marker=self.markers[i_g],
+                    color=self.colors[i_g],
+                    label=group,
+                    alpha=0.6,
+                )
+            plt.xscale("log")
+            plt.yscale("log")
+
+        plt.legend()
+        plt.xlabel(rf"{self.metric_dict[x][-1]}")
+        plt.ylabel(rf"{self.metric_dict[y][-1]}")
+        if settings["bo"]:
+            fig.savefig(f"./figs/pdfs/change-std-cal-reg-bo.pdf")
+        else:
+            fig.savefig(f"./figs/pdfs/change-std-cal-reg.pdf")
+        plt.show()
