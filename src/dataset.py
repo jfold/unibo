@@ -52,6 +52,7 @@ class Dataset(object):
         self.update_solution()
 
     def update_solution(self) -> None:
+
         self.opt_idx = (
             np.argmax(self.data.y_train)
             if self.maximization
@@ -60,14 +61,6 @@ class Dataset(object):
         self.y_opt = self.data.y_train[[self.opt_idx], :]
         self.X_y_opt = self.data.X_train[[self.opt_idx], :]
 
-        self.opt_idx = (
-            np.argmax(self.data.f_train)
-            if self.maximization
-            else np.argmin(self.data.f_train)
-        )
-        self.f_opt = self.data.f_train[[self.opt_idx], :]
-        self.X_f_opt = self.data.X_train[[self.opt_idx], :]
-
         self.summary.update(
             {
                 "n_initial": int(self.n_initial),
@@ -75,10 +68,20 @@ class Dataset(object):
                 "y_train": self.data.y_train.tolist(),
                 "opt_idx": int(self.opt_idx),
                 "X_y_opt": self.X_y_opt.tolist(),
-                "X_f_opt": self.X_f_opt.tolist(),
                 "y_opt": self.y_opt.tolist(),
             }
         )
+        if not self.data.real_world:
+            self.opt_idx = (
+                np.argmax(self.data.f_train)
+                if self.maximization
+                else np.argmin(self.data.f_train)
+            )
+            self.f_opt = self.data.f_train[[self.opt_idx], :]
+            self.X_f_opt = self.data.X_train[[self.opt_idx], :]
+            self.summary.update(
+                {"X_f_opt": self.X_f_opt.tolist(), "opt_idx": int(self.opt_idx),}
+            )
 
     def save(self, save_settings: str = "") -> None:
         # for k, v in self.summary.items():
@@ -97,12 +100,14 @@ class Dataset(object):
     ) -> None:
         self.data.X_train = np.append(self.data.X_train, x_new, axis=0)
         self.data.y_train = np.append(self.data.y_train, y_new, axis=0)
-        self.data.f_train = np.append(self.data.f_train, f_new, axis=0)
+        if not self.data.real_world:
+            self.data.f_train = np.append(self.data.f_train, f_new, axis=0)
 
         if i_choice is not None:
             self.data.X_test = np.delete(self.data.X_test, i_choice, axis=0)
             self.data.f_test = np.delete(self.data.f_test, i_choice, axis=0)
-            self.data.y_test = np.delete(self.data.y_test, i_choice, axis=0)
+            if not self.data.real_world:
+                self.data.y_test = np.delete(self.data.y_test, i_choice, axis=0)
             # x, y, f = self.data.sample_data(n_samples=1)
             # self.data.X_test = np.append(self.data.X_test, x, axis=0)
             # self.data.f_test = np.append(self.data.f_test, y, axis=0)
@@ -114,5 +119,9 @@ class Dataset(object):
 
     def sample_testset(self, n_samples: int = None) -> Dict[np.ndarray, np.ndarray]:
         n_samples = self.n_test if n_samples is None else n_samples
-        X, y, f = self.data.sample_data(n_samples=n_samples)
-        return X, y, f
+        if self.data.real_world:
+            X, y = self.data.sample_data(n_samples=n_samples)
+            return X, y
+        else:
+            X, y, f = self.data.sample_data(n_samples=n_samples)
+            return X, y, f
