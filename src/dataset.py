@@ -23,24 +23,29 @@ class Dataset(object):
 
         self.summary = {
             "data_name": self.data_name,
-            "signal_std": float(self.data.signal_std),
-            "noise_std": float(self.data.noise_std),
             "x_ubs": self.data.x_ubs.tolist(),
             "x_lbs": self.data.x_lbs.tolist(),
             "X_test": self.data.X_test.tolist(),
-            "f_test": self.data.f_test.tolist(),
             "y_test": self.data.y_test.tolist(),
             "X_train": self.data.X_train.tolist(),
-            "f_train": self.data.f_train.tolist(),
             "y_train": self.data.y_train.tolist(),
-            "f_min_idx": float(self.data.f_min_idx),
             "y_min_idx": float(self.data.y_min_idx),
-            "f_min_loc": self.data.f_min_loc.tolist(),
             "y_min_loc": self.data.y_min_loc.tolist(),
-            "f_min": float(self.data.f_min),
             "y_min": float(self.data.y_min),
-            "ne_true": float(self.data.ne_true),
         }
+        if not self.data.real_world:
+            self.summary.update(
+                {
+                    "signal_std": float(self.data.signal_std),
+                    "noise_std": float(self.data.noise_std),
+                    "f_min": float(self.data.f_min),
+                    "ne_true": float(self.data.ne_true),
+                    "f_min_loc": self.data.f_min_loc.tolist(),
+                    "f_min_idx": float(self.data.f_min_idx),
+                    "f_test": self.data.f_test.tolist(),
+                    "f_train": self.data.f_train.tolist(),
+                }
+            )
 
         self.actual_improvement = None
         self.expected_improvement = None

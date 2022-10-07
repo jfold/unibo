@@ -19,6 +19,7 @@ class Benchmark(object):
         self.n_test = parameters.n_test
         self.n_validation = parameters.n_validation
         self.n_initial = parameters.n_initial
+        self.real_world = False
         np.random.seed(self.seed)
         self.benchmarks = test_funcs
         all_problems = inspect.getmembers(self.benchmarks)
