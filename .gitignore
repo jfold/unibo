@@ -7,6 +7,7 @@ cluster
 **/*.zip
 results*/*
 datasets/MNIST/optim_dataset/*
+**/*.db
 **/*.sh
 **/.DS_Store
 **/__pycache__
