@@ -1,5 +1,6 @@
 from argparse import ArgumentError
 from typing import Dict
+from datasets.MNIST.mnist import MNIST
 from datasets.RBF.rbf_sampler import RBFSampler
 from src.parameters import *
 from imports.general import *
@@ -15,6 +16,8 @@ class Dataset(object):
             self.data = RBFSampler(parameters)
         elif parameters.data_name.lower() == "benchmark":
             self.data = Benchmark(parameters)
+        elif parameters.data_name.lower() == "mnist":
+            self.data = MNIST(parameters)
         else:
             raise ArgumentError(f"{parameters.problem} problem in parameters not found")
 
