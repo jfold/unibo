@@ -519,55 +519,81 @@ class Figures(Loader):
         fig = plt.figure()
 
         if average:
-            query = self.dict2query(
-                table_name=table_name, columns=[groups, "std_change"],
-            )
+            query = self.dict2query(FROM=table_name, SELECT=[groups, "std_change"],)
             df = pd.read_sql(query, cnx)
             groups_ = sorted(df[groups].unique())
             xs = sorted(df["std_change"].unique())
 
+            data_x = []
+            data_y = []
+            data_z = []
             for i_g, group in enumerate(groups_):
-                data_x = []
-                data_y = []
+                data_x_ = []
+                data_y_ = []
+                data_z_ = []
                 for x_ in xs:
                     xaxis = self.dict2query(
-                        self.merge_two_dicts(
+                        FROM=table_name,
+                        SELECT=[x],
+                        WHERE=self.merge_two_dicts(
                             settings, {groups: group, "std_change": x_}
                         ),
-                        table_name,
-                        [x],
                     )
                     yaxis = self.dict2query(
-                        self.merge_two_dicts(
+                        FROM=table_name,
+                        SELECT=[y],
+                        WHERE=self.merge_two_dicts(
                             settings, {groups: group, "std_change": x_}
                         ),
-                        table_name,
-                        [y],
                     )
-                    data = pd.read_sql(xaxis, cnx).to_numpy()
-                    data_x.append(np.nanmean(data))
-                    data = pd.read_sql(yaxis, cnx).to_numpy()
-                    data_y.append(np.nanmean(data))
-
+                    zaxis = self.dict2query(
+                        FROM=table_name,
+                        SELECT=["mean_sharpness"],
+                        WHERE=self.merge_two_dicts(
+                            settings, {groups: group, "std_change": x_}
+                        ),
+                    )
+                    data_x_.append(np.nanmean(pd.read_sql(xaxis, cnx).to_numpy()))
+                    data_y_.append(np.nanmean(pd.read_sql(yaxis, cnx).to_numpy()))
+                    data_z_.append(np.nanmean(pd.read_sql(zaxis, cnx).to_numpy()))
+                data_x.append(data_x_)
+                data_y.append(data_y_)
+                data_z.append(data_z_)
+            z = np.array(data_z) + np.abs(np.min(data_z))
+            data_z = np.exp(-10 * ((z) / np.max(z)) + 3)
+            for i_g, group in enumerate(groups_):
                 plt.scatter(
-                    data_x,
-                    data_y,
+                    data_x[i_g],
+                    data_y[i_g],
                     marker=self.markers[i_g],
+                    s=(data_z[i_g] * 100) + 5,
                     color=self.colors[i_g],
                     label=group,
                     alpha=0.6,
                 )
-            # plt.xscale("log")
+                # circle around c = 1
+                plt.plot(
+                    data_x[i_g][10],
+                    data_y[i_g][10],
+                    marker="o",
+                    markersize=30,
+                    color=self.colors[i_g],
+                    alpha=0.1,
+                )
+            plt.xscale("log")
             plt.yscale("log")
+            plt.xlim([1e-2, 1.3e-1])
 
         else:
-            query = self.dict2query(table_name=table_name, columns=[groups],)
+            query = self.dict2query(FROM=table_name, SELECT=[groups],)
             df = pd.read_sql(query, cnx)
             groups_ = sorted(df[groups].unique())
 
             for i_g, group in enumerate(groups_):
                 query = self.dict2query(
-                    self.merge_two_dicts(settings, {groups: group}), table_name, [x, y],
+                    WHERE=self.merge_two_dicts(settings, {groups: group}),
+                    FROM=table_name,
+                    SELECT=[x, y],
                 )
                 df = pd.read_sql(query, cnx)
                 x_ = df[[x]].to_numpy() + 1e-10
@@ -583,7 +609,7 @@ class Figures(Loader):
             plt.xscale("log")
             plt.yscale("log")
 
-        plt.legend()
+        # plt.legend()
         plt.xlabel(rf"{self.metric_dict[x][-1]}")
         plt.ylabel(rf"{self.metric_dict[y][-1]}")
         if settings["bo"]:

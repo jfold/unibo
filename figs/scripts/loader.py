@@ -33,6 +33,18 @@ class Loader(object):
             "std_change": ["Std. change", -1, [], "$c$"],
             "mahalanobis_dist": ["mahalanobis_dist", -1, [], "$D_M$"],
             "y_calibration_mse": ["Calibration MSE", -1, [], "$E_{\mathcal{C}_y}$",],
+            "y_calibration_over": [
+                "Over calibration",
+                -1,
+                [],
+                "$E_{\mathcal{C}^+_y}$",
+            ],
+            "y_calibration_under": [
+                "Under calibration",
+                -1,
+                [],
+                "$E_{\mathcal{C}^-_y}$",
+            ],
             "uct_calibration": ["UCT-C", 1, [0, 2], "UCT-C"],
             "uct_sharpness": ["UCT-S", -1, [], "UCT-S"],
         }
@@ -115,6 +127,10 @@ class Loader(object):
                         data.update({x: m[-1]})
                         if x == "y_regret" or x == "f_regret":
                             data.update({f"{x}_total": np.sum(m)})
+                    # elif x == "y_calibration_over":
+                    #     data.update({x: self.calibration(metrics, "over")})
+                    # elif x == "y_calibration_under":
+                    #     data.update({x: self.calibration(metrics, "under")})
                     elif x not in data and x not in parameters.keys():
                         data.update({x: "NULL"})
 
@@ -128,39 +144,36 @@ class Loader(object):
 
     def dict2query(
         self,
-        dict: Dict = {},
-        table_name: str = "",
-        columns: list = None,
-        orders: list = None,
+        FROM: str = "",
+        SELECT: list = None,
+        WHERE: Dict = {},
+        ORDERBY: list = None,
     ) -> str:
-        cols = ",".join(columns) if columns is not None else "*"
-        query = f"SELECT {cols} FROM {table_name}"
+        cols = ",".join(SELECT) if SELECT is not None else "*"
+        query = f"SELECT {cols} FROM {FROM}"
         c = 1
-        dict_len = len(dict.keys())
+        dict_len = len(WHERE.keys())
         if dict_len > 0:
             query += " WHERE "
-        for key, val in dict.items():
+        for key, val in WHERE.items():
             if isinstance(val, bool):
                 val = 1 if val else 0
             query += f"{key}='{val}'"
             if c < dict_len:
                 query += " and "
             c += 1
-        if orders is not None and len(orders) > 0:
-            query += " ORDER BY " + ",".join(orders)
+        if ORDERBY is not None and len(ORDERBY) > 0:
+            query += " ORDER BY " + ",".join(ORDERBY)
         return query + ";"
 
-    def p2stars(self, p: float):
+    def p2stars(self, p: float, bonfferoni: float = 1.0):
         assert 0.0 <= p <= 1.0
         stars = ""
+        p *= bonfferoni
         if p < 0.05:
             stars = "^{*}"
-        if p < 0.001:
-            stars = "^{**}"
-        if p < 0.0001:
-            stars = "^{***}"
         if p < 1e-10:
-            stars = "^{****}"
+            stars = "^{**}"
         return stars
 
     def merge_two_dicts(self, x, y):
@@ -179,6 +192,18 @@ class Loader(object):
             )
         else:
             return f"{x:.3f}"
+
+    def calibration(self, metrics, over_under: str):
+        if over_under == "under":
+            E_cal_minus = np.nanmean(
+                np.maximum(0, metrics["y_calibration"] - metrics["p_array"]) ** 2
+            )
+            return E_cal_minus
+        elif over_under == "over":
+            E_cal_plus = np.nanmean(
+                np.maximum(0, metrics["p_array"] - metrics["y_calibration"]) ** 2
+            )
+            return E_cal_plus
 
     # def load_from_file(self):
     #     with open(os.getcwd() + f"/{self.loadpth}/metrics.pkl", "rb") as pkl:

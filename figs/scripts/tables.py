@@ -1,4 +1,5 @@
 from typing import Dict
+from datasets.benchmarks.evalset.test_funcs import Rastrigin
 from imports.general import *
 from imports.ml import *
 from figs.scripts.loader import Loader
@@ -156,11 +157,96 @@ class Tables(Loader):
         x, y = self.remove_extremes(x.squeeze(), y.squeeze())
         return pearsonr(x, y)
 
+    def table_linear_correlation_all(self):
+        cnx = sqlite3.connect("./results.db")
+        table_name = "results_regret_vs_calibration"
+        query = self.dict2query(FROM=table_name, SELECT=["surrogate"])
+        df = pd.read_sql(query, cnx)
+        surrogates = sorted(df["surrogate"].unique())
+        snr = 100
+
+        row = ""
+        for recal in [False]:
+            x1 = pd.read_sql(
+                self.dict2query(
+                    FROM=table_name,
+                    SELECT=[
+                        "f_regret",
+                        "y_calibration_mse",
+                        "surrogate",
+                        "mean_sharpness",
+                        "elpd",
+                    ],
+                    WHERE={"bo": False, "recalibrate": recal, "snr": snr,},
+                    ORDERBY=["seed", "d", "problem", "surrogate",],
+                ),
+                cnx,
+            )
+            x2 = pd.read_sql(
+                self.dict2query(
+                    FROM=table_name,
+                    SELECT=[
+                        "f_regret",
+                        "y_calibration_mse",
+                        "surrogate",
+                        "mean_sharpness",
+                        "elpd",
+                    ],
+                    WHERE={"bo": True, "recalibrate": recal, "snr": snr,},
+                    ORDERBY=["seed", "d", "problem", "surrogate",],
+                ),
+                cnx,
+            )
+
+            x1 = x1.replace("NULL", np.nan, regex=True)
+            x1 = x1.dropna(how="any", axis=0)
+            sur_one_hot = pd.get_dummies(x1[["surrogate"]])
+            x1.drop("surrogate", axis=1, inplace=True)
+            for sur in surrogates:
+                if sur not in ["RS", "DS"]:
+                    x1[f"surrogate_{sur}"] = sur_one_hot[[f"surrogate_{sur}"]]
+
+            x1 = x1.dropna(how="any", axis=0)
+            y = x1[["f_regret"]]
+            X = x1.drop("f_regret", axis=1)
+            p_values, c025, c975 = self.fit_linearmodel(X, y)
+            row = "All"
+            for predictor in X.columns.values:
+                c1 = self.format_num(c025[predictor])
+                c2 = self.format_num(c975[predictor])
+                row += f"&$({c1},{c2})" + self.p2stars(p_values[predictor], 15) + "$"
+            print(row + "\\\\")
+
+            x2 = x2.replace("NULL", np.nan, regex=True)
+            x2 = x2.dropna(how="any", axis=0)
+            sur_one_hot = pd.get_dummies(x2[["surrogate"]])
+            x2.drop("surrogate", axis=1, inplace=True)
+            for sur in surrogates:
+                if sur not in ["RS", "DS"]:
+                    x2[f"surrogate_{sur}"] = sur_one_hot[[f"surrogate_{sur}"]]
+
+            x2 = x2.dropna(how="any", axis=0)
+            y = x2[["f_regret"]]
+            X = x2.drop("f_regret", axis=1)
+            p_values, c025, c975 = self.fit_linearmodel(X, y)
+            row = "All"
+            for predictor in X.columns.values:
+                c1 = self.format_num(c025[predictor])
+                c2 = self.format_num(c975[predictor])
+                row += f"&$({c1},{c2})" + self.p2stars(p_values[predictor], 15) + "$"
+            print(row + "\\\\")
+            raise ValueError()
+
+            #################################################################################
+            #################################################################################
+
+            print(row + "\\\\")
+
     def table_linear_correlation(self):
         cnx = sqlite3.connect("./results.db")
         groups = "surrogate"
         table_name = "results_regret_vs_calibration"
-        query = self.dict2query(table_name=table_name, columns=[groups])
+        query = self.dict2query(FROM=table_name, SELECT=[groups])
         df = pd.read_sql(query, cnx)
         groups_ = sorted(df[groups].unique())
         snr = 100
@@ -174,12 +260,12 @@ class Tables(Loader):
 
                 data = pd.read_sql(
                     self.dict2query(
-                        self.merge_two_dicts(
+                        FROM=table_name,
+                        SELECT=["f_regret"],
+                        WHERE=self.merge_two_dicts(
                             {groups: group},
                             {"bo": True, "recalibrate": recal, "snr": snr},
                         ),
-                        table_name=table_name,
-                        columns=["f_regret"],
                     ),
                     cnx,
                 )[["f_regret"]].to_numpy()
@@ -196,12 +282,12 @@ class Tables(Loader):
                 #################################################################################
                 data = pd.read_sql(
                     self.dict2query(
-                        self.merge_two_dicts(
+                        FROM=table_name,
+                        SELECT=["f_regret_total"],
+                        WHERE=self.merge_two_dicts(
                             {groups: group},
                             {"bo": True, "recalibrate": recal, "snr": snr},
                         ),
-                        table_name=table_name,
-                        columns=["f_regret_total"],
                     ),
                     cnx,
                 )[["f_regret_total"]].to_numpy()
@@ -221,12 +307,12 @@ class Tables(Loader):
                 #################################################################################
                 data = pd.read_sql(
                     self.dict2query(
-                        self.merge_two_dicts(
+                        FROM=table_name,
+                        SELECT=["y_calibration_mse"],
+                        WHERE=self.merge_two_dicts(
                             {groups: group},
                             {"bo": False, "recalibrate": recal, "snr": snr},
                         ),
-                        table_name=table_name,
-                        columns=["y_calibration_mse"],
                     ),
                     cnx,
                 )[["y_calibration_mse"]].to_numpy()
@@ -242,12 +328,12 @@ class Tables(Loader):
                 #################################################################################
                 data = pd.read_sql(
                     self.dict2query(
-                        self.merge_two_dicts(
+                        FROM=table_name,
+                        SELECT=["y_calibration_mse"],
+                        WHERE=self.merge_two_dicts(
                             {groups: group},
                             {"bo": True, "recalibrate": recal, "snr": snr},
                         ),
-                        table_name=table_name,
-                        columns=["y_calibration_mse"],
                     ),
                     cnx,
                 )[["y_calibration_mse"]].to_numpy()
@@ -261,16 +347,65 @@ class Tables(Loader):
 
                 #################################################################################
                 #################################################################################
-                x = pd.read_sql(
-                    self.dict2query(
-                        self.merge_two_dicts(
-                            {groups: group}, {"recalibrate": recal, "snr": snr},
+                x1 = (
+                    pd.read_sql(
+                        self.dict2query(
+                            FROM=table_name,
+                            SELECT=["y_calibration_mse"],
+                            WHERE={
+                                groups: group,
+                                "bo": False,
+                                "recalibrate": recal,
+                                "snr": snr,
+                            },
+                            ORDERBY=["seed", "d", "problem",],
                         ),
-                        table_name=table_name,
-                        columns=["y_calibration_mse",],
-                    ),
-                    cnx,
-                ).to_numpy()
+                        cnx,
+                    )
+                    .to_numpy()
+                    .squeeze()
+                )
+                x2 = (
+                    pd.read_sql(
+                        self.dict2query(
+                            FROM=table_name,
+                            SELECT=["y_calibration_mse"],
+                            WHERE={
+                                groups: group,
+                                "bo": True,
+                                "recalibrate": recal,
+                                "snr": snr,
+                            },
+                            ORDERBY=["seed", "d", "problem",],
+                        ),
+                        cnx,
+                    )
+                    .to_numpy()
+                    .squeeze()
+                )
+
+                y = (
+                    pd.read_sql(
+                        self.dict2query(
+                            FROM=table_name,
+                            SELECT=["f_regret"],
+                            WHERE={
+                                groups: group,
+                                "bo": True,
+                                "recalibrate": recal,
+                                "snr": snr,
+                            },
+                            ORDERBY=["seed", "d", "problem",],
+                        ),
+                        cnx,
+                    )
+                    .to_numpy()
+                    .squeeze()
+                )
+                rho, p_val = pearsonr(x1, y)
+                row += "&$" + self.format_num(rho) + self.p2stars(p_val, 15) + "$"
+                rho, p_val = pearsonr(x2, y)
+                row += "&$" + self.format_num(rho) + self.p2stars(p_val, 15) + "$"
                 #################################################################################
                 #################################################################################
 
@@ -510,15 +645,18 @@ class Tables(Loader):
         data = data.dropna()
         X = data[predictors]
         y = data[settings_y["metric"]]
-        X = sm.add_constant(X)
         predictors.append("const")
         return X, y, predictors
 
     def fit_linearmodel(
         self, X: np.ndarray, y: np.ndarray, return_ci: bool = True, ci: bool = 0.05,
     ):
+        X = (X - np.mean(X, axis=0)) / np.std(X, axis=0)
+        y = (y - np.mean(y, axis=0)) / np.std(y, axis=0)
+        X = sm.add_constant(X)
         mod = sm.OLS(y, X)
         res = mod.fit()
+        print(res.summary())
         confidence_intervals = res.conf_int(ci)
         p_values = res.pvalues.to_dict()
         if return_ci:
