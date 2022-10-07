@@ -6,6 +6,7 @@ cluster
 **/*.pdf
 **/*.zip
 results*/*
+datasets/MNIST/optim_dataset/*
 **/*.sh
 **/.DS_Store
 **/__pycache__
