@@ -20,7 +20,11 @@ class MNIST(object):
 
     def sample_initial_dataset(self) -> None:
         self.X_test = np.load("./datasets/MNIST/optim_dataset/hyperparams.npy")
-        self.y_test = np.load("./datasets/MNIST/optim_dataset/accuracies.npy")
+        self.y_test = -np.load("./datasets/MNIST/optim_dataset/accuracies.npy")
+
+        # indices = np.random.choice(
+        #     len(self.X_test.shape[0]), len(self.X_test.shape[0]), replace=False
+        # )
 
         self.X_test = (
             self.X_test[:, np.newaxis] if self.X_test.ndim == 1 else self.X_test
@@ -30,6 +34,7 @@ class MNIST(object):
         )
 
         self.compute_set_properties(self.X_test, self.y_test)
+        self.X_test, self.y_test = self.standardize(self.X_test, self.y_test)
 
         self.bounds = []
         for i in range(self.X_test.shape[1]):
@@ -37,7 +42,7 @@ class MNIST(object):
         self.x_lbs = np.array([b[0] for b in self.bounds])
         self.x_ubs = np.array([b[1] for b in self.bounds])
 
-        self.X_train, self.y_train = self.sample_data(n_samples=self.n_initial)
+        self.X_train, self.y_train, _ = self.sample_data(n_samples=self.n_initial)
 
     def compute_set_properties(self, X: np.ndarray, y: np.ndarray) -> None:
         self.X_mean = np.mean(X, axis=0)
@@ -64,7 +69,7 @@ class MNIST(object):
         self.y_test = np.delete(self.y_test, indices, 0)
         X, y = self.standardize(X, y)
 
-        return X, y
+        return X, y, None
 
     def __str__(self):
         return str(self.problem)

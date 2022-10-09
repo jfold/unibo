@@ -56,7 +56,9 @@ class Metrics(object):
             lst.append(v)
             self.summary.update({k: lst})
 
-    def sharpness_gaussian(self, mus: np.ndarray, sigmas: np.ndarray) -> None:
+    def sharpness_gaussian(
+        self, dataset: Dataset, mus: np.ndarray, sigmas: np.ndarray
+    ) -> None:
         """Calculates the sharpness (negative entropy) of the gaussian distributions 
         with means: mus and standard deviation: sigmas
         """
@@ -64,13 +66,15 @@ class Metrics(object):
             [-norm.entropy(mus[i], sigmas[i]) for i in range(mus.shape[0])]
         )
         mean_sharpness = np.mean(sharpness)
-        self.update_summary({"mean_sharpness": mean_sharpness})
-        if self.ne_true is not None:
+        self.update_summary(
+            {
+                "mean_sharpness": mean_sharpness,
+                "posterior_variance": np.mean(sigmas) ** 2,
+            }
+        )
+        if not dataset.data.real_world and dataset.ne_true is not None:
             self.update_summary(
-                {
-                    "sharpness_error_true_minus_model": self.ne_true - mean_sharpness,
-                    "posterior_variance": np.mean(sigmas) ** 2,
-                }
+                {"sharpness_error_true_minus_model": self.ne_true - mean_sharpness,}
             )
 
     def bias(self, mus: np.ndarray, f: np.ndarray) -> None:
@@ -294,20 +298,21 @@ class Metrics(object):
 
     def regret(self, dataset: Dataset) -> None:
         y_regret = np.abs(dataset.data.y_min - dataset.y_opt)
-        f_regret = np.abs(dataset.data.f_min - dataset.f_opt)
-        self.update_summary(
-            {"y_regret": y_regret.squeeze(), "f_regret": f_regret.squeeze()}
-        )
+        self.update_summary({"y_regret": y_regret.squeeze()})
+        if not dataset.data.real_world:
+            f_regret = np.abs(dataset.data.f_min - dataset.f_opt)
+            self.update_summary({"f_regret": f_regret.squeeze()})
 
     def glob_min_dist(self, dataset: Dataset) -> None:
         y_squared_error = (dataset.X_y_opt - np.array(dataset.data.y_min_loc)) ** 2
-        f_squared_error = (dataset.X_f_opt - np.array(dataset.data.f_min_loc)) ** 2
         self.update_summary(
-            {
-                "x_y_opt_dist": np.sqrt(np.sum(y_squared_error)),
-                "x_f_opt_dist": np.sqrt(np.sum(f_squared_error)),
-            }
+            {"x_y_opt_dist": np.sqrt(np.sum(y_squared_error)),}
         )
+        if not dataset.data.real_world:
+            f_squared_error = (dataset.X_f_opt - np.array(dataset.data.f_min_loc)) ** 2
+            self.update_summary(
+                {"x_f_opt_dist": np.sqrt(np.sum(f_squared_error)),}
+            )
 
     def run_uct(self, mu_test, sigma_test, y_test):
         uct_metrics = uct.metrics.get_all_metrics(
@@ -328,19 +333,20 @@ class Metrics(object):
         extensive: bool = True,
     ) -> None:
         if surrogate is not None and extensive:
-            self.ne_true = dataset.data.ne_true
             mu_test, sigma_test = surrogate.predict(dataset.data.X_test)
             if recalibrator is not None:
                 mu_test, sigma_test = recalibrator.recalibrate(mu_test, sigma_test)
-            self.calibration_f_batched(mu_test, sigma_test, dataset.data.f_test)
+            if not dataset.data.real_world:
+                self.calibration_f_batched(mu_test, sigma_test, dataset.data.f_test)
             self.calibration_y_batched(mu_test, sigma_test, dataset.data.y_test)
             self.calibration_y_local(dataset, mu_test, sigma_test)
-            self.sharpness_gaussian(mu_test, sigma_test)
+            self.sharpness_gaussian(dataset, mu_test, sigma_test)
             self.expected_log_predictive_density(
                 mu_test, sigma_test, dataset.data.y_test,
             )
             self.nmse(dataset.data.y_test, mu_test)
-            self.bias(mu_test, dataset.data.f_test)
+            if not dataset.data.real_world:
+                self.bias(mu_test, dataset.data.f_test)
             self.run_uct(mu_test, sigma_test, dataset.data.y_test)
             self.improvement(dataset)
 

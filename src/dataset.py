@@ -80,7 +80,11 @@ class Dataset(object):
             self.f_opt = self.data.f_train[[self.opt_idx], :]
             self.X_f_opt = self.data.X_train[[self.opt_idx], :]
             self.summary.update(
-                {"X_f_opt": self.X_f_opt.tolist(), "opt_idx": int(self.opt_idx),}
+                {
+                    "X_f_opt": self.X_f_opt.tolist(),
+                    "opt_idx": int(self.opt_idx),
+                    "f_opt": int(self.f_opt),
+                }
             )
 
     def save(self, save_settings: str = "") -> None:
@@ -105,9 +109,9 @@ class Dataset(object):
 
         if i_choice is not None:
             self.data.X_test = np.delete(self.data.X_test, i_choice, axis=0)
-            self.data.f_test = np.delete(self.data.f_test, i_choice, axis=0)
+            self.data.y_test = np.delete(self.data.y_test, i_choice, axis=0)
             if not self.data.real_world:
-                self.data.y_test = np.delete(self.data.y_test, i_choice, axis=0)
+                self.data.f_test = np.delete(self.data.f_test, i_choice, axis=0)
             # x, y, f = self.data.sample_data(n_samples=1)
             # self.data.X_test = np.append(self.data.X_test, x, axis=0)
             # self.data.f_test = np.append(self.data.f_test, y, axis=0)

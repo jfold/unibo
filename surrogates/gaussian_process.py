@@ -30,10 +30,16 @@ class GaussianProcess(object):
         self.d = parameters.d
         self.std_change = parameters.std_change
         self.opt_hyp_pars = opt_hyp_pars
-        self.kernel = ScaleKernel(
-            RBFKernel(lengthscale_prior=LogNormalPrior(0, 1)),
-            outputscale_prior=NormalPrior(1.0, 2.0),
-        )
+        if dataset.data.real_world:
+            self.kernel = ScaleKernel(
+                RBFKernel(lengthscale_prior=LogNormalPrior(0.1, 5.0)),
+                outputscale_prior=LogNormalPrior(1.0, 5.0),
+            )
+        else:
+            self.kernel = ScaleKernel(
+                RBFKernel(lengthscale_prior=LogNormalPrior(0, 1)),
+                outputscale_prior=NormalPrior(1.0, 2.0),
+            )
         self.fit(X_train=dataset.data.X_train, y_train=dataset.data.y_train)
 
     def fit(self, X_train: np.ndarray, y_train: np.ndarray):
