@@ -21,6 +21,7 @@ class MNIST(object):
     def sample_initial_dataset(self) -> None:
         self.X_test = np.load("./datasets/MNIST/optim_dataset/hyperparams.npy")
         self.y_test = -np.load("./datasets/MNIST/optim_dataset/accuracies.npy")
+        # self.y_test = np.load("./datasets/MNIST/optim_dataset/losses.npy")
 
         idxs = np.random.permutation(self.X_test.shape[0])
         self.X_test = self.X_test[idxs]
@@ -35,6 +36,7 @@ class MNIST(object):
 
         self.compute_set_properties(self.X_test, self.y_test)
         self.X_test, self.y_test = self.standardize(self.X_test, self.y_test)
+        self.y_min = np.min(self.y_test)
 
         self.bounds = []
         for i in range(self.X_test.shape[1]):
