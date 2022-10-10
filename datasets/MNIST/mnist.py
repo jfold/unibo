@@ -22,9 +22,9 @@ class MNIST(object):
         self.X_test = np.load("./datasets/MNIST/optim_dataset/hyperparams.npy")
         self.y_test = -np.load("./datasets/MNIST/optim_dataset/accuracies.npy")
 
-        # indices = np.random.choice(
-        #     len(self.X_test.shape[0]), len(self.X_test.shape[0]), replace=False
-        # )
+        idxs = np.random.permutation(self.X_test.shape[0])
+        self.X_test = self.X_test[idxs]
+        self.y_test = self.y_test[idxs]
 
         self.X_test = (
             self.X_test[:, np.newaxis] if self.X_test.ndim == 1 else self.X_test
@@ -52,7 +52,6 @@ class MNIST(object):
         self.y_min_idx = np.argmin(y)
         self.y_min_loc = X[self.y_min_idx, :]
         self.y_min = y[self.y_min_idx]
-        self.y_max = np.max(y)
 
     def standardize(
         self, X: np.ndarray, y: np.ndarray
