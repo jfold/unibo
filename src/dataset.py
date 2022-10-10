@@ -52,7 +52,6 @@ class Dataset(object):
         self.update_solution()
 
     def update_solution(self) -> None:
-
         self.opt_idx = (
             np.argmax(self.data.y_train)
             if self.maximization
@@ -72,11 +71,6 @@ class Dataset(object):
             }
         )
         if not self.data.real_world:
-            self.opt_idx = (
-                np.argmax(self.data.f_train)
-                if self.maximization
-                else np.argmin(self.data.f_train)
-            )
             self.f_opt = self.data.f_train[[self.opt_idx], :]
             self.X_f_opt = self.data.X_train[[self.opt_idx], :]
             self.summary.update(
