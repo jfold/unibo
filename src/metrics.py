@@ -220,15 +220,19 @@ class Metrics(object):
             )
 
     def calibration_y_local(
-        self, dataset: Dataset, mus: np.ndarray, sigmas: np.ndarray, n_bins: int = 20,
+        self,
+        X_train: np.ndarray,
+        X_test: np.ndarray,
+        y_test: np.ndarray,
+        mus: np.ndarray,
+        sigmas: np.ndarray,
+        n_bins: int = 20,
     ) -> None:
         """Calculates the calibration of the target (y).
         # eq. (3) in "Accurate Uncertainties for Deep Learning Using Calibrated Regression"
         """
 
-        pair_dists = cdist(
-            dataset.data.X_train, dataset.data.X_test, metric="euclidean"
-        )
+        pair_dists = cdist(X_train, X_test, metric="euclidean")
         pair_dists = np.min(
             pair_dists, axis=0
         )  # only take radius of nearest training point
@@ -240,7 +244,7 @@ class Metrics(object):
         for i in range(len(bins) - 1):
             cond = np.logical_and(bins[i] <= pair_dists, pair_dists <= bins[i + 1])
             if np.sum(cond) > 0:
-                mus_, sigmas_, y_ = mus[cond], sigmas[cond], dataset.data.y_test[cond]
+                mus_, sigmas_, y_ = mus[cond], sigmas[cond], y_test[cond]
                 calibrations_intervals[i] = self.calibration_y_batched(
                     mus_, sigmas_, y_, return_mse=True
                 )
@@ -333,21 +337,36 @@ class Metrics(object):
         extensive: bool = True,
     ) -> None:
         if surrogate is not None and extensive:
-            mu_test, sigma_test = surrogate.predict(dataset.data.X_test)
+
+            if dataset.data.X_test.shape[0] > 1000:
+                idxs = np.random.permutation(dataset.data.X_test.shape[0])[:1000]
+                X_test = dataset.data.X_test[idxs, :]
+                y_test = dataset.data.y_test[idxs, :]
+                if not dataset.data.real_world:
+                    f_test = dataset.data.f_test[idxs, :]
+            else:
+                X_test = dataset.data.X_test
+                y_test = dataset.data.y_test
+                if not dataset.data.real_world:
+                    f_test = dataset.data.f_test
+
+            mu_test, sigma_test = surrogate.predict(X_test)
             if recalibrator is not None:
                 mu_test, sigma_test = recalibrator.recalibrate(mu_test, sigma_test)
             if not dataset.data.real_world:
-                self.calibration_f_batched(mu_test, sigma_test, dataset.data.f_test)
-            self.calibration_y_batched(mu_test, sigma_test, dataset.data.y_test)
-            self.calibration_y_local(dataset, mu_test, sigma_test)
+                self.calibration_f_batched(mu_test, sigma_test, f_test)
+            self.calibration_y_batched(mu_test, sigma_test, y_test)
+            self.calibration_y_local(
+                dataset.data.X_train, X_test, y_test, mu_test, sigma_test
+            )
             self.sharpness_gaussian(dataset, mu_test, sigma_test)
             self.expected_log_predictive_density(
-                mu_test, sigma_test, dataset.data.y_test,
+                mu_test, sigma_test, y_test,
             )
-            self.nmse(dataset.data.y_test, mu_test)
+            self.nmse(y_test, mu_test)
             if not dataset.data.real_world:
-                self.bias(mu_test, dataset.data.f_test)
-            self.run_uct(mu_test, sigma_test, dataset.data.y_test)
+                self.bias(mu_test, f_test)
+            self.run_uct(mu_test, sigma_test, y_test)
             self.improvement(dataset)
 
         self.regret(dataset)

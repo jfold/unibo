@@ -93,6 +93,16 @@ class Optimizer(object):
 
         if X_test is None:
             X_test, _, _ = dataset.sample_testset(self.n_test)
+            idxs = list(range(self.n_test))
+            X_test_entire = X_test.copy()
+        elif dataset.data.X_test.shape[0] > 1000:
+            idxs = np.random.permutation(dataset.data.X_test.shape[0])[:1000]
+            X_test = dataset.data.X_test[idxs, :]
+            X_test_entire = dataset.data.X_test.copy()
+        else:
+            X_test = dataset.data.X_test.copy()
+            X_test_entire = dataset.data.X_test.copy()
+            idxs = list(range(dataset.data.X_test.shape[0]))
 
         X_test_torch = torch.from_numpy(np.expand_dims(X_test, 1))
         acquisition_values = (
@@ -110,6 +120,13 @@ class Optimizer(object):
             )
 
         if return_idx:
-            return X_test[[i_choice], :], acquisition_values[i_choice], i_choice
+            return (
+                X_test_entire[[idxs[i_choice]], :],
+                acquisition_values[i_choice],
+                idxs[i_choice],
+            )
         else:
-            return X_test[[i_choice], :], acquisition_values[i_choice]
+            return (
+                X_test_entire[[idxs[i_choice]], :],
+                acquisition_values[i_choice],
+            )

@@ -35,7 +35,7 @@ class RandomForest(BatchedMultiOutputGPyTorchModel):
             }
         else:
             self.rf_params_grid = {
-                "n_estimators": [4, 10, 20, 50],
+                "n_estimators": [4, 10, 20],
                 "max_depth": [5, 10, 20],
                 # "max_samples": [int(self.n_initial / 2), int(self.n_initial)],
                 "max_features": ["auto", "sqrt"],
@@ -59,20 +59,25 @@ class RandomForest(BatchedMultiOutputGPyTorchModel):
         #     )
         grid_search = GridSearchCV(
             estimator=RandomForestRegressor(),
-            scoring="neg_mean_squared_error",
-            error_score="raise",
+            # scoring="neg_mean_squared_error",
+            # error_score="raise",
             param_grid=self.rf_params_grid,
             cv=self.rf_cv_splits,
             n_jobs=-1,
             verbose=0,
         ).fit(X_train, y_train.squeeze())
-        self.model = grid_search.best_estimator_
+        self.model = (
+            grid_search.best_estimator_
+        )  # RandomForestRegressor(n_estimators=5, max_depth=5).fit(
+        # X_train, y_train.squeeze()
+        # )
         self.loss = grid_search.score(X_train, y_train.squeeze())
         # print(self.loss)
 
     def predict(
         self, X_test: Any, stabilizer: float = 1e-8
     ) -> Tuple[np.ndarray, np.ndarray]:
+
         """Calculates mean (prediction) and variance (uncertainty)"""
         X_test = (
             X_test.cpu().detach().numpy().squeeze()
