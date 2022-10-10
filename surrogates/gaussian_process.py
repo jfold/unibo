@@ -33,7 +33,7 @@ class GaussianProcess(object):
         if dataset.data.real_world:
             self.kernel = ScaleKernel(
                 RBFKernel(lengthscale_prior=LogNormalPrior(0.1, 5.0)),
-                outputscale_prior=LogNormalPrior(1.0, 5.0),
+                outputscale_prior=NormalPrior(1.0, 5.0),
             )
         else:
             self.kernel = ScaleKernel(
