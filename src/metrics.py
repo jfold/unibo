@@ -301,7 +301,7 @@ class Metrics(object):
         self.update_summary({"mse": mse, "nmse": nmse})
 
     def regret(self, dataset: Dataset) -> None:
-        y_regret = np.abs(dataset.data.y_min - dataset.y_opt)
+        y_regret = np.abs(dataset.data.y_min.squeeze() - dataset.y_opt.squeeze())
         self.update_summary({"y_regret": y_regret.squeeze()})
         if not dataset.data.real_world:
             f_regret = np.abs(dataset.data.f_min - dataset.f_opt)
