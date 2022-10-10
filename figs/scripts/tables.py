@@ -242,10 +242,11 @@ class Tables(Loader):
 
             print(row + "\\\\")
 
-    def table_linear_correlation(self):
+    def table_linear_correlation(
+        self, table_name: str = "results_regret_vs_calibration"
+    ):
         cnx = sqlite3.connect("./results.db")
         groups = "surrogate"
-        table_name = "results_regret_vs_calibration"
         query = self.dict2query(FROM=table_name, SELECT=[groups])
         df = pd.read_sql(query, cnx)
         groups_ = sorted(df[groups].unique())
@@ -410,6 +411,178 @@ class Tables(Loader):
                 #################################################################################
 
                 print(row + "\\\\")
+
+    def extract_pandasframes(
+        self,
+        loader: Loader,
+        settings_X: Dict,
+        settings_y: Dict,
+        standardize: bool = True,
+    ):
+        predictors = list(settings_X["metric"])
+        X, names = loader.extract(settings=settings_X, return_values=True)
+        y = loader.extract(settings=settings_y)
+        y = y.reshape(*[-1], y.shape[-1])
+        X = X.reshape(*[-1], X.shape[-1])
+        if standardize:
+            X = (X - np.nanmean(X, axis=0)) / np.nanstd(X, axis=0)
+            y = (y - np.nanmean(y, axis=0)) / np.nanstd(y, axis=0)
+        variables = np.append(names, settings_y["metric"])
+        X_y = np.append(X, y, axis=-1)
+        data = pd.DataFrame(X_y, columns=variables)
+        data = data.dropna()
+        X = data[predictors]
+        y = data[settings_y["metric"]]
+        predictors.append("const")
+        return X, y, predictors
+
+    def fit_linearmodel(
+        self, X: np.ndarray, y: np.ndarray, return_ci: bool = True, ci: bool = 0.05,
+    ):
+        X = (X - np.mean(X, axis=0)) / np.std(X, axis=0)
+        y = (y - np.mean(y, axis=0)) / np.std(y, axis=0)
+        X = sm.add_constant(X)
+        mod = sm.OLS(y, X)
+        res = mod.fit()
+        print(res.summary())
+        confidence_intervals = res.conf_int(ci)
+        p_values = res.pvalues.to_dict()
+        if return_ci:
+            c025 = confidence_intervals[0].to_dict()
+            c975 = confidence_intervals[1].to_dict()
+            return p_values, c025, c975
+        else:
+            coeffs = res.params.to_dict()
+            return p_values, coeffs
+
+    def table_linear_model_dims(
+        self,
+        target: str = "f_regret",
+        predictors: list = ["y_calibration_mse", "mean_sharpness", "elpd",],
+        X_bo: bool = False,
+        y_bo: bool = True,
+    ):
+        loader = self.loader
+        predictors_ = list(predictors)
+
+        bonferoni_correction = (
+            loader.loader_summary["surrogate"]["d"] + loader.loader_summary["d"]["d"]
+        )
+
+        # Surrogates, dimensions
+        for d in [1, 5, 10]:
+            for sur in ["BNN", "DE", "GP", "RF"]:
+                settings_X = {
+                    "bo": X_bo,
+                    "d": d,
+                    "surrogate": sur,
+                    "metric": predictors_,
+                }
+                settings_y = {"bo": y_bo, "d": d, "surrogate": sur, "metric": target}
+                X, y, predictors = self.extract_pandasframes(
+                    loader, settings_X, settings_y
+                )
+                p_values, c025, c975 = self.fit_linearmodel(X, y)
+                row = f"{sur}({d})"
+                for predictor in predictors:
+                    c1 = self.format_num(c025[predictor])
+                    c2 = self.format_num(c975[predictor])
+                    row += (
+                        f"&$({c1},{c2})"
+                        + self.p2stars(p_values[predictor], bonferoni_correction)
+                        + "$"
+                    )
+                print(row + "\\\\")
+            print("\\hline")
+
+        # Surrogates
+        for sur in ["BNN", "DE", "GP", "RF"]:
+            settings_X = {"bo": X_bo, "surrogate": sur, "metric": predictors_}
+            settings_y = {"bo": y_bo, "surrogate": sur, "metric": target}
+            X, y, predictors = self.extract_pandasframes(loader, settings_X, settings_y)
+            p_values, c025, c975 = self.fit_linearmodel(X, y)
+            row = f"{sur}"
+            for predictor in predictors:
+                c1 = self.format_num(c025[predictor])
+                c2 = self.format_num(c975[predictor])
+                row += (
+                    f"&$({c1},{c2})"
+                    + self.p2stars(p_values[predictor], bonferoni_correction)
+                    + "$"
+                )
+            print(row + "\\\\")
+        print("\\hline")
+
+        # All
+        settings_X = {"bo": X_bo, "metric": predictors_}
+        settings_y = {"bo": y_bo, "metric": target}
+        X, y, predictors = self.extract_pandasframes(loader, settings_X, settings_y)
+        p_values, c025, c975 = self.fit_linearmodel(X, y)
+        row = "All"
+        for predictor in predictors:
+            c1 = self.format_num(c025[predictor])
+            c2 = self.format_num(c975[predictor])
+            row += (
+                f"&$({c1},{c2})"
+                + self.p2stars(p_values[predictor], bonferoni_correction)
+                + "$"
+            )
+        print(row + "\\\\")
+
+    def table_linear_model(
+        self,
+        target: str = "f_regret",
+        predictors: list = ["y_calibration_mse", "mean_sharpness", "elpd",],
+        X_bo: bool = False,
+        y_bo: bool = True,
+    ):
+        loader = self.loader
+        predictors_ = list(predictors)
+
+        bonferoni_correction = (
+            loader.loader_summary["surrogate"]["d"] + loader.loader_summary["d"]["d"]
+        )
+        # Surrogates
+        for sur in ["BNN", "DE", "GP", "RF"]:
+            settings_X = {"bo": X_bo, "surrogate": sur, "metric": predictors_}
+            settings_y = {"bo": y_bo, "surrogate": sur, "metric": target}
+            X, y, predictors = self.extract_pandasframes(loader, settings_X, settings_y)
+            p_values, c025, c975 = self.fit_linearmodel(X, y)
+            row = f"{sur}"
+            for predictor in predictors:
+                c1 = self.format_num(c025[predictor])
+                c2 = self.format_num(c975[predictor])
+                row += (
+                    f"&$({c1},{c2})"
+                    + self.p2stars(p_values[predictor], bonferoni_correction)
+                    + "$"
+                )
+            print(row + "\\\\")
+        print("\\hline")
+
+        # All
+        settings_X = {"bo": X_bo, "metric": predictors_}
+        settings_y = {"bo": y_bo, "metric": target}
+        X, y, predictors = self.extract_pandasframes(loader, settings_X, settings_y)
+        p_values, c025, c975 = self.fit_linearmodel(X, y)
+        row = "All"
+        for predictor in predictors:
+            c1 = self.format_num(c025[predictor])
+            c2 = self.format_num(c975[predictor])
+            row += (
+                f"&$({c1},{c2})"
+                + self.p2stars(p_values[predictor], bonferoni_correction)
+                + "$"
+            )
+        print(row + "\\\\")
+
+    def table_mnist(self):
+        cnx = sqlite3.connect("./results.db")
+        groups = "surrogate"
+        query = self.dict2query(FROM="results_mnist", SELECT=[groups])
+        df = pd.read_sql(query, cnx)
+        groups_ = sorted(df[groups].unique())
+        snr = 100
 
     # def table_linear_correlation(
     #     self,
@@ -623,168 +796,3 @@ class Tables(Loader):
     #         print("\\hline")
 
     #     self.table_linear_correlation(settings=settings, surrogates=surrogates)
-
-    def extract_pandasframes(
-        self,
-        loader: Loader,
-        settings_X: Dict,
-        settings_y: Dict,
-        standardize: bool = True,
-    ):
-        predictors = list(settings_X["metric"])
-        X, names = loader.extract(settings=settings_X, return_values=True)
-        y = loader.extract(settings=settings_y)
-        y = y.reshape(*[-1], y.shape[-1])
-        X = X.reshape(*[-1], X.shape[-1])
-        if standardize:
-            X = (X - np.nanmean(X, axis=0)) / np.nanstd(X, axis=0)
-            y = (y - np.nanmean(y, axis=0)) / np.nanstd(y, axis=0)
-        variables = np.append(names, settings_y["metric"])
-        X_y = np.append(X, y, axis=-1)
-        data = pd.DataFrame(X_y, columns=variables)
-        data = data.dropna()
-        X = data[predictors]
-        y = data[settings_y["metric"]]
-        predictors.append("const")
-        return X, y, predictors
-
-    def fit_linearmodel(
-        self, X: np.ndarray, y: np.ndarray, return_ci: bool = True, ci: bool = 0.05,
-    ):
-        X = (X - np.mean(X, axis=0)) / np.std(X, axis=0)
-        y = (y - np.mean(y, axis=0)) / np.std(y, axis=0)
-        X = sm.add_constant(X)
-        mod = sm.OLS(y, X)
-        res = mod.fit()
-        print(res.summary())
-        confidence_intervals = res.conf_int(ci)
-        p_values = res.pvalues.to_dict()
-        if return_ci:
-            c025 = confidence_intervals[0].to_dict()
-            c975 = confidence_intervals[1].to_dict()
-            return p_values, c025, c975
-        else:
-            coeffs = res.params.to_dict()
-            return p_values, coeffs
-
-    def table_linear_model_dims(
-        self,
-        target: str = "f_regret",
-        predictors: list = ["y_calibration_mse", "mean_sharpness", "elpd",],
-        X_bo: bool = False,
-        y_bo: bool = True,
-    ):
-        loader = self.loader
-        predictors_ = list(predictors)
-
-        bonferoni_correction = (
-            loader.loader_summary["surrogate"]["d"] + loader.loader_summary["d"]["d"]
-        )
-
-        # Surrogates, dimensions
-        for d in [1, 5, 10]:
-            for sur in ["BNN", "DE", "GP", "RF"]:
-                settings_X = {
-                    "bo": X_bo,
-                    "d": d,
-                    "surrogate": sur,
-                    "metric": predictors_,
-                }
-                settings_y = {"bo": y_bo, "d": d, "surrogate": sur, "metric": target}
-                X, y, predictors = self.extract_pandasframes(
-                    loader, settings_X, settings_y
-                )
-                p_values, c025, c975 = self.fit_linearmodel(X, y)
-                row = f"{sur}({d})"
-                for predictor in predictors:
-                    c1 = self.format_num(c025[predictor])
-                    c2 = self.format_num(c975[predictor])
-                    row += (
-                        f"&$({c1},{c2})"
-                        + self.p2stars(p_values[predictor], bonferoni_correction)
-                        + "$"
-                    )
-                print(row + "\\\\")
-            print("\\hline")
-
-        # Surrogates
-        for sur in ["BNN", "DE", "GP", "RF"]:
-            settings_X = {"bo": X_bo, "surrogate": sur, "metric": predictors_}
-            settings_y = {"bo": y_bo, "surrogate": sur, "metric": target}
-            X, y, predictors = self.extract_pandasframes(loader, settings_X, settings_y)
-            p_values, c025, c975 = self.fit_linearmodel(X, y)
-            row = f"{sur}"
-            for predictor in predictors:
-                c1 = self.format_num(c025[predictor])
-                c2 = self.format_num(c975[predictor])
-                row += (
-                    f"&$({c1},{c2})"
-                    + self.p2stars(p_values[predictor], bonferoni_correction)
-                    + "$"
-                )
-            print(row + "\\\\")
-        print("\\hline")
-
-        # All
-        settings_X = {"bo": X_bo, "metric": predictors_}
-        settings_y = {"bo": y_bo, "metric": target}
-        X, y, predictors = self.extract_pandasframes(loader, settings_X, settings_y)
-        p_values, c025, c975 = self.fit_linearmodel(X, y)
-        row = "All"
-        for predictor in predictors:
-            c1 = self.format_num(c025[predictor])
-            c2 = self.format_num(c975[predictor])
-            row += (
-                f"&$({c1},{c2})"
-                + self.p2stars(p_values[predictor], bonferoni_correction)
-                + "$"
-            )
-        print(row + "\\\\")
-
-    def table_linear_model(
-        self,
-        target: str = "f_regret",
-        predictors: list = ["y_calibration_mse", "mean_sharpness", "elpd",],
-        X_bo: bool = False,
-        y_bo: bool = True,
-    ):
-        loader = self.loader
-        predictors_ = list(predictors)
-
-        bonferoni_correction = (
-            loader.loader_summary["surrogate"]["d"] + loader.loader_summary["d"]["d"]
-        )
-        # Surrogates
-        for sur in ["BNN", "DE", "GP", "RF"]:
-            settings_X = {"bo": X_bo, "surrogate": sur, "metric": predictors_}
-            settings_y = {"bo": y_bo, "surrogate": sur, "metric": target}
-            X, y, predictors = self.extract_pandasframes(loader, settings_X, settings_y)
-            p_values, c025, c975 = self.fit_linearmodel(X, y)
-            row = f"{sur}"
-            for predictor in predictors:
-                c1 = self.format_num(c025[predictor])
-                c2 = self.format_num(c975[predictor])
-                row += (
-                    f"&$({c1},{c2})"
-                    + self.p2stars(p_values[predictor], bonferoni_correction)
-                    + "$"
-                )
-            print(row + "\\\\")
-        print("\\hline")
-
-        # All
-        settings_X = {"bo": X_bo, "metric": predictors_}
-        settings_y = {"bo": y_bo, "metric": target}
-        X, y, predictors = self.extract_pandasframes(loader, settings_X, settings_y)
-        p_values, c025, c975 = self.fit_linearmodel(X, y)
-        row = "All"
-        for predictor in predictors:
-            c1 = self.format_num(c025[predictor])
-            c2 = self.format_num(c975[predictor])
-            row += (
-                f"&$({c1},{c2})"
-                + self.p2stars(p_values[predictor], bonferoni_correction)
-                + "$"
-            )
-        print(row + "\\\\")
-
