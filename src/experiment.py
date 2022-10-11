@@ -11,9 +11,23 @@ from src.recalibrator import Recalibrator
 class Experiment(object):
     def __init__(self, parameters: Parameters) -> None:
         self.__dict__.update(asdict(parameters))
+        np.random.seed(self.seed)
+        torch.manual_seed(self.seed)
         self.dataset = Dataset(parameters)
         self.optimizer = Optimizer(parameters)
         self.metrics = Metrics(parameters)
+
+    def __str__(self):
+        return (
+            "Experiment:"
+            + self.dataset.__str__
+            + "\r\n"
+            + self.optimizer.__str__
+            + "\r\n"
+            + self.metrics.__str__
+        )
+
+    def run(self) -> None:
 
         # Epoch 0
         self.optimizer.fit_surrogate(self.dataset)
@@ -30,19 +44,6 @@ class Experiment(object):
             recalibrator=recalibrator,
             extensive=True,
         )
-
-    def __str__(self):
-        return (
-            "Experiment:"
-            + self.dataset.__str__
-            + "\r\n"
-            + self.optimizer.__str__
-            + "\r\n"
-            + self.metrics.__str__
-        )
-
-    def run(self) -> None:
-
         if self.bo:
             # Epochs > 0
             for e in tqdm(range(self.n_evals), leave=False):
@@ -84,7 +85,7 @@ class Experiment(object):
                         self.optimizer.surrogate_object,
                         self.dataset,
                         recalibrator=recalibrator,
-                        extensive=self.extensive_metrics,
+                        extensive=self.extensive_metrics or e == self.n_evals - 1,
                     )
 
             if not self.analyze_all_epochs:
@@ -113,7 +114,7 @@ class Experiment(object):
                         self.optimizer.surrogate_object,
                         self.dataset,
                         recalibrator=recalibrator,
-                        extensive=self.extensive_metrics,
+                        extensive=self.extensive_metrics or e == self.n_evals - 1,
                     )
             else:
                 X, y, f = self.dataset.data.sample_data(self.n_evals)

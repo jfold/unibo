@@ -43,7 +43,7 @@ class GaussianProcess(object):
         self.fit(X_train=dataset.data.X_train, y_train=dataset.data.y_train)
 
     def fit(self, X_train: np.ndarray, y_train: np.ndarray):
-        # torch.manual_seed(self.seed)
+        torch.manual_seed(self.seed)
         self.model = botorch.models.SingleTaskGP(
             torch.tensor(X_train).double(),
             torch.tensor(y_train).double(),
@@ -115,8 +115,10 @@ class GaussianProcessSklearn(BatchedMultiOutputGPyTorchModel):
         return MultivariateNormal(mean_x, covar_x)
 
     def fit(self, dataset: Dataset):
-        # np.random.seed(self.seed)
-        self.model = GaussianProcessRegressor(kernel=self.kernel)
+        np.random.seed(self.seed)
+        self.model = GaussianProcessRegressor(
+            kernel=self.kernel, random_state=self.seed
+        )
         self.model.fit(dataset.data.X_train, dataset.data.y_train)
 
     def predict(

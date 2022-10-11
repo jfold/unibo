@@ -16,7 +16,7 @@ class RandomForest(BatchedMultiOutputGPyTorchModel):
         self, parameters: Parameters, dataset: Dataset, name: str = "RF",
     ):
         self.__dict__.update(asdict(parameters))
-        # np.random.seed(self.seed)
+        np.random.seed(self.seed)
         self.name = name
         # torch stuff ...
         self._modules = {}
@@ -58,7 +58,7 @@ class RandomForest(BatchedMultiOutputGPyTorchModel):
         #         {"max_samples": [int(X_train.shape[0] / 2), int(X_train.shape[0]),]}
         #     )
         grid_search = GridSearchCV(
-            estimator=RandomForestRegressor(),
+            estimator=RandomForestRegressor(random_state=self.seed),
             # scoring="neg_mean_squared_error",
             # error_score="raise",
             param_grid=self.rf_params_grid,
