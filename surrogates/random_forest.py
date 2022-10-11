@@ -16,7 +16,7 @@ class RandomForest(BatchedMultiOutputGPyTorchModel):
         self, parameters: Parameters, dataset: Dataset, name: str = "RF",
     ):
         self.__dict__.update(asdict(parameters))
-        np.random.seed(self.seed)
+        # np.random.seed(self.seed)
         self.name = name
         # torch stuff ...
         self._modules = {}

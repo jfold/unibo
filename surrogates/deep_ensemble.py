@@ -55,7 +55,7 @@ class DeepEnsemble(BatchedMultiOutputGPyTorchModel):
         sigmas = []
         preds = []
         for n in range(self.n_networks):
-            torch.manual_seed(self.seed + 2022 + n)
+            # torch.manual_seed(self.seed + 2022 + n)
             idxs = np.random.choice(
                 range(n_samples), size=int(rand_portion * n_samples), replace=False
             )

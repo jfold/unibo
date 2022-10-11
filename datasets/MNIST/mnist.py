@@ -62,13 +62,16 @@ class MNIST(object):
         y = (y - self.y_mean) / self.y_std
         return X, y
 
-    def sample_data(self, n_samples: int = 1) -> Tuple[np.ndarray, np.ndarray]:
-        indices = np.random.choice(list(range(len(self.X_test))), n_samples)
+    def sample_data(
+        self, n_samples: int = 1, standardize: bool = False
+    ) -> Tuple[np.ndarray, np.ndarray]:
+        indices = np.random.choice(list(range(self.X_test.shape[0])), n_samples)
         X = self.X_test[indices, :]
         y = self.y_test[indices, :]
         self.X_test = np.delete(self.X_test, indices, 0)
         self.y_test = np.delete(self.y_test, indices, 0)
-        X, y = self.standardize(X, y)
+        if standardize:
+            X, y = self.standardize(X, y)
 
         return X, y, None
 

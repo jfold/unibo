@@ -576,13 +576,60 @@ class Tables(Loader):
             )
         print(row + "\\\\")
 
-    def table_mnist(self):
+    def table_real_data(self, table_name: str = "results_mnist"):
         cnx = sqlite3.connect("./results.db")
         groups = "surrogate"
-        query = self.dict2query(FROM="results_mnist", SELECT=[groups])
+        query = self.dict2query(FROM=table_name, SELECT=[groups])
         df = pd.read_sql(query, cnx)
         groups_ = sorted(df[groups].unique())
-        snr = 100
+        for recal in [False, True]:
+            for group in groups_:
+
+                #################################################################################
+                #################################################################################
+                subfilt = (
+                    {"bo": True, "recalibrate": recal, "epoch": 90}
+                    if group not in ["RS", "DS"]
+                    else {"bo": False, "recalibrate": False, "epoch": 90}
+                )
+                row = f"&{group}&"
+                data = pd.read_sql(
+                    self.dict2query(
+                        FROM=table_name,
+                        SELECT=[
+                            "y_regret",
+                            "y_regret_total",
+                            "y_calibration_mse",
+                            "mean_sharpness",
+                        ],
+                        WHERE=self.merge_two_dicts({groups: group}, subfilt,),
+                    ),
+                    cnx,
+                )
+
+                y_regret = data[["y_regret"]].to_numpy().astype(float)
+                y_regret_total = data[["y_regret_total"]].to_numpy().astype(float)
+                y_r_mu, y_rt_mu = np.mean(y_regret), np.mean(y_regret_total)
+                if group not in ["RS", "DS"]:
+                    y_calibration_mse = (
+                        data[["y_calibration_mse"]].to_numpy().astype(float)
+                    )
+                    sharpness = data[["mean_sharpness"]].to_numpy().astype(float)
+                    y_c_mu, y_s_mu = np.mean(y_calibration_mse), np.mean(sharpness)
+
+                    rho, p_val = pearsonr(
+                        y_regret.squeeze(), y_calibration_mse.squeeze()
+                    )
+                    # print(np.round(rho,2),np.round(p_val,2))
+                    rho, p_val = pearsonr(
+                        y_regret_total.squeeze(), y_calibration_mse.squeeze()
+                    )
+                    # print(np.round(rho,2),np.round(p_val,2))
+                else:
+                    y_c_mu, y_s_mu = "-", "-"
+                row += f"${self.format_num(y_r_mu)}$ & ${self.format_num(y_rt_mu)}$ & ${self.format_num(y_c_mu)}$ & ${self.format_num(y_s_mu)}$"
+
+                print(row + "\\\\")
 
     # def table_linear_correlation(
     #     self,

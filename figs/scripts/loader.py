@@ -114,6 +114,33 @@ class Loader(object):
                     else:
                         data_params.update({x: "NULL"})
 
+                # if parameters["analyze_all_epochs"] and parameters["extensive_metrics"]:
+                #     data = dict(data_params)
+                #     pass
+                # else:
+                ################ First epoch
+                data = dict(data_params)
+                data.update({"epoch": 0})
+                for x in self.metric_dict:
+                    if x in metrics.keys():
+                        m = (
+                            [metrics[x]]
+                            if not isinstance(metrics[x], list)
+                            else metrics[x]
+                        )
+                    if x in metrics.keys() and len(m) > 0 and np.isfinite(m[0]):
+                        data.update({x: m[0]})
+                        if x == "y_regret" or x == "f_regret":
+                            data.update({f"{x}_total": np.sum(m)})
+                    # elif x == "y_calibration_over":
+                    #     data.update({x: self.calibration(metrics, "over")})
+                    # elif x == "y_calibration_under":
+                    #     data.update({x: self.calibration(metrics, "under")})
+                    elif x not in data and x not in parameters.keys():
+                        data.update({x: "NULL"})
+
+                df = df.append(data, ignore_index=True)
+                ################ Last epoch
                 data = dict(data_params)
                 data.update({"epoch": parameters["n_evals"]})
                 for x in self.metric_dict:
@@ -181,8 +208,10 @@ class Loader(object):
         z.update(y)  # modifies z with keys and values of y
         return z
 
-    def format_num(self, x: float):
-        if np.abs(x) < 10 ** (-3) and self.scientific_notation:
+    def format_num(self, x: float, scientific_notation: bool = False):
+        if not isinstance(x, float):
+            return x
+        if np.abs(x) < 10 ** (-3) and scientific_notation:
             return (
                 f"{x:.1E}".replace("E-0", "E-")
                 .replace("E+0", "E+")

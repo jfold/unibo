@@ -15,17 +15,6 @@ class Experiment(object):
         self.optimizer = Optimizer(parameters)
         self.metrics = Metrics(parameters)
 
-    def __str__(self):
-        return (
-            "Experiment:"
-            + self.dataset.__str__
-            + "\r\n"
-            + self.optimizer.__str__
-            + "\r\n"
-            + self.metrics.__str__
-        )
-
-    def run(self) -> None:
         # Epoch 0
         self.optimizer.fit_surrogate(self.dataset)
         recalibrator = (
@@ -42,8 +31,19 @@ class Experiment(object):
             extensive=True,
         )
 
-        if self.bo:
+    def __str__(self):
+        return (
+            "Experiment:"
+            + self.dataset.__str__
+            + "\r\n"
+            + self.optimizer.__str__
+            + "\r\n"
+            + self.metrics.__str__
+        )
 
+    def run(self) -> None:
+
+        if self.bo:
             # Epochs > 0
             for e in tqdm(range(self.n_evals), leave=False):
 
