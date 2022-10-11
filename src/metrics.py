@@ -72,9 +72,16 @@ class Metrics(object):
                 "posterior_variance": np.mean(sigmas) ** 2,
             }
         )
-        if not dataset.data.real_world and dataset.ne_true is not None:
+        if (
+            not dataset.data.real_world
+            and hasattr(dataset.data, "ne_true")
+            and dataset.data.ne_true is not None
+        ):
             self.update_summary(
-                {"sharpness_error_true_minus_model": self.ne_true - mean_sharpness,}
+                {
+                    "sharpness_error_true_minus_model": dataset.data.ne_true
+                    - mean_sharpness,
+                }
             )
 
     def bias(self, mus: np.ndarray, f: np.ndarray) -> None:

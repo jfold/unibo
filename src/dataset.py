@@ -66,7 +66,6 @@ class Dataset(object):
 
         self.summary.update(
             {
-                "n_initial": int(self.n_initial),
                 "X_train": self.data.X_train.tolist(),
                 "y_train": self.data.y_train.tolist(),
                 "opt_idx": int(self.opt_idx),
