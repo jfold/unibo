@@ -444,7 +444,7 @@ class Tables(Loader):
         X = sm.add_constant(X)
         mod = sm.OLS(y, X)
         res = mod.fit()
-        print(res.summary())
+        # print(res.summary())
         confidence_intervals = res.conf_int(ci)
         p_values = res.pvalues.to_dict()
         if return_ci:
