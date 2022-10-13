@@ -157,14 +157,15 @@ class Tables(Loader):
         x, y = self.remove_extremes(x.squeeze(), y.squeeze())
         return pearsonr(x, y)
 
-    def table_linear_correlation_all(self):
+    def table_linear_correlation_all(
+        self, table_name: str = "results_regret_vs_calibration"
+    ):
         cnx = sqlite3.connect("./results.db")
-        table_name = "results_regret_vs_calibration"
         query = self.dict2query(FROM=table_name, SELECT=["surrogate"])
         df = pd.read_sql(query, cnx)
         surrogates = sorted(df["surrogate"].unique())
         snr = 100
-
+        print(surrogates)
         row = ""
         for recal in [False]:
             x1 = pd.read_sql(
@@ -259,18 +260,21 @@ class Tables(Loader):
                 #################################################################################
                 #################################################################################
 
-                data = pd.read_sql(
-                    self.dict2query(
-                        FROM=table_name,
-                        SELECT=["f_regret"],
-                        WHERE=self.merge_two_dicts(
-                            {groups: group},
-                            {"bo": True, "recalibrate": recal, "snr": snr},
+                data = (
+                    pd.read_sql(
+                        self.dict2query(
+                            FROM=table_name,
+                            SELECT=["f_regret"],
+                            WHERE=self.merge_two_dicts(
+                                {groups: group},
+                                {"bo": True, "recalibrate": recal, "snr": snr},
+                            ),
                         ),
-                    ),
-                    cnx,
-                )[["f_regret"]].to_numpy()
-
+                        cnx,
+                    )[["f_regret"]]
+                    .to_numpy()
+                    .astype(float)
+                )
                 row += (
                     "&$"
                     + self.format_num(np.nanmean(data))
@@ -279,19 +283,27 @@ class Tables(Loader):
                     + ")$"
                 )
 
+                if group in ["RS", "DS"]:
+                    row += "-&-&-&-&-"
+                    continue
+
                 #################################################################################
                 #################################################################################
-                data = pd.read_sql(
-                    self.dict2query(
-                        FROM=table_name,
-                        SELECT=["f_regret_total"],
-                        WHERE=self.merge_two_dicts(
-                            {groups: group},
-                            {"bo": True, "recalibrate": recal, "snr": snr},
+                data = (
+                    pd.read_sql(
+                        self.dict2query(
+                            FROM=table_name,
+                            SELECT=["f_regret_total"],
+                            WHERE=self.merge_two_dicts(
+                                {groups: group},
+                                {"bo": True, "recalibrate": recal, "snr": snr},
+                            ),
                         ),
-                    ),
-                    cnx,
-                )[["f_regret_total"]].to_numpy()
+                        cnx,
+                    )[["f_regret_total"]]
+                    .to_numpy()
+                    .astype(float)
+                )
                 row += (
                     "&$"
                     + self.format_num(np.nanmean(data))
@@ -306,17 +318,21 @@ class Tables(Loader):
 
                 #################################################################################
                 #################################################################################
-                data = pd.read_sql(
-                    self.dict2query(
-                        FROM=table_name,
-                        SELECT=["y_calibration_mse"],
-                        WHERE=self.merge_two_dicts(
-                            {groups: group},
-                            {"bo": False, "recalibrate": recal, "snr": snr},
+                data = (
+                    pd.read_sql(
+                        self.dict2query(
+                            FROM=table_name,
+                            SELECT=["y_calibration_mse"],
+                            WHERE=self.merge_two_dicts(
+                                {groups: group},
+                                {"bo": False, "recalibrate": recal, "snr": snr},
+                            ),
                         ),
-                    ),
-                    cnx,
-                )[["y_calibration_mse"]].to_numpy()
+                        cnx,
+                    )[["y_calibration_mse"]]
+                    .to_numpy()
+                    .astype(float)
+                )
                 row += (
                     "&$"
                     + self.format_num(np.nanmean(data))
@@ -327,17 +343,21 @@ class Tables(Loader):
 
                 #################################################################################
                 #################################################################################
-                data = pd.read_sql(
-                    self.dict2query(
-                        FROM=table_name,
-                        SELECT=["y_calibration_mse"],
-                        WHERE=self.merge_two_dicts(
-                            {groups: group},
-                            {"bo": True, "recalibrate": recal, "snr": snr},
+                data = (
+                    pd.read_sql(
+                        self.dict2query(
+                            FROM=table_name,
+                            SELECT=["y_calibration_mse"],
+                            WHERE=self.merge_two_dicts(
+                                {groups: group},
+                                {"bo": True, "recalibrate": recal, "snr": snr},
+                            ),
                         ),
-                    ),
-                    cnx,
-                )[["y_calibration_mse"]].to_numpy()
+                        cnx,
+                    )[["y_calibration_mse"]]
+                    .to_numpy()
+                    .astype(float)
+                )
                 row += (
                     "&$"
                     + self.format_num(np.nanmean(data))
@@ -364,45 +384,26 @@ class Tables(Loader):
                         cnx,
                     )
                     .to_numpy()
+                    .astype(float)
                     .squeeze()
                 )
-                x2 = (
-                    pd.read_sql(
-                        self.dict2query(
-                            FROM=table_name,
-                            SELECT=["y_calibration_mse"],
-                            WHERE={
-                                groups: group,
-                                "bo": True,
-                                "recalibrate": recal,
-                                "snr": snr,
-                            },
-                            ORDERBY=["seed", "d", "problem",],
-                        ),
-                        cnx,
-                    )
-                    .to_numpy()
-                    .squeeze()
+                x2 = pd.read_sql(
+                    self.dict2query(
+                        FROM=table_name,
+                        SELECT=["y_calibration_mse", "f_regret"],
+                        WHERE={
+                            groups: group,
+                            "bo": True,
+                            "recalibrate": recal,
+                            "snr": snr,
+                        },
+                        ORDERBY=["seed", "d", "problem",],
+                    ),
+                    cnx,
                 )
 
-                y = (
-                    pd.read_sql(
-                        self.dict2query(
-                            FROM=table_name,
-                            SELECT=["f_regret"],
-                            WHERE={
-                                groups: group,
-                                "bo": True,
-                                "recalibrate": recal,
-                                "snr": snr,
-                            },
-                            ORDERBY=["seed", "d", "problem",],
-                        ),
-                        cnx,
-                    )
-                    .to_numpy()
-                    .squeeze()
-                )
+                y = x2[["f_regret"]].to_numpy().astype(float).squeeze()
+                print(group, x1.shape, x2.shape, y.shape)
                 rho, p_val = pearsonr(x1, y)
                 row += "&$" + self.format_num(rho) + self.p2stars(p_val, 15) + "$"
                 rho, p_val = pearsonr(x2, y)
@@ -609,13 +610,23 @@ class Tables(Loader):
 
                 y_regret = data[["y_regret"]].to_numpy().astype(float)
                 y_regret_total = data[["y_regret_total"]].to_numpy().astype(float)
-                y_r_mu, y_rt_mu = np.mean(y_regret), np.mean(y_regret_total)
+                y_r_mu, y_rt_mu, y_r_std, y_rt_std = (
+                    np.mean(y_regret),
+                    np.mean(y_regret_total),
+                    np.std(y_regret),
+                    np.std(y_regret_total),
+                )
                 if group not in ["RS", "DS"]:
                     y_calibration_mse = (
                         data[["y_calibration_mse"]].to_numpy().astype(float)
                     )
                     sharpness = data[["mean_sharpness"]].to_numpy().astype(float)
-                    y_c_mu, y_s_mu = np.mean(y_calibration_mse), np.mean(sharpness)
+                    y_c_mu, y_s_mu, y_c_std, y_s_std = (
+                        np.mean(y_calibration_mse),
+                        np.mean(sharpness),
+                        np.std(y_calibration_mse),
+                        np.std(sharpness),
+                    )
 
                     rho, p_val = pearsonr(
                         y_regret.squeeze(), y_calibration_mse.squeeze()
@@ -625,9 +636,17 @@ class Tables(Loader):
                         y_regret_total.squeeze(), y_calibration_mse.squeeze()
                     )
                     # print(np.round(rho,2),np.round(p_val,2))
+
+                row += (
+                    f"${self.format_num(y_r_mu)}\,\,(\pm {self.format_num(y_r_std)})$ "
+                )
+
+                if group not in ["RS", "DS"]:
+                    row += f"& ${self.format_num(y_rt_mu)}\,\,(\pm {self.format_num(y_rt_std)})$ "
+                    row += f"& ${self.format_num(y_c_mu)}\,\,(\pm {self.format_num(y_c_std)})$ "
+                    row += f"& ${self.format_num(y_s_mu)}\,\,(\pm {self.format_num(y_s_std)})$ "
                 else:
-                    y_c_mu, y_s_mu = "-", "-"
-                row += f"${self.format_num(y_r_mu)}$ & ${self.format_num(y_rt_mu)}$ & ${self.format_num(y_c_mu)}$ & ${self.format_num(y_s_mu)}$"
+                    row += "&-&-&-"
 
                 print(row + "\\\\")
 
