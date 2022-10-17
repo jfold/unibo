@@ -20,7 +20,7 @@ from torch.utils.data.sampler import SubsetRandomSampler
 import json
 from sklearn.preprocessing import StandardScaler
 import itertools
-from experiments.MNIST import *
+from experiments.FashionMNIST import *
 from datetime import datetime
 import time
 import sys
@@ -58,7 +58,7 @@ def run():
 
     parameters = Parameters(kwargs, mkdir=True)
     print("Running with:", parameters)
-    MNIST(parameters)
+    FashionMNIST(parameters)
     print("FINISHED EXPERIMENT")
     print("------------------------------------")
 
