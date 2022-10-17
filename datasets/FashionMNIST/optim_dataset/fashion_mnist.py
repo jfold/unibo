@@ -6,7 +6,7 @@ from imports.general import *
 from imports.ml import *
 
 
-class MNIST(object):
+class FashionMNIST(object):
     """ MNIST Benchmark dataset for bayesian optimization
     """
 
