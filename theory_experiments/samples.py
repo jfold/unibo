@@ -163,7 +163,7 @@ class SamplesExperiment(object):
         plt.xlabel(r"$N$")
         plt.xscale("log")
         fig.savefig("./figs/pdfs/sup_std_calibration.pdf")
-        print(np.sqrt(5) * mu[0])
+        # print(np.sqrt(5) * mu[0])
         # Expected Calibration error plot
         fig = plt.figure()
         mu = np.mean(E_C, axis=0)

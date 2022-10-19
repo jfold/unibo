@@ -6,7 +6,6 @@ cluster
 **/*.pdf
 **/*.zip
 results*/*
-datasets/MNIST/optim_dataset/*
 **/*.db
 **/*.sh
 **/.DS_Store
@@ -150,3 +149,11 @@ rankings.npy
 pytest.ini
 visualizations/scripts/ranking.py
 recalibrate.ipynb
+datasets/FashionMNIST/raw/t10k-images-idx3-ubyte
+datasets/FashionMNIST/raw/t10k-images-idx3-ubyte.gz
+datasets/FashionMNIST/raw/t10k-labels-idx1-ubyte
+datasets/FashionMNIST/raw/t10k-labels-idx1-ubyte.gz
+datasets/FashionMNIST/raw/train-images-idx3-ubyte
+datasets/FashionMNIST/raw/train-images-idx3-ubyte.gz
+datasets/FashionMNIST/raw/train-labels-idx1-ubyte
+datasets/FashionMNIST/raw/train-labels-idx1-ubyte.gz
