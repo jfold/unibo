@@ -54,6 +54,10 @@ class Parameters:
             problem = self.find_benchmark_problem_i()
             kwargs["problem"] = problem
             self.update(kwargs)
+        elif self.data_name.lower() == "mnist":
+            kwargs["problem"] = "mnist"
+            kwargs["d"] = 5
+            self.update(kwargs)
 
         if mkdir and not os.path.isdir(self.savepth):
             os.mkdir(self.savepth)

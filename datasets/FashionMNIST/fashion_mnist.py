@@ -3,8 +3,8 @@ from imports.general import *
 from imports.ml import *
 
 
-class MNIST(object):
-    """ MNIST Benchmark dataset for bayesian optimization
+class FashionMNIST(object):
+    """ Fashion MNIST Benchmark dataset for bayesian optimization
     """
 
     def __init__(self, parameters: Parameters):
@@ -19,8 +19,8 @@ class MNIST(object):
         self.sample_initial_dataset()
 
     def sample_initial_dataset(self) -> None:
-        self.X_test = np.load("./datasets/MNIST/optim_dataset/hyperparams.npy")
-        self.y_test = -np.load("./datasets/MNIST/optim_dataset/accuracies.npy")
+        self.X_test = np.load("./datasets/FashionMNIST/optim_dataset/hyperparams.npy")
+        self.y_test = -np.load("./datasets/FashionMNIST/optim_dataset/accuracies.npy")
         # self.y_test = np.load("./datasets/MNIST/optim_dataset/losses.npy")
 
         idxs = np.random.permutation(self.X_test.shape[0])

@@ -18,6 +18,7 @@ class RBFSampler(object):
         self.f_min_idx = None
         self.y_min_loc = None
         self.ne_true = None
+        self.real_world = False
         self.sample_initial_dataset()
 
     def sample_initial_dataset(self, n_samples: int = 3000) -> None:

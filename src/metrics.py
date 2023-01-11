@@ -56,7 +56,9 @@ class Metrics(object):
             lst.append(v)
             self.summary.update({k: lst})
 
-    def sharpness_gaussian(self, mus: np.ndarray, sigmas: np.ndarray) -> None:
+    def sharpness_gaussian(
+        self, dataset: Dataset, mus: np.ndarray, sigmas: np.ndarray
+    ) -> None:
         """Calculates the sharpness (negative entropy) of the gaussian distributions 
         with means: mus and standard deviation: sigmas
         """
@@ -64,12 +66,21 @@ class Metrics(object):
             [-norm.entropy(mus[i], sigmas[i]) for i in range(mus.shape[0])]
         )
         mean_sharpness = np.mean(sharpness)
-        self.update_summary({"mean_sharpness": mean_sharpness})
-        if self.ne_true is not None:
+        self.update_summary(
+            {
+                "mean_sharpness": mean_sharpness,
+                "posterior_variance": np.mean(sigmas) ** 2,
+            }
+        )
+        if (
+            not dataset.data.real_world
+            and hasattr(dataset.data, "ne_true")
+            and dataset.data.ne_true is not None
+        ):
             self.update_summary(
                 {
-                    "sharpness_error_true_minus_model": self.ne_true - mean_sharpness,
-                    "posterior_variance": np.mean(sigmas) ** 2,
+                    "sharpness_error_true_minus_model": dataset.data.ne_true
+                    - mean_sharpness,
                 }
             )
 
@@ -216,15 +227,19 @@ class Metrics(object):
             )
 
     def calibration_y_local(
-        self, dataset: Dataset, mus: np.ndarray, sigmas: np.ndarray, n_bins: int = 20,
+        self,
+        X_train: np.ndarray,
+        X_test: np.ndarray,
+        y_test: np.ndarray,
+        mus: np.ndarray,
+        sigmas: np.ndarray,
+        n_bins: int = 20,
     ) -> None:
         """Calculates the calibration of the target (y).
         # eq. (3) in "Accurate Uncertainties for Deep Learning Using Calibrated Regression"
         """
 
-        pair_dists = cdist(
-            dataset.data.X_train, dataset.data.X_test, metric="euclidean"
-        )
+        pair_dists = cdist(X_train, X_test, metric="euclidean")
         pair_dists = np.min(
             pair_dists, axis=0
         )  # only take radius of nearest training point
@@ -236,7 +251,7 @@ class Metrics(object):
         for i in range(len(bins) - 1):
             cond = np.logical_and(bins[i] <= pair_dists, pair_dists <= bins[i + 1])
             if np.sum(cond) > 0:
-                mus_, sigmas_, y_ = mus[cond], sigmas[cond], dataset.data.y_test[cond]
+                mus_, sigmas_, y_ = mus[cond], sigmas[cond], y_test[cond]
                 calibrations_intervals[i] = self.calibration_y_batched(
                     mus_, sigmas_, y_, return_mse=True
                 )
@@ -293,21 +308,22 @@ class Metrics(object):
         self.update_summary({"mse": mse, "nmse": nmse})
 
     def regret(self, dataset: Dataset) -> None:
-        y_regret = np.abs(dataset.data.y_min - dataset.y_opt)
-        f_regret = np.abs(dataset.data.f_min - dataset.f_opt)
-        self.update_summary(
-            {"y_regret": y_regret.squeeze(), "f_regret": f_regret.squeeze()}
-        )
+        y_regret = np.abs(dataset.data.y_min.squeeze() - dataset.y_opt.squeeze())
+        self.update_summary({"y_regret": y_regret.squeeze()})
+        if not dataset.data.real_world:
+            f_regret = np.abs(dataset.data.f_min - dataset.f_opt)
+            self.update_summary({"f_regret": f_regret.squeeze()})
 
     def glob_min_dist(self, dataset: Dataset) -> None:
         y_squared_error = (dataset.X_y_opt - np.array(dataset.data.y_min_loc)) ** 2
-        f_squared_error = (dataset.X_f_opt - np.array(dataset.data.f_min_loc)) ** 2
         self.update_summary(
-            {
-                "x_y_opt_dist": np.sqrt(np.sum(y_squared_error)),
-                "x_f_opt_dist": np.sqrt(np.sum(f_squared_error)),
-            }
+            {"x_y_opt_dist": np.sqrt(np.sum(y_squared_error)),}
         )
+        if not dataset.data.real_world:
+            f_squared_error = (dataset.X_f_opt - np.array(dataset.data.f_min_loc)) ** 2
+            self.update_summary(
+                {"x_f_opt_dist": np.sqrt(np.sum(f_squared_error)),}
+            )
 
     def run_uct(self, mu_test, sigma_test, y_test):
         uct_metrics = uct.metrics.get_all_metrics(
@@ -328,20 +344,36 @@ class Metrics(object):
         extensive: bool = True,
     ) -> None:
         if surrogate is not None and extensive:
-            self.ne_true = dataset.data.ne_true
-            mu_test, sigma_test = surrogate.predict(dataset.data.X_test)
+
+            if dataset.data.X_test.shape[0] > 1000:
+                idxs = np.random.permutation(dataset.data.X_test.shape[0])[:1000]
+                X_test = dataset.data.X_test[idxs, :]
+                y_test = dataset.data.y_test[idxs, :]
+                if not dataset.data.real_world:
+                    f_test = dataset.data.f_test[idxs, :]
+            else:
+                X_test = dataset.data.X_test
+                y_test = dataset.data.y_test
+                if not dataset.data.real_world:
+                    f_test = dataset.data.f_test
+
+            mu_test, sigma_test = surrogate.predict(X_test)
             if recalibrator is not None:
                 mu_test, sigma_test = recalibrator.recalibrate(mu_test, sigma_test)
-            self.calibration_f_batched(mu_test, sigma_test, dataset.data.f_test)
-            self.calibration_y_batched(mu_test, sigma_test, dataset.data.y_test)
-            self.calibration_y_local(dataset, mu_test, sigma_test)
-            self.sharpness_gaussian(mu_test, sigma_test)
-            self.expected_log_predictive_density(
-                mu_test, sigma_test, dataset.data.y_test,
+            if not dataset.data.real_world:
+                self.calibration_f_batched(mu_test, sigma_test, f_test)
+            self.calibration_y_batched(mu_test, sigma_test, y_test)
+            self.calibration_y_local(
+                dataset.data.X_train, X_test, y_test, mu_test, sigma_test
             )
-            self.nmse(dataset.data.y_test, mu_test)
-            self.bias(mu_test, dataset.data.f_test)
-            self.run_uct(mu_test, sigma_test, dataset.data.y_test)
+            self.sharpness_gaussian(dataset, mu_test, sigma_test)
+            self.expected_log_predictive_density(
+                mu_test, sigma_test, y_test,
+            )
+            self.nmse(y_test, mu_test)
+            if not dataset.data.real_world:
+                self.bias(mu_test, f_test)
+            self.run_uct(mu_test, sigma_test, y_test)
             self.improvement(dataset)
 
         self.regret(dataset)

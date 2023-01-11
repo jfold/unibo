@@ -11,6 +11,8 @@ from src.recalibrator import Recalibrator
 class Experiment(object):
     def __init__(self, parameters: Parameters) -> None:
         self.__dict__.update(asdict(parameters))
+        np.random.seed(self.seed)
+        torch.manual_seed(self.seed)
         self.dataset = Dataset(parameters)
         self.optimizer = Optimizer(parameters)
         self.metrics = Metrics(parameters)
@@ -26,6 +28,7 @@ class Experiment(object):
         )
 
     def run(self) -> None:
+
         # Epoch 0
         self.optimizer.fit_surrogate(self.dataset)
         recalibrator = (
@@ -41,9 +44,7 @@ class Experiment(object):
             recalibrator=recalibrator,
             extensive=True,
         )
-
         if self.bo:
-
             # Epochs > 0
             for e in tqdm(range(self.n_evals), leave=False):
 
@@ -64,10 +65,14 @@ class Experiment(object):
                     return_idx=True,
                 )
                 y_next = self.dataset.data.y_test[[i_choice]]
-                f_next = self.dataset.data.f_test[[i_choice]]
+                f_next = (
+                    self.dataset.data.f_test[[i_choice]]
+                    if not self.dataset.data.real_world
+                    else None
+                )
 
-                # Add to dataset
-                self.dataset.add_data(x_next, y_next, f_next, i_choice)
+                # add to dataset
+                self.dataset.add_data(x_next, y_next, f_next, i_choice=i_choice)
 
                 # Update dataset
                 self.dataset.update_solution()
@@ -80,7 +85,7 @@ class Experiment(object):
                         self.optimizer.surrogate_object,
                         self.dataset,
                         recalibrator=recalibrator,
-                        extensive=self.extensive_metrics,
+                        extensive=self.extensive_metrics or e == self.n_evals - 1,
                     )
 
             if not self.analyze_all_epochs:
@@ -88,7 +93,7 @@ class Experiment(object):
                     self.optimizer.surrogate_object,
                     self.dataset,
                     recalibrator=recalibrator,
-                    extensive=self.extensive_metrics,
+                    extensive=True,
                 )
         else:
             if self.analyze_all_epochs:
@@ -109,7 +114,7 @@ class Experiment(object):
                         self.optimizer.surrogate_object,
                         self.dataset,
                         recalibrator=recalibrator,
-                        extensive=self.extensive_metrics,
+                        extensive=self.extensive_metrics or e == self.n_evals - 1,
                     )
             else:
                 X, y, f = self.dataset.data.sample_data(self.n_evals)
@@ -124,12 +129,12 @@ class Experiment(object):
                     if self.recalibrate
                     else None
                 )
-                self.metrics.analyze(
-                    self.optimizer.surrogate_object,
-                    self.dataset,
-                    recalibrator=recalibrator,
-                    extensive=self.extensive_metrics,
-                )
+            self.metrics.analyze(
+                self.optimizer.surrogate_object,
+                self.dataset,
+                recalibrator=recalibrator,
+                extensive=True,
+            )
 
         self.dataset.save()
         self.metrics.save()

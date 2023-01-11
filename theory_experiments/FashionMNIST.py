@@ -94,4 +94,4 @@ def FashionMNIST(params):
     with open("/zhome/49/2/135395/PhD/unibo/results/FashionMNIST/" + file_name+ ".json", 'w') as fp:
         json.dump(experiment_dict, fp, indent=4)
 if __name__ == "__main__":
-    MNIST()
+    FashionMNIST()

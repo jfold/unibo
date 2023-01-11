@@ -1,13 +1,14 @@
 from typing import Dict
+from datasets.benchmarks.evalset.test_funcs import Rastrigin
 from imports.general import *
 from imports.ml import *
 from figs.scripts.loader import Loader
 
 
-class Tables(object):
-    def __init__(self, loader: Loader):
-        self.loader = loader
-        self.scientific_notation = False
+class Tables(Loader):
+    def __init__(self, scientific_notation: bool = False):
+        super().__init__()
+        self.scientific_notation = scientific_notation
         self.savepth = os.getcwd() + "/figs/tables/"
 
     def rank_regression(
@@ -156,248 +157,261 @@ class Tables(object):
         x, y = self.remove_extremes(x.squeeze(), y.squeeze())
         return pearsonr(x, y)
 
-    def format_num(self, x: float):
-        if np.abs(x) < 10 ** (-3) and self.scientific_notation:
-            return (
-                f"{x:.1E}".replace("E-0", "E-")
-                .replace("E+0", "E+")
-                .replace("E-", "\cdot 10^{-")
-                .replace("E+", "10^{")
-                + "}"
-            )
-        else:
-            return f"{x:.3f}"
-
-    def p2stars(self, p: float, bonferoni_correction: float = 1.0):
-        assert 0.0 <= p <= 1.0
-        stars = ""
-        if p < 0.05 / bonferoni_correction:
-            stars = "^{*}"
-        if p < 0.001 / bonferoni_correction:
-            stars = "^{**}"
-        if p < 0.0001 / bonferoni_correction:
-            stars = "^{***}"
-        if p < 1e-10 / bonferoni_correction:
-            stars = "^{****}"
-        return stars
-
-    def merge_two_dicts(self, x, y):
-        z = x.copy()  # start with keys and values of x
-        z.update(y)  # modifies z with keys and values of y
-        return z
-
-    def table_linear_correlation(
-        self,
-        settings: Dict = {"data_name": "benchmark", "epoch": 90, "snr": 100},
-        surrogates: list = None,
+    def table_linear_correlation_all(
+        self, table_name: str = "results_regret_vs_calibration"
     ):
-        loader = self.loader
-        surrogates = (
-            loader.loader_summary["surrogate"]["vals"]
-            if surrogates is None
-            else surrogates
-        )
-        bonferoni_correction = (
-            loader.loader_summary["surrogate"]["d"] + loader.loader_summary["d"]["d"]
-        )
-        # Across dimensions
-        for sur in surrogates:
-            r_f = loader.extract(
-                settings=self.merge_two_dicts(
-                    settings, {"bo": True, "surrogate": sur, "metric": "f_regret",},
-                )
+        cnx = sqlite3.connect("./results.db")
+        query = self.dict2query(FROM=table_name, SELECT=["surrogate"])
+        df = pd.read_sql(query, cnx)
+        surrogates = sorted(df["surrogate"].unique())
+        snr = 100
+        print(surrogates)
+        row = ""
+        for recal in [False]:
+            x1 = pd.read_sql(
+                self.dict2query(
+                    FROM=table_name,
+                    SELECT=[
+                        "f_regret",
+                        "y_calibration_mse",
+                        "surrogate",
+                        "mean_sharpness",
+                        "elpd",
+                    ],
+                    WHERE={"bo": False, "recalibrate": recal, "snr": snr,},
+                    ORDERBY=["seed", "d", "problem", "surrogate",],
+                ),
+                cnx,
             )
-            c_r = loader.extract(
-                settings=self.merge_two_dicts(
-                    settings,
-                    {"bo": False, "surrogate": sur, "metric": "y_calibration_mse",},
-                )
-            )
-            c_bo = loader.extract(
-                settings=self.merge_two_dicts(
-                    settings,
-                    {"bo": True, "surrogate": sur, "metric": "y_calibration_mse",},
-                )
-            )
-            row = (
-                f"{sur}&$"
-                + self.format_num(np.nanmean(r_f))
-                + "\,\,(\pm "
-                + self.format_num(np.nanstd(r_f))
-                + ")$"
+            x2 = pd.read_sql(
+                self.dict2query(
+                    FROM=table_name,
+                    SELECT=[
+                        "f_regret",
+                        "y_calibration_mse",
+                        "surrogate",
+                        "mean_sharpness",
+                        "elpd",
+                    ],
+                    WHERE={"bo": True, "recalibrate": recal, "snr": snr,},
+                    ORDERBY=["seed", "d", "problem", "surrogate",],
+                ),
+                cnx,
             )
 
-            if sur not in ["RS", "DS"]:
-                x, y = loader.remove_nans(r_f.flatten(), c_r.flatten())
-                rho_reg, p_reg = pearsonr(x, y)
-                x, y = loader.remove_nans(r_f.flatten(), c_bo.flatten())
-                rho_bo, p_bo = pearsonr(x, y)
-                row += (
-                    "&$"
-                    + self.format_num(np.nanmean(c_r))
-                    + "\,\,(\pm "
-                    + self.format_num(np.nanstd(c_r))
-                    + ")$"
-                )
-                row += (
-                    "&$"
-                    + self.format_num(np.nanmean(c_bo))
-                    + "\,\,(\pm "
-                    + self.format_num(np.nanstd(c_bo))
-                    + ")$"
-                )
-                # regression rho
-                row += (
-                    "&$"
-                    + self.format_num(rho_reg)
-                    + self.p2stars(p_reg, bonferoni_correction)
-                    + "$"
-                )
+            x1 = x1.replace("NULL", np.nan, regex=True)
+            x1 = x1.dropna(how="any", axis=0)
+            sur_one_hot = pd.get_dummies(x1[["surrogate"]])
+            x1.drop("surrogate", axis=1, inplace=True)
+            for sur in surrogates:
+                if sur not in ["RS", "DS"]:
+                    x1[f"surrogate_{sur}"] = sur_one_hot[[f"surrogate_{sur}"]]
 
-                # bo rho
-                row += (
-                    "&$"
-                    + self.format_num(rho_bo)
-                    + self.p2stars(p_bo, bonferoni_correction)
-                    + "$"
-                )
-            else:
-                row += "&-&-&-&-"
+            x1 = x1.dropna(how="any", axis=0)
+            y = x1[["f_regret"]]
+            X = x1.drop("f_regret", axis=1)
+            p_values, c025, c975 = self.fit_linearmodel(X, y)
+            row = "All"
+            for predictor in X.columns.values:
+                c1 = self.format_num(c025[predictor])
+                c2 = self.format_num(c975[predictor])
+                row += f"&$({c1},{c2})" + self.p2stars(p_values[predictor], 15) + "$"
+            print(row + "\\\\")
+
+            x2 = x2.replace("NULL", np.nan, regex=True)
+            x2 = x2.dropna(how="any", axis=0)
+            sur_one_hot = pd.get_dummies(x2[["surrogate"]])
+            x2.drop("surrogate", axis=1, inplace=True)
+            for sur in surrogates:
+                if sur not in ["RS", "DS"]:
+                    x2[f"surrogate_{sur}"] = sur_one_hot[[f"surrogate_{sur}"]]
+
+            x2 = x2.dropna(how="any", axis=0)
+            y = x2[["f_regret"]]
+            X = x2.drop("f_regret", axis=1)
+            p_values, c025, c975 = self.fit_linearmodel(X, y)
+            row = "All"
+            for predictor in X.columns.values:
+                c1 = self.format_num(c025[predictor])
+                c2 = self.format_num(c975[predictor])
+                row += f"&$({c1},{c2})" + self.p2stars(p_values[predictor], 15) + "$"
+            print(row + "\\\\")
+            raise ValueError()
+
+            #################################################################################
+            #################################################################################
 
             print(row + "\\\\")
-        print("\\hline")
 
-        row = "All&&&"
-        r_f = loader.extract(
-            settings=self.merge_two_dicts(settings, {"bo": True, "metric": "f_regret"})
-        )
-        c_r = loader.extract(
-            settings=self.merge_two_dicts(
-                settings, {"bo": False, "metric": "y_calibration_mse",}
-            )
-        )
-        c_bo = loader.extract(
-            settings=self.merge_two_dicts(
-                settings, {"bo": True, "metric": "y_calibration_mse",}
-            )
-        )
-        x, y = loader.remove_nans(r_f.flatten(), c_r.flatten())
-        rho_reg, p_reg = pearsonr(x, y)
-        x, y = loader.remove_nans(r_f.flatten(), c_bo.flatten())
-        rho_bo, p_bo = pearsonr(x, y)
-        # regression rho
-        row += (
-            "&$"
-            + self.format_num(rho_reg)
-            + self.p2stars(p_reg, bonferoni_correction=bonferoni_correction)
-            + "$"
-        )
-        # bo rho
-        row += (
-            "&$"
-            + self.format_num(rho_bo)
-            + self.p2stars(p_bo, bonferoni_correction=bonferoni_correction)
-            + "$"
-        )
-        print(row + "\\\\")
-
-    def table_linear_correlation_dims(
-        self,
-        settings: Dict = {"data_name": "benchmark", "epoch": 90, "snr": 100},
-        ds: list = None,
-        surrogates: list = None,
+    def table_linear_correlation(
+        self, table_name: str = "results_regret_vs_calibration"
     ):
-        loader = self.loader
-        surrogates = (
-            loader.loader_summary["surrogate"]["vals"]
-            if surrogates is None
-            else surrogates
-        )
-        ds = loader.loader_summary["d"]["vals"] if surrogates is None else surrogates
+        cnx = sqlite3.connect("./results.db")
+        groups = "surrogate"
+        query = self.dict2query(FROM=table_name, SELECT=[groups])
+        df = pd.read_sql(query, cnx)
+        groups_ = sorted(df[groups].unique())
+        snr = 100
 
-        bonferoni_correction = (
-            loader.loader_summary["surrogate"]["d"] + loader.loader_summary["d"]["d"]
-        )
+        for recal in [False, True]:
+            for group in groups_:
+                row = f"{group}"
 
-        for d in ds:
-            for sur in surrogates:
-                r_f = loader.extract(
-                    settings=self.merge_two_dicts(
-                        settings,
-                        {"bo": True, "surrogate": sur, "d": d, "metric": "f_regret",},
-                    )
+                #################################################################################
+                #################################################################################
+
+                data = (
+                    pd.read_sql(
+                        self.dict2query(
+                            FROM=table_name,
+                            SELECT=["f_regret"],
+                            WHERE=self.merge_two_dicts(
+                                {groups: group},
+                                {"bo": True, "recalibrate": recal, "snr": snr},
+                            ),
+                        ),
+                        cnx,
+                    )[["f_regret"]]
+                    .to_numpy()
+                    .astype(float)
                 )
-                c_r = loader.extract(
-                    settings=self.merge_two_dicts(
-                        settings,
-                        {
-                            "bo": False,
-                            "surrogate": sur,
-                            "d": d,
-                            "metric": "y_calibration_mse",
-                        },
-                    )
-                )
-                c_bo = loader.extract(
-                    settings=self.merge_two_dicts(
-                        settings,
-                        {
-                            "bo": True,
-                            "surrogate": sur,
-                            "d": d,
-                            "metric": "y_calibration_mse",
-                        },
-                    )
-                )
-                row = (
-                    f"{sur}({d})&$"
-                    + self.format_num(np.nanmean(r_f))
+                row += (
+                    "&$"
+                    + self.format_num(np.nanmean(data))
                     + "\,\,(\pm "
-                    + self.format_num(np.nanstd(r_f))
+                    + self.format_num(np.nanstd(data))
                     + ")$"
                 )
 
-                if sur not in ["RS", "DS"]:
-                    x, y = loader.remove_nans(r_f.flatten(), c_r.flatten())
-                    rho_reg, p_reg = pearsonr(x, y)
-                    x, y = loader.remove_nans(r_f.flatten(), c_bo.flatten())
-                    rho_bo, p_bo = pearsonr(x, y)
-                    row += (
-                        "&$"
-                        + self.format_num(np.nanmean(c_r))
-                        + "\,\,(\pm "
-                        + self.format_num(np.nanstd(c_r))
-                        + ")$"
-                    )
-                    row += (
-                        "&$"
-                        + self.format_num(np.nanmean(c_bo))
-                        + "\,\,(\pm "
-                        + self.format_num(np.nanstd(c_bo))
-                        + ")$"
-                    )
-                    # regression rho
-                    row += (
-                        "&$"
-                        + self.format_num(rho_reg)
-                        + self.p2stars(p_reg, bonferoni_correction)
-                        + "$"
-                    )
+                if group in ["RS", "DS"]:
+                    row += "-&-&-&-&-"
+                    continue
 
-                    # bo rho
-                    row += (
-                        "&$"
-                        + self.format_num(rho_bo)
-                        + self.p2stars(p_bo, bonferoni_correction)
-                        + "$"
+                #################################################################################
+                #################################################################################
+                data = (
+                    pd.read_sql(
+                        self.dict2query(
+                            FROM=table_name,
+                            SELECT=["f_regret_total"],
+                            WHERE=self.merge_two_dicts(
+                                {groups: group},
+                                {"bo": True, "recalibrate": recal, "snr": snr},
+                            ),
+                        ),
+                        cnx,
+                    )[["f_regret_total"]]
+                    .to_numpy()
+                    .astype(float)
+                )
+                row += (
+                    "&$"
+                    + self.format_num(np.nanmean(data))
+                    + "\,\,(\pm "
+                    + self.format_num(np.nanstd(data))
+                    + ")$"
+                )
+
+                if group in ["RS", "DS"]:
+                    row += "&-&-"
+                    continue
+
+                #################################################################################
+                #################################################################################
+                data = (
+                    pd.read_sql(
+                        self.dict2query(
+                            FROM=table_name,
+                            SELECT=["y_calibration_mse"],
+                            WHERE=self.merge_two_dicts(
+                                {groups: group},
+                                {"bo": False, "recalibrate": recal, "snr": snr},
+                            ),
+                        ),
+                        cnx,
+                    )[["y_calibration_mse"]]
+                    .to_numpy()
+                    .astype(float)
+                )
+                row += (
+                    "&$"
+                    + self.format_num(np.nanmean(data))
+                    + "\,\,(\pm "
+                    + self.format_num(np.nanstd(data))
+                    + ")$"
+                )
+
+                #################################################################################
+                #################################################################################
+                data = (
+                    pd.read_sql(
+                        self.dict2query(
+                            FROM=table_name,
+                            SELECT=["y_calibration_mse"],
+                            WHERE=self.merge_two_dicts(
+                                {groups: group},
+                                {"bo": True, "recalibrate": recal, "snr": snr},
+                            ),
+                        ),
+                        cnx,
+                    )[["y_calibration_mse"]]
+                    .to_numpy()
+                    .astype(float)
+                )
+                row += (
+                    "&$"
+                    + self.format_num(np.nanmean(data))
+                    + "\,\,(\pm "
+                    + self.format_num(np.nanstd(data))
+                    + ")$"
+                )
+
+                #################################################################################
+                #################################################################################
+                x1 = (
+                    pd.read_sql(
+                        self.dict2query(
+                            FROM=table_name,
+                            SELECT=["y_calibration_mse"],
+                            WHERE={
+                                groups: group,
+                                "bo": False,
+                                "recalibrate": recal,
+                                "snr": snr,
+                            },
+                            ORDERBY=["seed", "d", "problem",],
+                        ),
+                        cnx,
                     )
-                else:
-                    row += "&-&-&-&-"
+                    .to_numpy()
+                    .astype(float)
+                    .squeeze()
+                )
+                x2 = pd.read_sql(
+                    self.dict2query(
+                        FROM=table_name,
+                        SELECT=["y_calibration_mse", "f_regret"],
+                        WHERE={
+                            groups: group,
+                            "bo": True,
+                            "recalibrate": recal,
+                            "snr": snr,
+                        },
+                        ORDERBY=["seed", "d", "problem",],
+                    ),
+                    cnx,
+                )
+
+                y = x2[["f_regret"]].to_numpy().astype(float).squeeze()
+                print(group, x1.shape, x2.shape, y.shape)
+                rho, p_val = pearsonr(x1, y)
+                row += "&$" + self.format_num(rho) + self.p2stars(p_val, 15) + "$"
+                rho, p_val = pearsonr(x2, y)
+                row += "&$" + self.format_num(rho) + self.p2stars(p_val, 15) + "$"
+                #################################################################################
+                #################################################################################
 
                 print(row + "\\\\")
-            print("\\hline")
-
-        self.table_linear_correlation(settings=settings, surrogates=surrogates)
 
     def extract_pandasframes(
         self,
@@ -420,15 +434,18 @@ class Tables(object):
         data = data.dropna()
         X = data[predictors]
         y = data[settings_y["metric"]]
-        X = sm.add_constant(X)
         predictors.append("const")
         return X, y, predictors
 
     def fit_linearmodel(
         self, X: np.ndarray, y: np.ndarray, return_ci: bool = True, ci: bool = 0.05,
     ):
+        X = (X - np.mean(X, axis=0)) / np.std(X, axis=0)
+        y = (y - np.mean(y, axis=0)) / np.std(y, axis=0)
+        X = sm.add_constant(X)
         mod = sm.OLS(y, X)
         res = mod.fit()
+        # print(res.summary())
         confidence_intervals = res.conf_int(ci)
         p_values = res.pvalues.to_dict()
         if return_ci:
@@ -560,3 +577,288 @@ class Tables(object):
             )
         print(row + "\\\\")
 
+    def table_real_data(self, table_name: str = "results_mnist"):
+        cnx = sqlite3.connect("./results.db")
+        groups = "surrogate"
+        query = self.dict2query(FROM=table_name, SELECT=[groups])
+        df = pd.read_sql(query, cnx)
+        groups_ = sorted(df[groups].unique())
+        for recal in [False, True]:
+            for group in groups_:
+
+                #################################################################################
+                #################################################################################
+                subfilt = (
+                    {"bo": True, "recalibrate": recal, "epoch": 90}
+                    if group not in ["RS", "DS"]
+                    else {"bo": False, "recalibrate": False, "epoch": 90}
+                )
+                row = f"&{group}&"
+                data = pd.read_sql(
+                    self.dict2query(
+                        FROM=table_name,
+                        SELECT=[
+                            "y_regret",
+                            "y_regret_total",
+                            "y_calibration_mse",
+                            "mean_sharpness",
+                        ],
+                        WHERE=self.merge_two_dicts({groups: group}, subfilt,),
+                    ),
+                    cnx,
+                )
+
+                y_regret = data[["y_regret"]].to_numpy().astype(float)
+                y_regret_total = data[["y_regret_total"]].to_numpy().astype(float)
+                y_r_mu, y_rt_mu, y_r_std, y_rt_std = (
+                    np.mean(y_regret),
+                    np.mean(y_regret_total),
+                    np.std(y_regret),
+                    np.std(y_regret_total),
+                )
+                if group not in ["RS", "DS"]:
+                    y_calibration_mse = (
+                        data[["y_calibration_mse"]].to_numpy().astype(float)
+                    )
+                    sharpness = data[["mean_sharpness"]].to_numpy().astype(float)
+                    y_c_mu, y_s_mu, y_c_std, y_s_std = (
+                        np.mean(y_calibration_mse),
+                        np.mean(sharpness),
+                        np.std(y_calibration_mse),
+                        np.std(sharpness),
+                    )
+
+                    rho, p_val = pearsonr(
+                        y_regret.squeeze(), y_calibration_mse.squeeze()
+                    )
+                    # print(np.round(rho,2),np.round(p_val,2))
+                    rho, p_val = pearsonr(
+                        y_regret_total.squeeze(), y_calibration_mse.squeeze()
+                    )
+                    # print(np.round(rho,2),np.round(p_val,2))
+
+                row += (
+                    f"${self.format_num(y_r_mu)}\,\,(\pm {self.format_num(y_r_std)})$ "
+                )
+
+                if group not in ["RS", "DS"]:
+                    row += f"& ${self.format_num(y_rt_mu)}\,\,(\pm {self.format_num(y_rt_std)})$ "
+                    row += f"& ${self.format_num(y_c_mu)}\,\,(\pm {self.format_num(y_c_std)})$ "
+                    row += f"& ${self.format_num(y_s_mu)}\,\,(\pm {self.format_num(y_s_std)})$ "
+                else:
+                    row += "&-&-&-"
+
+                print(row + "\\\\")
+
+    # def table_linear_correlation(
+    #     self,
+    #     settings: Dict = {"data_name": "benchmark", "epoch": 90, "snr": 100},
+    #     surrogates: list = None,
+    # ):
+    #     loader = self.loader
+    #     surrogates = (
+    #         loader.loader_summary["surrogate"]["vals"]
+    #         if surrogates is None
+    #         else surrogates
+    #     )
+    #     bonferoni_correction = (
+    #         loader.loader_summary["surrogate"]["d"] + loader.loader_summary["d"]["d"]
+    #     )
+    #     # Across dimensions
+    #     for sur in surrogates:
+    #         r_f = loader.extract(
+    #             settings=self.merge_two_dicts(
+    #                 settings, {"bo": True, "surrogate": sur, "metric": "f_regret",},
+    #             )
+    #         )
+    #         c_r = loader.extract(
+    #             settings=self.merge_two_dicts(
+    #                 settings,
+    #                 {"bo": False, "surrogate": sur, "metric": "y_calibration_mse",},
+    #             )
+    #         )
+    #         c_bo = loader.extract(
+    #             settings=self.merge_two_dicts(
+    #                 settings,
+    #                 {"bo": True, "surrogate": sur, "metric": "y_calibration_mse",},
+    #             )
+    #         )
+    #         row = (
+    #             f"{sur}&$"
+    #             + self.format_num(np.nanmean(r_f))
+    #             + "\,\,(\pm "
+    #             + self.format_num(np.nanstd(r_f))
+    #             + ")$"
+    #         )
+
+    #         if sur not in ["RS", "DS"]:
+    #             x, y = loader.remove_nans(r_f.flatten(), c_r.flatten())
+    #             rho_reg, p_reg = pearsonr(x, y)
+    #             x, y = loader.remove_nans(r_f.flatten(), c_bo.flatten())
+    #             rho_bo, p_bo = pearsonr(x, y)
+    #             row += (
+    #                 "&$"
+    #                 + self.format_num(np.nanmean(c_r))
+    #                 + "\,\,(\pm "
+    #                 + self.format_num(np.nanstd(c_r))
+    #                 + ")$"
+    #             )
+    #             row += (
+    #                 "&$"
+    #                 + self.format_num(np.nanmean(c_bo))
+    #                 + "\,\,(\pm "
+    #                 + self.format_num(np.nanstd(c_bo))
+    #                 + ")$"
+    #             )
+    #             # regression rho
+    #             row += (
+    #                 "&$"
+    #                 + self.format_num(rho_reg)
+    #                 + self.p2stars(p_reg, bonferoni_correction)
+    #                 + "$"
+    #             )
+
+    #             # bo rho
+    #             row += (
+    #                 "&$"
+    #                 + self.format_num(rho_bo)
+    #                 + self.p2stars(p_bo, bonferoni_correction)
+    #                 + "$"
+    #             )
+    #         else:
+    #             row += "&-&-&-&-"
+
+    #         print(row + "\\\\")
+    #     print("\\hline")
+
+    #     row = "All&&&"
+    #     r_f = loader.extract(
+    #         settings=self.merge_two_dicts(settings, {"bo": True, "metric": "f_regret"})
+    #     )
+    #     c_r = loader.extract(
+    #         settings=self.merge_two_dicts(
+    #             settings, {"bo": False, "metric": "y_calibration_mse",}
+    #         )
+    #     )
+    #     c_bo = loader.extract(
+    #         settings=self.merge_two_dicts(
+    #             settings, {"bo": True, "metric": "y_calibration_mse",}
+    #         )
+    #     )
+    #     x, y = loader.remove_nans(r_f.flatten(), c_r.flatten())
+    #     rho_reg, p_reg = pearsonr(x, y)
+    #     x, y = loader.remove_nans(r_f.flatten(), c_bo.flatten())
+    #     rho_bo, p_bo = pearsonr(x, y)
+    #     # regression rho
+    #     row += (
+    #         "&$"
+    #         + self.format_num(rho_reg)
+    #         + self.p2stars(p_reg, bonferoni_correction=bonferoni_correction)
+    #         + "$"
+    #     )
+    #     # bo rho
+    #     row += (
+    #         "&$"
+    #         + self.format_num(rho_bo)
+    #         + self.p2stars(p_bo, bonferoni_correction=bonferoni_correction)
+    #         + "$"
+    #     )
+    #     print(row + "\\\\")
+
+    # def table_linear_correlation_dims(
+    #     self,
+    #     settings: Dict = {"data_name": "benchmark", "epoch": 90, "snr": 100},
+    #     ds: list = None,
+    #     surrogates: list = None,
+    # ):
+    #     loader = self.loader
+    #     surrogates = (
+    #         loader.loader_summary["surrogate"]["vals"]
+    #         if surrogates is None
+    #         else surrogates
+    #     )
+    #     ds = loader.loader_summary["d"]["vals"] if surrogates is None else surrogates
+
+    #     bonferoni_correction = (
+    #         loader.loader_summary["surrogate"]["d"] + loader.loader_summary["d"]["d"]
+    #     )
+
+    #     for d in ds:
+    #         for sur in surrogates:
+    #             r_f = loader.extract(
+    #                 settings=self.merge_two_dicts(
+    #                     settings,
+    #                     {"bo": True, "surrogate": sur, "d": d, "metric": "f_regret",},
+    #                 )
+    #             )
+    #             c_r = loader.extract(
+    #                 settings=self.merge_two_dicts(
+    #                     settings,
+    #                     {
+    #                         "bo": False,
+    #                         "surrogate": sur,
+    #                         "d": d,
+    #                         "metric": "y_calibration_mse",
+    #                     },
+    #                 )
+    #             )
+    #             c_bo = loader.extract(
+    #                 settings=self.merge_two_dicts(
+    #                     settings,
+    #                     {
+    #                         "bo": True,
+    #                         "surrogate": sur,
+    #                         "d": d,
+    #                         "metric": "y_calibration_mse",
+    #                     },
+    #                 )
+    #             )
+    #             row = (
+    #                 f"{sur}({d})&$"
+    #                 + self.format_num(np.nanmean(r_f))
+    #                 + "\,\,(\pm "
+    #                 + self.format_num(np.nanstd(r_f))
+    #                 + ")$"
+    #             )
+
+    #             if sur not in ["RS", "DS"]:
+    #                 x, y = loader.remove_nans(r_f.flatten(), c_r.flatten())
+    #                 rho_reg, p_reg = pearsonr(x, y)
+    #                 x, y = loader.remove_nans(r_f.flatten(), c_bo.flatten())
+    #                 rho_bo, p_bo = pearsonr(x, y)
+    #                 row += (
+    #                     "&$"
+    #                     + self.format_num(np.nanmean(c_r))
+    #                     + "\,\,(\pm "
+    #                     + self.format_num(np.nanstd(c_r))
+    #                     + ")$"
+    #                 )
+    #                 row += (
+    #                     "&$"
+    #                     + self.format_num(np.nanmean(c_bo))
+    #                     + "\,\,(\pm "
+    #                     + self.format_num(np.nanstd(c_bo))
+    #                     + ")$"
+    #                 )
+    #                 # regression rho
+    #                 row += (
+    #                     "&$"
+    #                     + self.format_num(rho_reg)
+    #                     + self.p2stars(p_reg, bonferoni_correction)
+    #                     + "$"
+    #                 )
+
+    #                 # bo rho
+    #                 row += (
+    #                     "&$"
+    #                     + self.format_num(rho_bo)
+    #                     + self.p2stars(p_bo, bonferoni_correction)
+    #                     + "$"
+    #                 )
+    #             else:
+    #                 row += "&-&-&-&-"
+
+    #             print(row + "\\\\")
+    #         print("\\hline")
+
+    #     self.table_linear_correlation(settings=settings, surrogates=surrogates)
