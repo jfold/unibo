@@ -70,6 +70,8 @@ class Optimizer(object):
             )
         elif self.acquisition == "RS":
             self.acquisition_function = RandomSearch()
+        elif self.acquisition == "TS":
+            self.acquisition_function = MaxPosteriorSampling(model=self.surrogate_model, replacement=False)
         else:
             raise ValueError(f"Acquisition function {self.acquisition} not supported.")
 
