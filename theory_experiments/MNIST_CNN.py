@@ -23,10 +23,10 @@ import itertools
 from datetime import datetime
 
 
-def FashionMNIST_CNN(params):
+def MNIST_CNN(params):
     datetime_time = datetime.now().strftime("%d_%b_%Y (%H_%M_%S_%f)").replace(" ", "")
     params.d = 5
-    file_name = "timestamp="+datetime_time+"_FashionMNIST_CNN_btrain="+str(params.b_train)+"_hiddensize="+str(params.hidden_size)
+    file_name = "timestamp="+datetime_time+"_MNIST_CNN_btrain="+str(params.b_train)+"_hiddensize="+str(params.hidden_size)
     random_seed = params.seed
     experiment_dict = {}
     torch.manual_seed(params.seed)
@@ -52,17 +52,17 @@ def FashionMNIST_CNN(params):
     initial_setting_dict['output_size']=output_size
     initial_setting_dict['input_size']=input_size
     experiment_dict['init_settings'] = initial_setting_dict
-    train_dataset = datasets.FashionMNIST(root='./datasets/', train=True, 
+    train_dataset = datasets.MNIST(root='./datasets/', train=True, 
                 download=True, transform=torchvision.transforms.Compose([
                                 torchvision.transforms.ToTensor(),
                                 torchvision.transforms.Normalize(
-                                    (0.5,), (0.5,))
+                                    (0.1307,), (0.3081,))
                                 ]))
-    valid_dataset = datasets.FashionMNIST(root='./datasets/', train=True, 
+    valid_dataset = datasets.MNIST(root='./datasets/', train=True, 
                 download=True, transform=torchvision.transforms.Compose([
                                 torchvision.transforms.ToTensor(),
                                 torchvision.transforms.Normalize(
-                                    (0.5,), (0.5,))
+                                    (0.1307,), (0.3081,))
                                 ]))
     num_train = len(train_dataset)
     indices = list(range(num_train))
@@ -94,9 +94,9 @@ def FashionMNIST_CNN(params):
     MNIST_results["valid_losses"] = valid_losses
     MNIST_results["accuracies"] = accuracies
     experiment_dict['MNIST_results'] = MNIST_results
-    with open("/zhome/49/2/135395/PhD/unibo/results/FashionMNIST_CNN/" + file_name+ ".json", 'w') as fp:
-        json.dump(experiment_dict, fp, indent=4)
-#    with open("./results/FashionMNIST_CNN/" + file_name+ ".json", 'w') as fp:
+#    with open("/zhome/49/2/135395/PhD/unibo/results/MNIST_CNN/" + file_name+ ".json", 'w') as fp:
 #        json.dump(experiment_dict, fp, indent=4)
+    with open("./results/FashionMNIST_CNN/" + file_name+ ".json", 'w') as fp:
+        json.dump(experiment_dict, fp, indent=4)
 if __name__ == "__main__":
-    FashionMNIST_CNN()
+    MNIST_CNN()
