@@ -94,9 +94,9 @@ def MNIST_CNN(params):
     MNIST_results["valid_losses"] = valid_losses
     MNIST_results["accuracies"] = accuracies
     experiment_dict['MNIST_results'] = MNIST_results
-#    with open("/zhome/49/2/135395/PhD/unibo/results/MNIST_CNN/" + file_name+ ".json", 'w') as fp:
-#        json.dump(experiment_dict, fp, indent=4)
-    with open("./results/FashionMNIST_CNN/" + file_name+ ".json", 'w') as fp:
+    with open("/zhome/49/2/135395/PhD/unibo/results/MNIST_CNN/" + file_name+ ".json", 'w') as fp:
         json.dump(experiment_dict, fp, indent=4)
+    #with open("./results/FashionMNIST_CNN/" + file_name+ ".json", 'w') as fp:
+    #    json.dump(experiment_dict, fp, indent=4)
 if __name__ == "__main__":
     MNIST_CNN()
