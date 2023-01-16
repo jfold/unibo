@@ -24,6 +24,7 @@ from theory_experiments.FashionMNIST import *
 from theory_experiments.MNIST import *
 from theory_experiments.FashionMNIST_CNN import *
 from theory_experiments.MNIST_CNN import *
+from theory_experiments.NewsClassification import *
 from datetime import datetime
 import time
 import sys
@@ -63,7 +64,7 @@ def run():
 
     parameters = Parameters(kwargs, mkdir=True)
     print("Running with:", parameters)
-    MNIST_CNN(parameters)
+    NewsClassification(parameters)
     print("FINISHED EXPERIMENT")
     print("------------------------------------")
 
