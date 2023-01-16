@@ -58,7 +58,8 @@ def run():
 
     parameters = Parameters(kwargs, mkdir=True)
     print("Running with:", parameters)
-    FashionMNIST(parameters)
+    experiment = Experiment(parameters)
+    experiment.run()
     print("FINISHED EXPERIMENT")
     print("------------------------------------")
 

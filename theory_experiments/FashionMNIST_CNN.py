@@ -26,7 +26,7 @@ from datetime import datetime
 def FashionMNIST(params):
     datetime_time = datetime.now().strftime("%d_%b_%Y (%H_%M_%S_%f)").replace(" ", "")
     params.d = 5
-    file_name = "timestamp="+datetime_time+"_FashionMNIST_btrain="+str(params.b_train)+"_hiddensize="+str(params.hidden_size)
+    file_name = "timestamp="+datetime_time+"_FashionMNIST_CNN_btrain="+str(params.b_train)+"_hiddensize="+str(params.hidden_size)
     random_seed = params.seed
     experiment_dict = {}
     torch.manual_seed(params.seed)
@@ -81,8 +81,8 @@ def FashionMNIST(params):
                 scaler_x = StandardScaler()
                 scaler_y = StandardScaler()
                 dataset = Dataset(params)
-                dataset.data.problem = "NN"
-                valid_loss, accuracy = NN_BO_iter(input_size, output_size, train_dataset, train_sampler, valid_loader, hyperparams, model_type="NN")
+                dataset.data.problem = "CNN"
+                valid_loss, accuracy = NN_BO_iter(input_size, output_size, train_dataset, train_sampler, valid_loader, hyperparams, model_type="CNN")
                 valid_losses.append(valid_loss.detach().item())
                 accuracies.append(accuracy)
                 hyperparam_list.append(hyperparams.T.tolist())
@@ -91,7 +91,7 @@ def FashionMNIST(params):
     MNIST_results["valid_losses"] = valid_losses
     MNIST_results["accuracies"] = accuracies
     experiment_dict['MNIST_results'] = MNIST_results
-    with open("/zhome/49/2/135395/PhD/unibo/results/FashionMNIST/" + file_name+ ".json", 'w') as fp:
+    with open("/zhome/49/2/135395/PhD/unibo/results/FashionMNIST_CNN/" + file_name+ ".json", 'w') as fp:
         json.dump(experiment_dict, fp, indent=4)
 if __name__ == "__main__":
     FashionMNIST()
