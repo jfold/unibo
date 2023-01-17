@@ -1,0 +1,18 @@
+{
+    "init_settings": {
+        "random_seed": 0,
+        "output_size": 3,
+        "input_size": 13
+    },
+    "MNIST_results": {
+        "hyperparams": [
+            [
+                -3,
+                1
+            ]
+        ],
+        "accuracies": [
+            0.9777777777777777
+        ]
+    }
+}

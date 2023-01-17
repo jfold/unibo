@@ -25,6 +25,7 @@ from theory_experiments.MNIST import *
 from theory_experiments.FashionMNIST_CNN import *
 from theory_experiments.MNIST_CNN import *
 from theory_experiments.NewsClassification import *
+from theory_experiments.SVM_wine import *
 from datetime import datetime
 import time
 import sys
@@ -64,7 +65,7 @@ def run():
 
     parameters = Parameters(kwargs, mkdir=True)
     print("Running with:", parameters)
-    FashionMNIST_CNN(parameters)
+    SVM_wine(parameters)
     print("FINISHED EXPERIMENT")
     print("------------------------------------")
 
