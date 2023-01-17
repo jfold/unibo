@@ -64,7 +64,7 @@ def run():
 
     parameters = Parameters(kwargs, mkdir=True)
     print("Running with:", parameters)
-    NewsClassification(parameters)
+    FashionMNIST_CNN(parameters)
     print("FINISHED EXPERIMENT")
     print("------------------------------------")
 
