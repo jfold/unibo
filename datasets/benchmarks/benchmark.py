@@ -5,6 +5,7 @@ import inspect
 from imports.general import *
 from imports.ml import *
 
+#Updated on 19/01 by Mikkel to have 1 additional dataset - we need to have test, pool and valid set (init set is sampled from pool set).
 
 class Benchmark(object):
     """ Benchmark dataset for bayesian optimization
@@ -19,6 +20,7 @@ class Benchmark(object):
         self.n_test = parameters.n_test
         self.n_validation = parameters.n_validation
         self.n_initial = parameters.n_initial
+        self.n_pool = parameters.n_pool
         self.real_world = False
         np.random.seed(self.seed)
         self.benchmarks = test_funcs
@@ -49,9 +51,19 @@ class Benchmark(object):
             n_samples=self.n_test, first_time=True
         )
 
-        self.X_train, self.y_train, self.f_train = self.sample_data(
-            n_samples=self.n_initial
+        #TODO: What do we base metrics on now? Because pool is techinically best obtainable, so for example basing regret on test does maybe not make sense?
+        self.X_pool, self.Y_pool, self.f_pool = self.sample_data(
+            n_samples=self.n_pool, first_time=True
         )
+
+        init_indexes = np.linspace(0, len(self.X_pool)-1, num=self.n_initial)
+        self.X_train = self.X_pool[init_indexes]
+        self.y_train = self.Y_pool[init_indexes]
+        self.f_pool = self.f_pool[init_indexes]
+
+        self.X_pool = np.delete(self.X_pool, init_indexes)
+        self.Y_pool = np.delete(self.Y_pool, init_indexes)
+        self.f_pool = np.delete(self.f_pool, init_indexes)
 
         self.X_val, self.y_val, self.f_val = self.sample_data(
             n_samples=self.n_validation
