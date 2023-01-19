@@ -1,5 +1,6 @@
 from src.parameters import Parameters
 from src.dataset import Dataset
+from src.experiment import Experiment
 from surrogates.bayesian_neural_network import BayesianNeuralNetwork
 from surrogates.gaussian_process import GaussianProcess
 from surrogates.random_forest import RandomForest
@@ -65,7 +66,7 @@ def run():
 
     parameters = Parameters(kwargs, mkdir=True)
     print("Running with:", parameters)
-    SVM_wine(parameters)
+    Experiment(parameters)
     print("FINISHED EXPERIMENT")
     print("------------------------------------")
 
