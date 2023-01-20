@@ -7,6 +7,7 @@ from surrogates.dummy_surrogate import DummySurrogate
 from surrogates.gaussian_process import GaussianProcess
 from surrogates.random_forest import RandomForest
 from surrogates.bayesian_neural_network import BayesianNeuralNetwork
+from botorch.generation.sampling import MaxPosteriorSampling
 from botorch.optim import optimize_acqf
 from acquisitions.botorch_acqs import (
     ExpectedImprovement,
@@ -93,14 +94,15 @@ class Optimizer(object):
 
         self.construct_acquisition_function(dataset, recalibrator)
 
+        #Why do we sample X_test again here???
         if X_test is None:
             X_test, _, _ = dataset.sample_testset(self.n_test)
             idxs = list(range(self.n_test))
             X_test_entire = X_test.copy()
-        elif dataset.data.X_test.shape[0] > 1000:
-            idxs = np.random.permutation(dataset.data.X_test.shape[0])[:1000]
-            X_test = dataset.data.X_test[idxs, :]
-            X_test_entire = dataset.data.X_test.copy()
+#        elif dataset.data.X_test.shape[0] > 1000:
+#            idxs = np.random.permutation(dataset.data.X_test.shape[0])[:1000]
+#            X_test = dataset.data.X_test[idxs, :]
+#            X_test_entire = dataset.data.X_test.copy()
         else:
             X_test = dataset.data.X_test.copy()
             X_test_entire = dataset.data.X_test.copy()

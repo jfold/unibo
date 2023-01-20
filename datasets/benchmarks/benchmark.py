@@ -118,14 +118,14 @@ class Benchmark(object):
             self.f_min_test = f[self.f_min_idx_test]
             self.f_max_test = np.max(f)
         elif first_time and not test_set:
-            self.y_min_idx_valid = np.argmin(y)
-            self.y_min_loc_valid = X[self.y_min_idx_valid, :]
-            self.y_min_valid = y[self.y_min_idx_valid]
-            self.y_max_valid = np.max(y)
-            self.f_min_idx_valid = np.argmin(f)
-            self.f_min_loc_valid = X[self.f_min_idx_valid, :]
-            self.f_min_valid = f[self.f_min_idx_valid]
-            self.f_max_valid = np.max(f)
+            self.y_min_idx_pool = np.argmin(y)
+            self.y_min_loc_pool = X[self.y_min_idx_pool, :]
+            self.y_min_pool = y[self.y_min_idx_pool]
+            self.y_max_pool = np.max(y)
+            self.f_min_idx_pool = np.argmin(f)
+            self.f_min_loc_pool = X[self.f_min_idx_pool, :]
+            self.f_min_pool = f[self.f_min_idx_pool]
+            self.f_max_pool = np.max(f)
 
         return X, y[:, np.newaxis], f[:, np.newaxis]
 
