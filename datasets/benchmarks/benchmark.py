@@ -47,13 +47,13 @@ class Benchmark(object):
         self.sample_initial_dataset()
 
     def sample_initial_dataset(self) -> None:
-        self.X_test, self.y_test, self.f_test = self.sample_data(
-            n_samples=self.n_test, first_time=True
-        )
-
         #TODO: What do we base metrics on now? Because pool is techinically best obtainable, so for example basing regret on test does maybe not make sense?
         self.X_pool, self.Y_pool, self.f_pool = self.sample_data(
-            n_samples=self.n_pool, first_time=True
+            n_samples=self.n_pool, first_time=True, test_set=False
+        )
+
+        self.X_test, self.y_test, self.f_test = self.sample_data(
+            n_samples=self.n_test, first_time=True, test_set=True
         )
 
         init_indexes = np.linspace(0, len(self.X_pool)-1, num=self.n_initial)
@@ -89,7 +89,7 @@ class Benchmark(object):
         return X, y, f
 
     def sample_data(
-        self, n_samples: int = 1, first_time: bool = False
+        self, n_samples: int = 1, first_time: bool = False, test_set: bool = False
     ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
         # sample X
         X = np.random.uniform(low=self.x_lbs, high=self.x_ubs, size=(n_samples, self.d))
@@ -100,7 +100,7 @@ class Benchmark(object):
             f.append(self.problem.evaluate(x))
         f = np.array(f)
 
-        if first_time:
+        if first_time and not test_set:
             self.compute_set_properties(X, f)
 
         noise = np.random.normal(loc=0, scale=self.noise_std, size=f.shape)
@@ -108,15 +108,24 @@ class Benchmark(object):
 
         X, y, f = self.standardize(X, y, f)
 
-        if first_time:
-            self.y_min_idx = np.argmin(y)
-            self.y_min_loc = X[self.y_min_idx, :]
-            self.y_min = y[self.y_min_idx]
-            self.y_max = np.max(y)
-            self.f_min_idx = np.argmin(f)
-            self.f_min_loc = X[self.f_min_idx, :]
-            self.f_min = f[self.f_min_idx]
-            self.f_max = np.max(f)
+        if first_time and test_set:
+            self.y_min_idx_test = np.argmin(y)
+            self.y_min_loc_test = X[self.y_min_idx_test, :]
+            self.y_min_test = y[self.y_min_idx_test]
+            self.y_max_test = np.max(y)
+            self.f_min_idx_test = np.argmin(f)
+            self.f_min_loc_test = X[self.f_min_idx_test, :]
+            self.f_min_test = f[self.f_min_idx_test]
+            self.f_max_test = np.max(f)
+        elif first_time and not test_set:
+            self.y_min_idx_valid = np.argmin(y)
+            self.y_min_loc_valid = X[self.y_min_idx_valid, :]
+            self.y_min_valid = y[self.y_min_idx_valid]
+            self.y_max_valid = np.max(y)
+            self.f_min_idx_valid = np.argmin(f)
+            self.f_min_loc_valid = X[self.f_min_idx_valid, :]
+            self.f_min_valid = f[self.f_min_idx_valid]
+            self.f_max_valid = np.max(f)
 
         return X, y[:, np.newaxis], f[:, np.newaxis]
 
