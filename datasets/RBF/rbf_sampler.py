@@ -30,10 +30,14 @@ class RBFSampler(object):
         self.X_test, self.y_test, self.f_test = self.sample_data(
             n_samples=self.params.n_test, first_time = True, test_set=True
         )
-        idxs = np.random.choice(list(range(self.params.n_pool)), self.params.n_initial)
+        idxs = np.random.permutation(len(self.X_pool))[:self.params.n_initial]
         self.X_train = self.X_pool[tuple(idxs), :]
         self.f_train = self.f_pool[tuple([idxs])]
         self.y_train = self.y_pool[tuple([idxs])]
+
+        self.X_pool = np.delete(self.X_pool, idxs)
+        self.Y_pool = np.delete(self.Y_pool, idxs)
+        self.f_pool = np.delete(self.f_pool, idxs)
 
         self.X_valid, self.y_valid, self.f_valid = self.sample_data(
             n_samples=self.params.n_validation

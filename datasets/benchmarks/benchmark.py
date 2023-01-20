@@ -56,7 +56,7 @@ class Benchmark(object):
             n_samples=self.n_test, first_time=True, test_set=True
         )
 
-        init_indexes = np.linspace(0, len(self.X_pool)-1, num=self.n_initial)
+        init_indexes = np.random.permutation(len(self.X_pool))[:self.n_initial]
         self.X_train = self.X_pool[init_indexes]
         self.y_train = self.Y_pool[init_indexes]
         self.f_pool = self.f_pool[init_indexes]
