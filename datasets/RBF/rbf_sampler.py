@@ -15,21 +15,29 @@ class RBFSampler(object):
         self.problem_idx = parameters.problem_idx + 1
         self.x_ubs = np.ones(self.params.d)
         self.x_lbs = -np.ones(self.params.d)
-        self.f_min_idx = None
-        self.y_min_loc = None
+        self.f_min_idx_test = None
+        self.y_min_loc_test= None
+        self.f_min_idx_valid = None
+        self.y_min_loc_valid = None
         self.ne_true = None
         self.real_world = False
         self.sample_initial_dataset()
 
     def sample_initial_dataset(self, n_samples: int = 3000) -> None:
-        _ = self.sample_data(n_samples=n_samples, first_time=True)
-        self.X_test, self.y_test, self.f_test = self.sample_data(
-            n_samples=self.params.n_test
+        self.X_pool, self.y_pool, self.f_pool = self.sample_data(
+            n_samples=self.params.n_pool, first_time=True, test_set=False
         )
-        idxs = np.random.choice(list(range(self.params.n_test)), self.params.n_initial)
-        self.X_train = self.X_test[tuple(idxs), :]
-        self.f_train = self.f_test[tuple([idxs])]
-        self.y_train = self.y_test[tuple([idxs])]
+        self.X_test, self.y_test, self.f_test = self.sample_data(
+            n_samples=self.params.n_test, first_time = True, test_set=True
+        )
+        idxs = np.random.choice(list(range(self.params.n_pool)), self.params.n_initial)
+        self.X_train = self.X_pool[tuple(idxs), :]
+        self.f_train = self.f_pool[tuple([idxs])]
+        self.y_train = self.y_pool[tuple([idxs])]
+
+        self.X_valid, self.y_valid, self.f_valid = self.sample_data(
+            n_samples=self.params.n_validation
+        )
 
     def compute_set_properties(self, X: np.ndarray, f: np.ndarray) -> None:
         self.f_min_idx = int(np.argmin(f))
@@ -56,7 +64,7 @@ class RBFSampler(object):
         y = (y - self.y_mean) / self.y_std  # (f - self.f_mean) / np.max(np.abs(f))  #
         return X, y, f
 
-    def sample_data(self, n_samples: int = 1, first_time: bool = False):
+    def sample_data(self, n_samples: int = 1, first_time: bool = False, test_set: bool = False):
         ## Make d-dimensional index set (GP input)
         X = np.random.uniform(
             low=self.x_lbs, high=self.x_ubs, size=(n_samples, self.params.d)
@@ -66,17 +74,22 @@ class RBFSampler(object):
             :, [-1]
         ]
 
-        if first_time:
+        if first_time and not test_set:
             self.compute_set_properties(X, f)
 
         noise = np.random.normal(loc=0, scale=self.noise_std, size=f.shape)
         y = f + noise
 
-        if first_time:
-            self.y_min_idx = int(np.argmin(y))
-            self.y_min_loc = X[[self.y_min_idx], :]
-            self.y_min = np.min(y)
-            self.y_max = np.max(y)
+        if first_time and test_set:
+            self.y_min_idx_test = int(np.argmin(y))
+            self.y_min_loc_test = X[[self.y_min_idx_test], :]
+            self.y_min_test = np.min(y)
+            self.y_max_test = np.max(y)
+        elif first_time and not test_set:
+            self.y_min_idx_valid = int(np.argmin(y))
+            self.y_min_loc_valid = X[[self.y_min_idx_valid], :]
+            self.y_min_valid = np.min(y)
+            self.y_max_valid = np.max(y)      
 
         X, y, f = self.standardize(X, y, f)
 
