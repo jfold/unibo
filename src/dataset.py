@@ -25,10 +25,10 @@ class Dataset(object):
             "data_name": self.data_name,
             "x_ubs": self.data.x_ubs.tolist(),
             "x_lbs": self.data.x_lbs.tolist(),
-            "X_mean": self.data.X_mean.tolist(),
-            "y_mean": self.data.y_mean.tolist(),
-            "X_std": self.data.X_std.tolist(),
-            "y_std": self.data.y_std.tolist(),
+            "X_mean": self.data.X_mean_pool.tolist(),
+            "y_mean": self.data.y_mean_pool.tolist(),
+            "X_std": self.data.X_std_pool.tolist(),
+            "y_std": self.data.y_std_pool.tolist(),
             "X_test": self.data.X_test.tolist(),
             "y_test": self.data.y_test.tolist(),
             "X_train": self.data.X_train.tolist(),
@@ -45,7 +45,7 @@ class Dataset(object):
         if not self.data.real_world:
             self.summary.update(
                 {
-                    "signal_std": float(self.data.signal_std),
+                    "signal_std": float(self.data.signal_std_pool),
                     "noise_std": float(self.data.noise_std),
                     "f_min_pool": float(self.data.f_min_pool),
                     "f_min_test": float(self.data.f_min_test),

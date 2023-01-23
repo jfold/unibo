@@ -52,7 +52,7 @@ class MNIST(object):
 #        self.X_pool = np.delete(self.X_pool, init_idxs)
 #        self.y_pool = np.delete(self.y_pool, init_idxs)
 
-        
+        self.compute_set_properties(self.X_pool, self.y_pool, pool_set=True)
         self.X_pool, self.y_pool =  self.standardize(self.X_pool, self.y_pool)
         self.X_test, self.y_test = self.standardize(self.X_test, self.y_test)
         self.y_min_pool = np.min(self.y_pool)

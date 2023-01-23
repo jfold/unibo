@@ -32,7 +32,8 @@ import time
 import sys
 
 #python3 -c "from main import *; run()" $args
-
+#"seed=0|surrogate=GP|problem_idx=1|data_name=Benchmark|std_change=1.0|snr=100|bo=True|d=1|experiment=experiment-GP--seed-0--(1)|test=False|recalibrate=False|savepth=./results_regret_vs_calibration/"
+#"seed=0|surrogate=GP|data_name=mnist|std_change=1.0|bo=True|experiment=experiment-GP--seed-0--(1)|test=False|extensive_metrics=True|recalibrate=False|savepth=./results_mnist/"
 
 def run():
     start = time.time()
@@ -66,7 +67,8 @@ def run():
 
     parameters = Parameters(kwargs, mkdir=True)
     print("Running with:", parameters)
-    Experiment(parameters)
+    experiment = Experiment(parameters)
+    experiment.run()
     print("FINISHED EXPERIMENT")
     print("------------------------------------")
 

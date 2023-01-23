@@ -60,31 +60,32 @@ class Benchmark(object):
         self.y_train = self.y_pool[init_indexes]
         self.f_train = self.f_pool[init_indexes]
 
-        self.X_pool = np.delete(self.X_pool, init_indexes)
-        self.y_pool = np.delete(self.y_pool, init_indexes)
-        self.f_pool = np.delete(self.f_pool, init_indexes)
+
+        self.X_pool = np.delete(self.X_pool, init_indexes, axis=0)
+        self.y_pool = np.delete(self.y_pool, init_indexes, axis=0)
+        self.f_pool = np.delete(self.f_pool, init_indexes, axis=0)
 
         self.X_val, self.y_val, self.f_val = self.sample_data(
             n_samples=self.n_validation
         )
 
     def compute_set_properties(self, X: np.ndarray, f: np.ndarray) -> None:
-        self.X_mean = np.mean(X, axis=0)
-        self.X_std = np.std(X, axis=0)
-        self.f_mean = np.mean(f)
-        self.f_std = np.std(f)
-        self.signal_std = np.std(f)
-        self.noise_std = np.sqrt(self.signal_std ** 2 / self.snr)
+        self.X_mean_pool = np.mean(X, axis=0)
+        self.X_std_pool = np.std(X, axis=0)
+        self.f_mean_pool = np.mean(f)
+        self.f_std_pool = np.std(f)
+        self.signal_std_pool = np.std(f)
+        self.noise_std = np.sqrt(self.signal_std_pool ** 2 / self.snr)
         self.ne_true = -norm.entropy(loc=0, scale=self.noise_std)
-        self.y_mean = self.f_mean
-        self.y_std = np.sqrt(self.f_std ** 2 + self.noise_std ** 2)
+        self.y_mean_pool = self.f_mean_pool
+        self.y_std_pool = np.sqrt(self.f_std_pool ** 2 + self.noise_std ** 2)
 
     def standardize(
         self, X: np.ndarray, y: np.ndarray, f: np.ndarray
     ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
-        X = (X - self.X_mean) / self.X_std  # (f - self.X_mean) / np.max(np.abs(X))  #
-        f = (f - self.f_mean) / self.f_std  # (f - self.f_mean) / np.max(np.abs(f))  #
-        y = (y - self.y_mean) / self.y_std  # (f - self.f_mean) / np.max(np.abs(f))  #
+        X = (X - self.X_mean_pool) / self.X_std_pool  # (f - self.X_mean) / np.max(np.abs(X))  #
+        f = (f - self.f_mean_pool) / self.f_std_pool  # (f - self.f_mean) / np.max(np.abs(f))  #
+        y = (y - self.y_mean_pool) / self.y_std_pool  # (f - self.f_mean) / np.max(np.abs(f))  #
         return X, y, f
 
     def sample_data(
