@@ -36,8 +36,10 @@ class Metrics(object):
             "actual_improvement": [],
             "mse": [],
             "nmse": [],
-            "y_regret": [],
-            "f_regret": [],
+            "y_regret_pool": [],
+            "y_regret_test": [],
+            "f_regret_pool": [],
+            "f_regret_test": [],
             "x_y_opt_dist_pool": [],
             "x_f_opt_dist_pool": [],
             "x_y_opt_dist_test": [],
@@ -310,11 +312,15 @@ class Metrics(object):
         self.update_summary({"mse": mse, "nmse": nmse})
 
     def regret(self, dataset: Dataset) -> None:
-        y_regret = np.abs(dataset.data.y_min.squeeze() - dataset.y_opt.squeeze())
-        self.update_summary({"y_regret": y_regret.squeeze()})
+        y_regret_pool = np.abs(dataset.data.y_min_pool.squeeze() - dataset.y_opt.squeeze())
+        y_regret_test = np.abs(dataset.data.y_min_test.squeeze() - dataset.y_opt.squeeze())
+        self.update_summary({"y_regret_pool": y_regret_pool.squeeze()})
+        self.update_summary({"y_regret_test": y_regret_test.squeeze()})
         if not dataset.data.real_world:
-            f_regret = np.abs(dataset.data.f_min - dataset.f_opt)
-            self.update_summary({"f_regret": f_regret.squeeze()})
+            f_regret_pool = np.abs(dataset.data.f_min_pool - dataset.f_opt)
+            f_regret_test = np.abs(dataset.data.f_min_test - dataset.f_opt)
+            self.update_summary({"f_regret_pool": f_regret_pool.squeeze()})
+            self.update_summary({"f_regret_test": f_regret_test.squeeze()})
 
     def glob_min_dist(self, dataset: Dataset, test_set: bool =False) -> None:
         if not test_set:
@@ -396,5 +402,6 @@ class Metrics(object):
             self.glob_min_dist(dataset, test_set=False)
 
         self.regret(dataset)
-        self.glob_min_dist(dataset)
+        self.glob_min_dist(dataset, test_set=True)
+        self.glob_min_dist(dataset, test_set=False)
 

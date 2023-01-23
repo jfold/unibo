@@ -86,7 +86,7 @@ class Optimizer(object):
     def bo_iter(
         self,
         dataset: Dataset,
-        X_test: np.ndarray = None,
+        X_pool: np.ndarray = None,
         recalibrator: Recalibrator = None,
         return_idx: bool = False,
     ) -> Dict[np.ndarray, np.ndarray]:
@@ -95,22 +95,22 @@ class Optimizer(object):
         self.construct_acquisition_function(dataset, recalibrator)
 
         #Why do we sample X_test again here???
-        if X_test is None:
-            X_test, _, _ = dataset.sample_testset(self.n_test)
-            idxs = list(range(self.n_test))
-            X_test_entire = X_test.copy()
+        if X_pool is None:
+            X_pool, _, _ = dataset.sample_testset(self.n_pool)
+            idxs = list(range(self.n_pool))
+            X_pool_entire = X_pool.copy()
 #        elif dataset.data.X_test.shape[0] > 1000:
 #            idxs = np.random.permutation(dataset.data.X_test.shape[0])[:1000]
 #            X_test = dataset.data.X_test[idxs, :]
 #            X_test_entire = dataset.data.X_test.copy()
         else:
-            X_test = dataset.data.X_test.copy()
-            X_test_entire = dataset.data.X_test.copy()
-            idxs = list(range(dataset.data.X_test.shape[0]))
+            X_pool = dataset.data.X_pool.copy()
+            X_pool_entire = dataset.data.X_pool.copy()
+            idxs = list(range(dataset.data.X_pool.shape[0]))
 
-        X_test_torch = torch.from_numpy(np.expand_dims(X_test, 1))
+        X_pool_torch = torch.from_numpy(np.expand_dims(X_pool, 1))
         acquisition_values = (
-            self.acquisition_function(X_test_torch.float()).detach().numpy()
+            self.acquisition_function(X_pool_torch.float()).detach().numpy()
         )
 
         # find idx
@@ -125,12 +125,12 @@ class Optimizer(object):
 
         if return_idx:
             return (
-                X_test_entire[[idxs[i_choice]], :],
+                X_pool_entire[[idxs[i_choice]], :],
                 acquisition_values[i_choice],
                 idxs[i_choice],
             )
         else:
             return (
-                X_test_entire[[idxs[i_choice]], :],
+                X_pool_entire[[idxs[i_choice]], :],
                 acquisition_values[i_choice],
             )

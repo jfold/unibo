@@ -47,8 +47,7 @@ class Benchmark(object):
         self.sample_initial_dataset()
 
     def sample_initial_dataset(self) -> None:
-        #TODO: What do we base metrics on now? Because pool is techinically best obtainable, so for example basing regret on test does maybe not make sense?
-        self.X_pool, self.Y_pool, self.f_pool = self.sample_data(
+        self.X_pool, self.y_pool, self.f_pool = self.sample_data(
             n_samples=self.n_pool, first_time=True, test_set=False
         )
 
@@ -58,11 +57,11 @@ class Benchmark(object):
 
         init_indexes = np.random.permutation(len(self.X_pool))[:self.n_initial]
         self.X_train = self.X_pool[init_indexes]
-        self.y_train = self.Y_pool[init_indexes]
-        self.f_pool = self.f_pool[init_indexes]
+        self.y_train = self.y_pool[init_indexes]
+        self.f_train = self.f_pool[init_indexes]
 
         self.X_pool = np.delete(self.X_pool, init_indexes)
-        self.Y_pool = np.delete(self.Y_pool, init_indexes)
+        self.y_pool = np.delete(self.y_pool, init_indexes)
         self.f_pool = np.delete(self.f_pool, init_indexes)
 
         self.X_val, self.y_val, self.f_val = self.sample_data(

@@ -36,7 +36,7 @@ class RBFSampler(object):
         self.y_train = self.y_pool[tuple([idxs])]
 
         self.X_pool = np.delete(self.X_pool, idxs)
-        self.Y_pool = np.delete(self.Y_pool, idxs)
+        self.y_pool = np.delete(self.y_pool, idxs)
         self.f_pool = np.delete(self.f_pool, idxs)
 
         self.X_valid, self.y_valid, self.f_valid = self.sample_data(
