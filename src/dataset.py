@@ -25,6 +25,8 @@ class Dataset(object):
             "data_name": self.data_name,
             "x_ubs": self.data.x_ubs.tolist(),
             "x_lbs": self.data.x_lbs.tolist(),
+            "X_mean_scaler": self.data.X_mean_pool_scaling.tolist(),
+            "y_mean_scaler": self.data.y_mean_pool_scaling.tolist(),
             "X_mean": self.data.X_mean_pool.tolist(),
             "y_mean": self.data.y_mean_pool.tolist(),
             "X_std": self.data.X_std_pool.tolist(),

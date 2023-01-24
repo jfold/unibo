@@ -52,7 +52,7 @@ class MNIST(object):
 #        self.X_pool = np.delete(self.X_pool, init_idxs)
 #        self.y_pool = np.delete(self.y_pool, init_idxs)
 
-        self.compute_set_properties(self.X_pool, self.y_pool, pool_set=True)
+        self.compute_scaling_properties(self.X_pool, self.y_pool, pool_set=True)
         self.X_pool, self.y_pool =  self.standardize(self.X_pool, self.y_pool)
         self.X_test, self.y_test = self.standardize(self.X_test, self.y_test)
         self.y_min_pool = np.min(self.y_pool)
@@ -66,7 +66,7 @@ class MNIST(object):
         self.x_lbs = np.array([b[0] for b in self.bounds])
         self.x_ubs = np.array([b[1] for b in self.bounds])
 
-        self.X_train, self.y_train, _ = self.sample_data(n_samples=self.n_initial, standardize=True)
+        self.X_train, self.y_train, _ = self.sample_data(n_samples=self.n_initial)
 
     def compute_set_properties(self, X: np.ndarray, y: np.ndarray, pool_set: bool = False) -> None:
         if pool_set:
@@ -86,11 +86,17 @@ class MNIST(object):
             self.y_min_loc_test = X[self.y_min_idx_test, :]
             self.y_min_test = y[self.y_min_idx_test]
 
+    def compute_scaling_properties(self, X: np.ndarray, y: np.ndarray, pool_set: bool = False) -> None:
+        self.X_mean_pool_scaling = np.mean(X, axis=0)
+        self.X_std_pool_scaling = np.std(X, axis=0)
+        self.y_mean_pool_scaling = np.mean(y)
+        self.y_std_pool_scaling = np.std(y)
+    
     def standardize(
         self, X: np.ndarray, y: np.ndarray
     ) -> Tuple[np.ndarray, np.ndarray]:
-        X = (X - self.X_mean_pool) / self.X_std_pool
-        y = (y - self.y_mean_pool) / self.y_std_pool
+        X = (X - self.X_mean_pool_scaling) / self.X_std_pool_scaling
+        y = (y - self.y_mean_pool_scaling) / self.y_std_pool_scaling
         return X, y
 
     def sample_data(

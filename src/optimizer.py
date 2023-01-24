@@ -95,24 +95,24 @@ class Optimizer(object):
         self.construct_acquisition_function(dataset, recalibrator)
 
         #Why do we sample X_test again here???
-        if X_pool is None:
-            X_pool, _, _ = dataset.sample_testset(self.n_pool)
-            idxs = list(range(self.n_pool))
-            X_pool_entire = X_pool.copy()
+        #if X_pool is None:
+        #    X_pool, _, _ = dataset.sample_testset(self.n_pool)
+        #    idxs = list(range(self.n_pool))
+        #    X_pool_entire = X_pool.copy()
 #        elif dataset.data.X_test.shape[0] > 1000:
 #            idxs = np.random.permutation(dataset.data.X_test.shape[0])[:1000]
 #            X_test = dataset.data.X_test[idxs, :]
 #            X_test_entire = dataset.data.X_test.copy()
-        else:
-            X_pool = dataset.data.X_pool.copy()
-            X_pool_entire = dataset.data.X_pool.copy()
-            idxs = list(range(dataset.data.X_pool.shape[0]))
+        X_pool = dataset.data.X_pool.copy()
+        X_pool_entire = dataset.data.X_pool.copy()
+        idxs = list(range(dataset.data.X_pool.shape[0]))
+        
 
         X_pool_torch = torch.from_numpy(np.expand_dims(X_pool, 1))
+
         acquisition_values = (
             self.acquisition_function(X_pool_torch.float()).detach().numpy()
         )
-
         # find idx
         if self.parameters.prob_acq:
             acquisition_values += 1e-8  # numerical adjust.
@@ -122,7 +122,6 @@ class Optimizer(object):
             i_choice = np.random.choice(
                 np.flatnonzero(acquisition_values == acquisition_values.max())
             )
-
         if return_idx:
             return (
                 X_pool_entire[[idxs[i_choice]], :],
