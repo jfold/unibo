@@ -5,7 +5,7 @@ cluster
 #**/TODO.txt
 **/*.pdf
 **/*.zip
-#results*/*
+###results*/*###
 **/*.db
 **/*.sh
 **/.DS_Store

@@ -1,0 +1,8 @@
+/zhome/49/2/135395/miniconda3/envs/unibo/lib/python3.9/site-packages/torchvision/io/image.py:13: UserWarning: Failed to load image Python extension: /zhome/49/2/135395/miniconda3/envs/unibo/lib/python3.9/site-packages/torchvision/image.so: undefined symbol: _ZN5torch3jit17parseSchemaOrNameERKNSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEE
+  warn(f"Failed to load image Python extension: {e}")
+/zhome/49/2/135395/miniconda3/envs/unibo/lib/python3.9/site-packages/gpytorch/lazy/lazy_tensor.py:1741: UserWarning: torch.triangular_solve is deprecated in favor of torch.linalg.solve_triangularand will be removed in a future PyTorch release.
+torch.linalg.solve_triangular has its arguments reversed and does not return a copy of one of the inputs.
+X = torch.triangular_solve(B, A).solution
+should be replaced with
+X = torch.linalg.solve_triangular(A, B). (Triggered internally at /opt/conda/conda-bld/pytorch_1670525495809/work/aten/src/ATen/native/BatchLinearAlgebra.cpp:2115.)
+  Linv = torch.triangular_solve(Eye, L, upper=False).solution

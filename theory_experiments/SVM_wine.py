@@ -40,7 +40,7 @@ def SVM_wine(params):
     for _C in Cs:
         for gamma in gammas:
             MNIST_experiment = {}
-            hyperparams = np.array([gamma, _C])
+            hyperparams = np.array([np.exp(gamma), np.exp(_C)])
             hyperparams = hyperparams.T
             dataset = Dataset(params)
             dataset.data.problem = "SVM"
@@ -50,7 +50,7 @@ def SVM_wine(params):
             train_X, valid_X, train_y, valid_y = train_test_split(
                 X, y, test_size=valid_size, random_state=0
             )
-            clf = make_pipeline(StandardScaler(), SVC(C=_C, gamma=np.exp(gamma)))
+            clf = make_pipeline(StandardScaler(), SVC(C=np.exp(_C), gamma=np.exp(gamma)))
             clf.fit(train_X, train_y)
 
             preds = clf.predict(valid_X)
@@ -66,8 +66,8 @@ def SVM_wine(params):
     #MNIST_results["valid_losses"] = valid_losses
     MNIST_results["accuracies"] = accuracies
     experiment_dict['MNIST_results'] = MNIST_results
-#    with open("/zhome/49/2/135395/PhD/unibo/results/SVM_wine/" + file_name+ ".json", 'w') as fp:
-#        json.dump(experiment_dict, fp, indent=4)
+    with open("/zhome/49/2/135395/PhD/unibo/results/SVM_wine/" + file_name+ ".json", 'w') as fp:
+        json.dump(experiment_dict, fp, indent=4)
 #    with open("./results/SVM_wine/" + file_name+ ".json", 'w') as fp:
 #        json.dump(experiment_dict, fp, indent=4)
 if __name__ == "__main__":
