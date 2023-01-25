@@ -2,7 +2,7 @@ from sklearn.neighbors import VALID_METRICS
 from imports.general import *
 from imports.ml import *
 from numpy.core import numeric as _nx
-from visualizations.scripts.loader import Loader
+from figs.scripts.loader import Loader
 
 
 class Ranking(Loader):

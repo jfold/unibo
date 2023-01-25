@@ -15,6 +15,7 @@ class Metrics(object):
 
     def __init__(self, parameters: Parameters) -> None:
         self.__dict__.update(asdict(parameters))
+        self.n_init = parameters.n_initial
         self.p_array = np.linspace(0.001, 0.999, self.n_calibration_bins)
         self.summary = {
             "p_array": self.p_array.tolist(),
@@ -31,6 +32,7 @@ class Metrics(object):
             "y_calibration_nmse": [],
             "calibration_local_dist_to_nearest_train_sample": [],
             "calibration_local_y": [],
+            "next_sample_train_distance": [],
             "elpd": [],
             "expected_improvement": [],
             "actual_improvement": [],
@@ -354,6 +356,15 @@ class Metrics(object):
                 "uct_sharpness": uct_metrics["sharpness"]["sharp"],
             }
         )
+
+    def calculate_exploration(self, dataset: Dataset):
+        dists = cdist(dataset.data.X_train[:-2], [dataset.data.X_train[-1]], metric='euclidean')
+        min_dist = np.min(dists, axis=0)
+        self.update_summary(
+            {
+                "next_sample_train_distance": min_dist,
+            }
+        )
 #---------------------------
 #YOU WERE BUSY UPDATING HERE
 #YOU NEED TO CHECK THE ABOVE FUNCTIONS TO SEE IF THEY HAVE ANY ISSUES WITH ANALYZE FUNCTION AND UPDATED DATASETS
@@ -398,10 +409,13 @@ class Metrics(object):
                 self.bias(mu_test, f_test)
             self.run_uct(mu_test, sigma_test, y_test)
             self.improvement(dataset)
+            self.regret(dataset)
             self.glob_min_dist(dataset, test_set=True)
             self.glob_min_dist(dataset, test_set=False)
+            if dataset.data.X_train.shape[0] > self.n_init:
+                self.calculate_exploration(dataset)
 
-        self.regret(dataset)
-        self.glob_min_dist(dataset, test_set=True)
-        self.glob_min_dist(dataset, test_set=False)
+        #self.regret(dataset)
+        #self.glob_min_dist(dataset, test_set=True)
+        #self.glob_min_dist(dataset, test_set=False)
 
