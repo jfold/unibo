@@ -64,7 +64,7 @@ class Optimizer(object):
         elif self.acquisition == "UCB":
             self.acquisition_function = UpperConfidenceBound(
                 self.surrogate_model,
-                beta=1.0,
+                beta=self.parameters.beta,
                 maximize=self.maximization,
                 std_change=self.std_change,
                 recalibrator=recalibrator,
