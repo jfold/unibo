@@ -25,6 +25,7 @@ class Parameters:
     bo: bool = False  # performing bo to sample X or merely randomly sample X
     noisify: bool = True
     test: bool = True
+    beta: int = 1 #beta value if acquisition function is UCB
     recalibrate: bool = False
     analyze_all_epochs: bool = True
     extensive_metrics: bool = False
