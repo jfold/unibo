@@ -10,6 +10,7 @@ class MNIST(object):
     def __init__(self, parameters: Parameters):
         self.d = parameters.d
         self.seed = parameters.seed
+        self.maximize = parameters.maximization
         self.problem = "MNIST"
         self.real_world = True
         self.n_test = parameters.n_test
@@ -21,7 +22,10 @@ class MNIST(object):
 
     def sample_initial_dataset(self) -> None:
         self.X_full = np.load("./datasets/MNIST/optim_dataset/hyperparams.npy")
-        self.y_full = -np.load("./datasets/MNIST/optim_dataset/accuracies.npy")
+        if self.maximize:
+            self.y_full = np.load("./datasets/MNIST/optim_dataset/accuracies.npy")
+        else:
+            self.y_full = -np.load("./datasets/MNIST/optim_dataset/accuracies.npy")
         # self.y_test = np.load("./datasets/MNIST/optim_dataset/losses.npy")
 
         self.X_full = (
