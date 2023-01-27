@@ -59,30 +59,32 @@ class Parameters:
         elif self.data_name.lower() == "mnist":
             kwargs["problem"] = "mnist"
             kwargs["d"] = 5
+            kwargs['savepth'] = "./results_real_data/results_mnist/"
             self.update(kwargs)
         elif self.data_name.lower() == "fashionmnist":
             kwargs["problem"] = "fashionmnist"
             kwargs["d"] = 5
+            kwargs['savepth'] = "./results_real_data/results_FashionMNIST/"
             self.update(kwargs)
         elif self.data_name.lower() == "fashionmnist_cnn":
             kwargs["problem"] = "fashionmnist_cnn"
             kwargs["d"] = 5
+            kwargs['savepth'] = "./results_real_data/results_FashionMNIST_CNN/"
             self.update(kwargs)
         elif self.data_name.lower() == "mnist_cnn":
             kwargs["problem"] = "mnist_cnn"
             kwargs["d"] = 5
-            self.update(kwargs)
-        elif self.data_name.lower() == "mnist_cnn":
-            kwargs["problem"] = "mnist_cnn"
-            kwargs["d"] = 5
+            kwargs['savepth'] = "./results_real_data/results_MNIST_CNN/"
             self.update(kwargs)
         elif self.data_name.lower() == "news":
             kwargs["problem"] = "news"
             kwargs["d"] = 5
+            kwargs['savepth'] = "./results_real_data/results_News/"
             self.update(kwargs)
         elif self.data_name.lower() == "svm_wine":
             kwargs["problem"] = "svm_wine"
             kwargs["d"] = 2
+            kwargs['savepth'] = "./results_real_data/results_SVM/"
             self.update(kwargs)
 
         if mkdir and not os.path.isdir(self.savepth):
