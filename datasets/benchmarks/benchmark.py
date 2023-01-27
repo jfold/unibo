@@ -20,6 +20,7 @@ class Benchmark(object):
         self.n_test = parameters.n_test
         self.n_validation = parameters.n_validation
         self.n_initial = parameters.n_initial
+        self.maximize = parameters.maximization
         self.n_pool = parameters.n_pool
         self.real_world = False
         np.random.seed(self.seed)
