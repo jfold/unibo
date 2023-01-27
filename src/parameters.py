@@ -25,7 +25,7 @@ class Parameters:
     bo: bool = False  # performing bo to sample X or merely randomly sample X
     noisify: bool = True
     test: bool = True
-    beta: float = 1.0 #beta value if acquisition function is UCB
+    beta: float = 1.0 #beta value if acquisition function is UCB. Experimenting with different values seem to indicate that beta = 1 is best, but this is probably largely dependant on optim. problem.
     recalibrate: bool = False
     analyze_all_epochs: bool = True
     extensive_metrics: bool = True
