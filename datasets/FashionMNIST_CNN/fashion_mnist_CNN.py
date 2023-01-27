@@ -3,15 +3,15 @@ from imports.general import *
 from imports.ml import *
 
 
-class FashionMNIST(object):
-    """ Fashion MNIST Benchmark dataset for bayesian optimization
+class FashionMNIST_CNN(object):
+    """ Fashion MNIST CNN Benchmark dataset for bayesian optimization
     """
 
     def __init__(self, parameters: Parameters):
         self.d = parameters.d
         self.seed = parameters.seed
         self.maximize = parameters.maximization
-        self.problem = "FashionMNIST"
+        self.problem = "FashionMNIST_CNN"
         self.real_world = True
         self.n_test = parameters.n_test
         self.n_validation = parameters.n_validation
@@ -21,8 +21,8 @@ class FashionMNIST(object):
         self.sample_initial_dataset()
 
     def sample_initial_dataset(self) -> None:
-        self.X_full = np.load("./datasets/FashionMNIST/optim_dataset/hyperparams.npy")
-        self.y_full = -np.load("./datasets/FashionMNIST/optim_dataset/accuracies.npy")
+        self.X_full = np.load("./datasets/FashionMNIST_CNN/optim_dataset/hyperparams.npy")
+        self.y_full = -np.load("./datasets/FashionMNIST_CNN/optim_dataset/accuracies.npy")
         # self.y_test = np.load("./datasets/MNIST/optim_dataset/losses.npy")
 
         self.X_full = (
