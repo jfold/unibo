@@ -25,10 +25,10 @@ class Parameters:
     bo: bool = False  # performing bo to sample X or merely randomly sample X
     noisify: bool = True
     test: bool = True
-    beta: int = 1 #beta value if acquisition function is UCB
+    beta: float = 1.0 #beta value if acquisition function is UCB
     recalibrate: bool = False
     analyze_all_epochs: bool = True
-    extensive_metrics: bool = False
+    extensive_metrics: bool = True
     maximization: bool = False
     fully_bayes: bool = False  # if fully bayes in BO rutine (marginalize hyperparams)
     xi: float = 0.0  # exploration parameter for BO
