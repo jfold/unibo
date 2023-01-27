@@ -25,7 +25,7 @@ class Parameters:
     bo: bool = False  # performing bo to sample X or merely randomly sample X
     noisify: bool = True
     test: bool = True
-    beta: float = 1.0 #beta value if acquisition function is UCB
+    beta: float = 1.0 #beta value if acquisition function is UCB. Experimenting with different values seem to indicate that beta = 1 is best, but this is probably largely dependant on optim. problem. 
     recalibrate: bool = False
     analyze_all_epochs: bool = True
     extensive_metrics: bool = True
@@ -59,6 +59,30 @@ class Parameters:
         elif self.data_name.lower() == "mnist":
             kwargs["problem"] = "mnist"
             kwargs["d"] = 5
+            self.update(kwargs)
+        elif self.data_name.lower() == "fashionmnist":
+            kwargs["problem"] = "fashionmnist"
+            kwargs["d"] = 5
+            self.update(kwargs)
+        elif self.data_name.lower() == "fashionmnist_cnn":
+            kwargs["problem"] = "fashionmnist_cnn"
+            kwargs["d"] = 5
+            self.update(kwargs)
+        elif self.data_name.lower() == "mnist_cnn":
+            kwargs["problem"] = "mnist_cnn"
+            kwargs["d"] = 5
+            self.update(kwargs)
+        elif self.data_name.lower() == "mnist_cnn":
+            kwargs["problem"] = "mnist_cnn"
+            kwargs["d"] = 5
+            self.update(kwargs)
+        elif self.data_name.lower() == "news":
+            kwargs["problem"] = "news"
+            kwargs["d"] = 5
+            self.update(kwargs)
+        elif self.data_name.lower() == "svm_wine":
+            kwargs["problem"] = "svm_wine"
+            kwargs["d"] = 2
             self.update(kwargs)
 
         if mkdir and not os.path.isdir(self.savepth):
