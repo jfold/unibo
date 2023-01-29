@@ -15,6 +15,7 @@ from acquisitions.botorch_acqs import (
 )
 from src.recalibrator import Recalibrator
 from acquisitions.min_posterior_sampling import MinPosteriorSampling
+import warnings
 
 
 class Optimizer(object):
@@ -73,7 +74,7 @@ class Optimizer(object):
         elif self.acquisition == "RS":
             self.acquisition_function = RandomSearch()
         elif self.acquisition == "TS":
-            self.acquisition_function = MinPosteriorSampling(model=self.surrogate_model, replacement=True)
+            self.acquisition_function = MinPosteriorSampling(model=self.surrogate_model, replacement=True, surrogate_type=self.parameters.surrogate)
         else:
             raise ValueError(f"Acquisition function {self.acquisition} not supported.")
 

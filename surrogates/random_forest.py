@@ -7,6 +7,8 @@ from imports.ml import *
 from sklearn.model_selection import GridSearchCV
 from sklearn.ensemble import RandomForestRegressor
 from botorch.models.utils import validate_input_scaling
+import warnings
+
 
 
 class RandomForest(BatchedMultiOutputGPyTorchModel):
@@ -38,7 +40,7 @@ class RandomForest(BatchedMultiOutputGPyTorchModel):
                 "n_estimators": [4, 10, 20],
                 "max_depth": [5, 10, 20],
                 # "max_samples": [int(self.n_initial / 2), int(self.n_initial)],
-                "max_features": ["auto", "sqrt"],
+                "max_features": [1.0, "sqrt"],
             }
 
     def forward(self, x: Tensor) -> MultivariateNormal:

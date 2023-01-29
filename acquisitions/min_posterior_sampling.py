@@ -61,6 +61,7 @@ class MinPosteriorSampling(SamplingStrategy):
         objective: Optional[MCAcquisitionObjective] = None,
         posterior_transform: Optional[PosteriorTransform] = None,
         replacement: bool = True,
+        surrogate_type: str = "GP"
     ) -> None:
         r"""Constructor for the SamplingStrategy base class.
 
@@ -73,6 +74,7 @@ class MinPosteriorSampling(SamplingStrategy):
         """
         super().__init__()
         self.model = model
+        self.surrogate_type = surrogate_type
         if objective is None:
             objective = IdentityMCObjective()
         elif not isinstance(objective, MCAcquisitionObjective):
@@ -107,13 +109,21 @@ class MinPosteriorSampling(SamplingStrategy):
             A `batch_shape x num_samples x d`-dim Tensor of samples from `X`, where
             `X[..., i, :]` is the `i`-th sample.
         """
+        #ThompsonSampling does not work with other surrogates (due to base class), due to the shape of X. GP can handle 1xNxD, but other models must have Bx1xD. We must reshape X for the posterior, and then reshape the posterior sample before performing maximize samples.
+        #Not so elegant but works...
+        if self.surrogate_type != "GP":
+            X = X.permute(1, 0, 2)
         posterior = self.model.posterior(
             X,
             observation_noise=observation_noise,
             posterior_transform=self.posterior_transform,
         )
+        if self.surrogate_type != "GP":
+            X = X.permute(1, 0, 2)
         # num_samples x batch_shape x N x m
         samples = posterior.rsample(sample_shape=torch.Size([num_samples]))
+        if self.surrogate_type != "GP":
+            samples = samples.unsqueeze(1)
         return self.maximize_samples(X, samples, num_samples)
 
 
