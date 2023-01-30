@@ -1,0 +1,7 @@
+------------------------------------
+Arguments: ['seed=5', 'surrogate=RF', 'acquisition=RS', 'data_name=news', 'std_change=1.0', 'bo=True', 'experiment=experiment-RF--seed-5--(272)', 'test=False', 'extensive_metrics=True', 'recalibrate=True']
+RUNNING EXPERIMENT...
+Running with: Parameters(surrogate='RF', acquisition='RS', recal_mode='cv', data_name='news', seed=5, d=5, n_test=5000, n_initial=10, n_validation=100, n_evals=100, n_pool=5000, rf_cv_splits=2, vanilla=False, plot_it=False, save_it=True, bo=True, noisify=True, test=False, beta=1.0, recalibrate=True, analyze_all_epochs=True, extensive_metrics=True, maximization=False, fully_bayes=False, xi=0.0, problem='news', problem_idx=0, prob_acq=False, std_change=1.0, snr=100.0, sigma_data=None, sigma_noise=None, n_calibration_bins=20, K=1, b_train=64, hidden_size=100, savepth='./results_real_data/results_News/experiment-RF--seed-5--(272)--300123-011343--npcdbb/', experiment='experiment-RF--seed-5--(272)')
+  0%|          | 0/100 [00:00<?, ?it/s]
+FINISHED EXPERIMENT
+------------------------------------
