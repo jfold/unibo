@@ -96,6 +96,8 @@ class Parameters:
             folder_name = (
                 f"{self.experiment}--{datetime.now().strftime('%d%m%y-%H%M%S')}"
                 + "--"
+                + f"seed-{self.seed}"
+                + "--"
                 + "".join(random.choice(string.ascii_lowercase) for x in range(6))
             )
         setattr(self, "savepth", f"{self.savepth}{folder_name}/")

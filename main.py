@@ -33,8 +33,7 @@ import sys
 import warnings
 
 #python3 -c "from main import *; run()" $args
-#"seed=0|surrogate=GP|problem_idx=1|data_name=Benchmark|std_change=1.0|snr=100|bo=True|d=1|experiment=experiment-GP--seed-0--(1)|test=False|recalibrate=False|savepth=./results_regret_vs_calibration/"
-#"seed=0|acquisition=TS|surrogate=GP|data_name=fashionmnist|std_change=1.0|bo=True|experiment=experiment-GP--seed-0--(1)|test=False|extensive_metrics=True|recalibrate=False|savepth=./results_real_data/results_FashionMNIST/"
+#"seed=0|n_seeds_per_job=2|surrogate=GP|acquisition=EI|data_name=mnist|std_change=1.0|bo=True|experiment=experiment-GP--0|test=False|extensive_metrics=True|recalibrate=False"
 
 def run():
     start = time.time()
@@ -68,15 +67,12 @@ def run():
             kwargs.update({var: val})
 
     for i in range(kwargs['n_seeds_per_job']):
-        print("Running with:", parameters)
-        kwargs['seed'] += 1
         parameters = Parameters(kwargs, mkdir=True)
+        print("Running with:", parameters)
         experiment = Experiment(parameters)
         experiment.run()
         print("FINISHED EXPERIMENT")
         print("------------------------------------")
-        kwargs['n_seeds_per_job'] += 1
-
-
+        kwargs['seed'] += 1
 if __name__ == "__main__":
     run()
