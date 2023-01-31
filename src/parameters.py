@@ -45,6 +45,7 @@ class Parameters:
     hidden_size: int = 100 # hidden layer number of neurons for NN on MNIST
     savepth: str = os.getcwd() + "/results/"
     experiment: str = ""  # folder name
+    n_seeds_per_job: int = 1 #Select how many jobs to run for this particular seed. Set via input params only.
 
     def __init__(self, kwargs: Dict = {}, mkdir: bool = False) -> None:
         self.update(kwargs)

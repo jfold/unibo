@@ -67,12 +67,15 @@ def run():
                 print("COULD NOT FIND VARIABLE:", var)
             kwargs.update({var: val})
 
-    parameters = Parameters(kwargs, mkdir=True)
-    print("Running with:", parameters)
-    experiment = Experiment(parameters)
-    experiment.run()
-    print("FINISHED EXPERIMENT")
-    print("------------------------------------")
+    for i in range(kwargs['n_seeds_per_job']):
+        print("Running with:", parameters)
+        kwargs['seed'] += 1
+        parameters = Parameters(kwargs, mkdir=True)
+        experiment = Experiment(parameters)
+        experiment.run()
+        print("FINISHED EXPERIMENT")
+        print("------------------------------------")
+        kwargs['n_seeds_per_job'] += 1
 
 
 if __name__ == "__main__":
