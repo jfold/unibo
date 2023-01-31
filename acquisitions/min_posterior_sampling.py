@@ -20,6 +20,7 @@ from botorch.utils.sampling import batched_multinomial
 from botorch.utils.transforms import standardize
 from torch import Tensor
 from torch.nn import Module
+import numpy as np
 
 
 class SamplingStrategy(Module, ABC):
@@ -111,52 +112,49 @@ class MinPosteriorSampling(SamplingStrategy):
         """
         #ThompsonSampling does not work with other surrogates (due to base class), due to the shape of X. GP can handle 1xNxD, but other models must have Bx1xD. We must reshape X for the posterior, and then reshape the posterior sample before performing maximize samples.
         #Not so elegant but works...
-        if self.surrogate_type != "GP":
+        if self.surrogate_type == "GP":
+            posterior = self.model.posterior(
+                X,
+                observation_noise=observation_noise,
+                posterior_transform=self.posterior_transform,
+            )
+            # num_samples x batch_shape x N x m
+            samples = posterior.rsample(sample_shape=torch.Size([num_samples]))
+            return self.minimize_samples(X, samples, num_samples)
+        elif self.surrogate_type == "BNN":
             X = X.permute(1, 0, 2)
-        posterior = self.model.posterior(
-            X,
-            observation_noise=observation_noise,
-            posterior_transform=self.posterior_transform,
-        )
-        if self.surrogate_type != "GP":
+            posterior = self.model.posterior(
+                X,
+                observation_noise=observation_noise,
+                posterior_transform=self.posterior_transform,
+            )
             X = X.permute(1, 0, 2)
-        # num_samples x batch_shape x N x m
-        samples = posterior.rsample(sample_shape=torch.Size([num_samples]))
-        if self.surrogate_type != "GP":
+            # num_samples x batch_shape x N x m
+            samples = posterior.rsample(sample_shape=torch.Size([num_samples]))
             samples = samples.unsqueeze(1)
-        return self.maximize_samples(X, samples, num_samples)
+            return self.minimize_samples(X, samples, num_samples)
+        elif self.surrogate_type == "DE":
+            sampled_MLP_idx = np.random.choice(np.arange(self.model.n_networks))
+            sampled_MLP = self.model.models[sampled_MLP_idx]
+            X = X.squeeze(0)
+            preds = sampled_MLP(X.float())
+            return X[np.argmin(preds.detach().numpy())]
+        elif self.surrogate_type == "RF":
+            sampled_tree_idx = np.random.choice(np.arange(len(self.model.model.estimators_)))
+            sampled_tree = self.model.model.estimators_[sampled_tree_idx]
+            X = X.squeeze(0)
+            preds = sampled_tree.predict(X.detach().numpy())
+            return X[np.argmin(preds)]
 
 
-    def maximize_samples(self, X: Tensor, samples: Tensor, num_samples: int = 1):
+
+
+
+    def minimize_samples(self, X: Tensor, samples: Tensor, num_samples: int = 1):
         obj = self.objective(samples, X=X)  # num_samples x batch_shape x N
         if self.replacement:
             # if we allow replacement then things are simple(r)
             idcs = torch.argmin(obj, dim=-1)
-        else:
-            # if we need to deduplicate we have to do some tensor acrobatics
-            # first we get the indices associated w/ the num_samples top samples
-            _, idcs_full = torch.topk(obj, num_samples, dim=-1)
-            # generate some indices to smartly index into the lower triangle of
-            # idcs_full (broadcasting across batch dimensions)
-            ridx, cindx = torch.tril_indices(num_samples, num_samples)
-            # pick the unique indices in order - since we look at the lower triangle
-            # of the index matrix and we don't sort, this achieves deduplication
-            sub_idcs = idcs_full[ridx, ..., cindx]
-            if sub_idcs.ndim == 1:
-                idcs = _flip_sub_unique(sub_idcs, num_samples)
-            elif sub_idcs.ndim == 2:
-                # TODO: Find a better way to do this
-                n_b = sub_idcs.size(-1)
-                idcs = torch.stack(
-                    [_flip_sub_unique(sub_idcs[:, i], num_samples) for i in range(n_b)],
-                    dim=-1,
-                )
-            else:
-                # TODO: Find a general way to do this efficiently.
-                raise NotImplementedError(
-                    "MaxPosteriorSampling without replacement for more than a single "
-                    "batch dimension is not yet implemented."
-                )
         # idcs is num_samples x batch_shape, to index into X we need to permute for it
         # to have shape batch_shape x num_samples
         if idcs.ndim > 1:
