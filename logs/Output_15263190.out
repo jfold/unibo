@@ -1,7 +1,0 @@
-------------------------------------
-Arguments: ['seed=3', 'surrogate=GP', 'acquisition=UCB', 'data_name=fashionmnist', 'std_change=1.0', 'bo=True', 'experiment=experiment-GP--seed-3--(114)', 'test=False', 'extensive_metrics=True', 'recalibrate=True']
-RUNNING EXPERIMENT...
-Running with: Parameters(surrogate='GP', acquisition='UCB', recal_mode='cv', data_name='fashionmnist', seed=3, d=5, n_test=5000, n_initial=10, n_validation=100, n_evals=100, n_pool=5000, rf_cv_splits=2, vanilla=False, plot_it=False, save_it=True, bo=True, noisify=True, test=False, beta=1.0, recalibrate=True, analyze_all_epochs=True, extensive_metrics=True, maximization=False, fully_bayes=False, xi=0.0, problem='fashionmnist', problem_idx=0, prob_acq=False, std_change=1.0, snr=100.0, sigma_data=None, sigma_noise=None, n_calibration_bins=20, K=1, b_train=64, hidden_size=100, savepth='./results_real_data/results_FashionMNIST/experiment-GP--seed-3--(114)--300123-011142--vbawhp/', experiment='experiment-GP--seed-3--(114)')
-  0%|          | 0/100 [00:00<?, ?it/s]
-FINISHED EXPERIMENT
-------------------------------------
