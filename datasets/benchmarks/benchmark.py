@@ -70,23 +70,23 @@ class Benchmark(object):
             n_samples=self.n_validation
         )
 
-    def compute_set_properties(self, X: np.ndarray, f: np.ndarray) -> None:
-        self.X_mean_pool = np.mean(X, axis=0)
-        self.X_std_pool = np.std(X, axis=0)
-        self.f_mean_pool = np.mean(f)
-        self.f_std_pool = np.std(f)
+    def compute_set_scaling_properties(self, X: np.ndarray, f: np.ndarray) -> None:
+        self.X_mean_pool_scaling = np.mean(X, axis=0)
+        self.X_std_pool_scaling = np.std(X, axis=0)
+        self.f_mean_pool_scaling = np.mean(f)
+        self.f_std_pool_scaling = np.std(f)
         self.signal_std_pool = np.std(f)
         self.noise_std = np.sqrt(self.signal_std_pool ** 2 / self.snr)
         self.ne_true = -norm.entropy(loc=0, scale=self.noise_std)
-        self.y_mean_pool = self.f_mean_pool
-        self.y_std_pool = np.sqrt(self.f_std_pool ** 2 + self.noise_std ** 2)
+        self.y_mean_pool_scaling = self.f_mean_pool_scaling
+        self.y_std_pool_scaling = np.sqrt(self.f_std_pool_scaling ** 2 + self.noise_std ** 2)
 
     def standardize(
         self, X: np.ndarray, y: np.ndarray, f: np.ndarray
     ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
-        X = (X - self.X_mean_pool) / self.X_std_pool  # (f - self.X_mean) / np.max(np.abs(X))  #
-        f = (f - self.f_mean_pool) / self.f_std_pool  # (f - self.f_mean) / np.max(np.abs(f))  #
-        y = (y - self.y_mean_pool) / self.y_std_pool  # (f - self.f_mean) / np.max(np.abs(f))  #
+        X = (X - self.X_mean_pool_scaling) / self.X_std_pool_scaling  # (f - self.X_mean) / np.max(np.abs(X))  #
+        f = (f - self.f_mean_pool_scaling) / self.f_std_pool_scaling  # (f - self.f_mean) / np.max(np.abs(f))  #
+        y = (y - self.y_mean_pool_scaling) / self.y_std_pool_scaling  # (f - self.f_mean) / np.max(np.abs(f))  #
         return X, y, f
 
     def sample_data(
@@ -102,12 +102,14 @@ class Benchmark(object):
         f = np.array(f)
 
         if first_time and not test_set:
-            self.compute_set_properties(X, f)
+            self.compute_set_scaling_properties(X, f)
 
         noise = np.random.normal(loc=0, scale=self.noise_std, size=f.shape)
         y = f + noise
 
         X, y, f = self.standardize(X, y, f)
+
+        
 
         if first_time and test_set:
             self.y_min_idx_test = np.argmin(y)
@@ -118,6 +120,7 @@ class Benchmark(object):
             self.f_min_loc_test = X[self.f_min_idx_test, :]
             self.f_min_test = f[self.f_min_idx_test]
             self.f_max_test = np.max(f)
+            self.X_mean_test = np.mean(X, axis=0)
         elif first_time and not test_set:
             self.y_min_idx_pool = np.argmin(y)
             self.y_min_loc_pool = X[self.y_min_idx_pool, :]
@@ -127,7 +130,10 @@ class Benchmark(object):
             self.f_min_loc_pool = X[self.f_min_idx_pool, :]
             self.f_min_pool = f[self.f_min_idx_pool]
             self.f_max_pool = np.max(f)
-
+            self.X_mean_pool = np.mean(X, axis=0)
+            self.y_mean_pool = np.mean(y, axis=0)
+            self.X_std_pool = np.std(X, axis=0)
+            self.y_std_pool = np.std(y, axis=0)
         return X, y[:, np.newaxis], f[:, np.newaxis]
 
     def __str__(self):

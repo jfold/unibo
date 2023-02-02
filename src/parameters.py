@@ -56,6 +56,7 @@ class Parameters:
         if self.problem == "" and self.data_name.lower() == "benchmark":
             problem = self.find_benchmark_problem_i()
             kwargs["problem"] = problem
+            kwargs['savepth'] = "./results_synth_data/"
             self.update(kwargs)
         elif self.data_name.lower() == "mnist":
             kwargs["problem"] = "mnist"

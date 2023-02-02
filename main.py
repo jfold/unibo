@@ -8,8 +8,6 @@ from surrogates.dummy_surrogate import DummySurrogate
 from surrogates.deep_ensemble import DeepEnsemble
 import torch
 import numpy as np
-import torchvision
-from torchvision import datasets
 from src.MNIST_utility import *
 import torch.optim as optim
 import matplotlib.pyplot as plt
@@ -33,8 +31,8 @@ import sys
 import warnings
 
 #python3 -c "from main import *; run()" $args
-#"seed=0|n_seeds_per_job=2|surrogate=GP|acquisition=EI|data_name=mnist|std_change=1.0|bo=True|experiment=experiment-GP--0|test=False|extensive_metrics=True|recalibrate=False"
-
+#"seed=0|n_seeds_per_job=1|surrogate=GP|acquisition=EI|data_name=mnist|std_change=1.0|bo=True|experiment=experiment-GP--0|test=False|extensive_metrics=True|recalibrate=False"
+#"seed=0|n_seeds_per_job=1|surrogate=GP|acquisition=EI|data_name=benchmark|problem_idx=11|snr=100|bo=True|d=3|experiment=experiment-TEST--seed-TEST"|test=False|recalibrate=False"
 def run():
     start = time.time()
     try:
