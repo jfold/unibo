@@ -46,6 +46,7 @@ class Parameters:
     savepth: str = os.getcwd() + "/results/"
     experiment: str = ""  # folder name
     n_seeds_per_job: int = 1 #Select how many jobs to run for this particular seed. Set via input params only.
+    save_scratch: bool = False #If want results saved on scratch directory.
 
     def __init__(self, kwargs: Dict = {}, mkdir: bool = False) -> None:
         self.update(kwargs)
@@ -57,37 +58,34 @@ class Parameters:
             problem = self.find_benchmark_problem_i()
             kwargs["problem"] = problem
             kwargs['savepth'] = "./results_synth_data/"
-            self.update(kwargs)
+
         elif self.data_name.lower() == "mnist":
             kwargs["problem"] = "mnist"
             kwargs["d"] = 5
             kwargs['savepth'] = "./results_real_data/results_mnist/"
-            self.update(kwargs)
         elif self.data_name.lower() == "fashionmnist":
             kwargs["problem"] = "fashionmnist"
             kwargs["d"] = 5
             kwargs['savepth'] = "./results_real_data/results_FashionMNIST/"
-            self.update(kwargs)
         elif self.data_name.lower() == "fashionmnist_cnn":
             kwargs["problem"] = "fashionmnist_cnn"
             kwargs["d"] = 5
             kwargs['savepth'] = "./results_real_data/results_FashionMNIST_CNN/"
-            self.update(kwargs)
         elif self.data_name.lower() == "mnist_cnn":
             kwargs["problem"] = "mnist_cnn"
             kwargs["d"] = 5
             kwargs['savepth'] = "./results_real_data/results_MNIST_CNN/"
-            self.update(kwargs)
         elif self.data_name.lower() == "news":
             kwargs["problem"] = "news"
             kwargs["d"] = 5
             kwargs['savepth'] = "./results_real_data/results_News/"
-            self.update(kwargs)
         elif self.data_name.lower() == "svm_wine":
             kwargs["problem"] = "svm_wine"
             kwargs["d"] = 2
             kwargs['savepth'] = "./results_real_data/results_SVM/"
-            self.update(kwargs)
+        if save_scratch:
+            kwargs['savepth'] = kwargs['savepth'].replace(".", "work3/mikkjo/unibo_results")
+        self.update(kwargs)
 
         if mkdir and not os.path.isdir(self.savepth):
             os.mkdir(self.savepth)
