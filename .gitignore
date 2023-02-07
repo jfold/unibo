@@ -10,6 +10,9 @@ cluster
 **/.DS_Store
 **/__pycache__
 CodeChart.drawio
+results_real_data/
+results_synth_data/
+parsed_results/
 
 ### VisualStudioCode Patch ###
 # Ignore all local history of files

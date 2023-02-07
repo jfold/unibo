@@ -106,6 +106,7 @@ class Dataset(object):
                     "X_f_opt": self.X_f_opt.tolist(),
                     "opt_idx": int(self.opt_idx),
                     "f_opt": int(self.f_opt),
+                    "f_train": self.data.f_train.tolist()
                 }
             )
 
