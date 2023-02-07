@@ -83,8 +83,8 @@ class Parameters:
             kwargs["problem"] = "svm_wine"
             kwargs["d"] = 2
             kwargs['savepth'] = "./results_real_data/results_SVM/"
-        if kwargs['save_scratch']:
-            kwargs['savepth'] = kwargs['savepth'].replace(".", "work3/mikkjo/unibo_results")
+        if self.save_scratch:
+            kwargs['savepth'] = kwargs['savepth'].replace(".", "/work3/mikkjo/unibo_results")
         self.update(kwargs)
 
         if mkdir and not os.path.isdir(self.savepth):
