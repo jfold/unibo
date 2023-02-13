@@ -13,6 +13,9 @@ CodeChart.drawio
 results_real_data/
 results_synth_data/
 parsed_results/
+tables/
+results_pertubaion/
+plots/
 
 ### VisualStudioCode Patch ###
 # Ignore all local history of files
