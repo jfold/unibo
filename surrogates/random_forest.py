@@ -37,7 +37,7 @@ class RandomForest(BatchedMultiOutputGPyTorchModel):
             }
         else:
             self.rf_params_grid = {
-                "n_estimators": [4, 10, 20],
+                "n_estimators": [4, 10, 20, 50, 100],
                 "max_depth": [5, 10, 20],
                 # "max_samples": [int(self.n_initial / 2), int(self.n_initial)],
                 "max_features": [1.0, "sqrt"],

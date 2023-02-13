@@ -293,6 +293,9 @@ class Metrics(object):
                 for i in range(sigmas.shape[0])
             ]
         )
+        print(np.min(log_pdfs))
+        print(mus[np.argmin(log_pdfs)])
+        print(sigmas[np.argmin(log_pdfs)])
         elpd = np.mean(log_pdfs)
         self.update_summary({"elpd": elpd})
 
