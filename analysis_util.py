@@ -5,6 +5,18 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import copy
 import pickle
+from pandas.api.types import CategoricalDtype
+
+acq_order_dtype = CategoricalDtype(
+    ['RS', 'EI', 'UCB', 'TS', 'avg'], 
+    ordered=True
+)
+
+surr_order_dtype = CategoricalDtype(
+    ['GP', 'DE', 'RF', 'BNN'], 
+    ordered=True
+)
+
 def maximum_value_in_column(column):    
     highlight = 'font-weight: bold;'
     default = ''
@@ -109,7 +121,10 @@ def BO_performance_table1_synth_results(df):
         aggregated_processed_results['sharpness'].append(np.mean(selection['sharpness']))
         aggregated_processed_results['sharpness_ste'].append(np.std(selection['sharpness'])/np.sqrt(len(selection['surrogate'])))
     df = pd.DataFrame.from_dict(aggregated_processed_results)
-    df = df.round(4)
+    df = df.round(3)
+    df['surrogate'] = df['surrogate'].astype(surr_order_dtype)
+    df['acquisition'] = df['acquisition'].astype(acq_order_dtype)
+    df = df.sort_values(by=['acquisition', 'surrogate'])
     latex_df = pd.DataFrame(columns=['Surrogate', 'Acquisition', 'Inst. Regret', 'Total Regret', 'Calibration Error', 'Sharpness'])
     latex_df['Surrogate'] = df['surrogate']
     latex_df['Acquisition'] = df['acquisition']
@@ -121,7 +136,7 @@ def BO_performance_table1_synth_results(df):
     return table_with_highlight, latex_df
 
 def parse_real_results(save_dict=False, main_directory=None, recal=False):
-    exp_dict = {'surrogate': [], 'acquisition': [], 'seed':[], 'data':[], 'dist_nearest_train':[], 'inst_regret_test':[], 'inst_regret_pool':[], 'tot_regret_test':[], 'tot_regret_pool':[], 'std_change':[], 'calibration_mse':[], 'sharpness':[], 'x_opt_dist_test':[], 'x_opt_dist_pool':[], 'elpd':[]}
+    exp_dict = {'surrogate': [], 'acquisition': [], 'seed':[], 'data':[], 'dist_nearest_train':[], 'inst_regret_test':[], 'inst_regret_pool':[], 'tot_regret_test':[], 'tot_regret_pool':[], 'std_change':[], 'calibration_mse':[], 'sharpness':[], 'x_opt_dist_test':[], 'x_opt_dist_pool':[], 'elpd':[], 'mse':[], 'nmse':[]}
     if main_directory is None:
         main_directory="./results_real_data/"
     subdirectories = ['results_FashionMNIST/', "results_FashionMNIST_CNN/", 'results_mnist/', 'results_MNIST_CNN/', 'results_News/', 'results_SVM/']
@@ -153,6 +168,8 @@ def parse_real_results(save_dict=False, main_directory=None, recal=False):
                     exp_dict['calibration_mse'].append(metrics['y_calibration_mse'])
                     exp_dict['seed'].append(params['seed'])
                     exp_dict['elpd'].append(metrics['elpd'])
+                    exp_dict['mse'].append(metrics['mse'])
+                    exp_dict['nmse'].append(metrics['nmse'])
     df = pd.DataFrame.from_dict(exp_dict)
     if save_dict:
         if recal:
@@ -187,7 +204,7 @@ def aggregate_real_results(df):
 def BO_performance_table1_real_results(df):
     acqs = list(set(df['acquisition']))
     surrogates = list(set(df['surrogate']))
-    aggregated_processed_results = {'surrogate': [], 'acquisition': [], 'inst_regret_pool':[], 'inst_regret_pool_ste':[], 'tot_regret_pool':[], 'tot_regret_pool_ste':[], 'calibration_mse':[], 'calibration_mse_ste':[], 'sharpness':[], 'sharpness_ste':[]}
+    aggregated_processed_results = {'surrogate': [], 'acquisition': [], 'inst_regret_pool':[], 'inst_regret_pool_ste':[], 'tot_regret_pool':[], 'tot_regret_pool_ste':[], 'calibration_mse':[], 'calibration_mse_ste':[], 'sharpness':[], 'sharpness_ste':[], 'elpd':[], 'elpd_ste':[]}
     #Aggregate results for pairs of surrogates and acquisitions.
     for acq in acqs:
         for surrogate in surrogates:
@@ -202,6 +219,9 @@ def BO_performance_table1_real_results(df):
             aggregated_processed_results['calibration_mse_ste'].append(np.std(selection['calibration_mse'])/np.sqrt(len(selection['surrogate'])))
             aggregated_processed_results['sharpness'].append(np.mean(selection['sharpness']))
             aggregated_processed_results['sharpness_ste'].append(np.std(selection['sharpness'])/np.sqrt(len(selection['surrogate'])))
+            
+            aggregated_processed_results['elpd'].append(np.mean(selection['elpd']))
+            aggregated_processed_results['elpd_ste'].append(np.std(selection['elpd'])/np.sqrt(len(selection['surrogate'])))
     #Aggregate results of surrogates without including random sampling acquisition.
     for surrogate in surrogates:
         selection = df.loc[(df['surrogate']==surrogate) & (df['acquisition'] != "RS")]
@@ -215,8 +235,13 @@ def BO_performance_table1_real_results(df):
         aggregated_processed_results['calibration_mse_ste'].append(np.std(selection['calibration_mse'])/np.sqrt(len(selection['surrogate'])))
         aggregated_processed_results['sharpness'].append(np.mean(selection['sharpness']))
         aggregated_processed_results['sharpness_ste'].append(np.std(selection['sharpness'])/np.sqrt(len(selection['surrogate'])))
+        aggregated_processed_results['elpd'].append(np.mean(selection['elpd']))
+        aggregated_processed_results['elpd_ste'].append(np.std(selection['elpd'])/np.sqrt(len(selection['surrogate'])))
+    df['elpd'] = df['elpd'].astype(float)
     df = pd.DataFrame.from_dict(aggregated_processed_results)
     df = df.round(5)
+    df['surrogate'] = df['surrogate'].astype(surr_order_dtype)
+    df['acquisition'] = df['acquisition'].astype(acq_order_dtype)
     df = df.sort_values(by=['acquisition', 'surrogate'])
     latex_df = pd.DataFrame(columns=['Surrogate', 'Acquisition', 'Inst. Regret', 'Total Regret', 'Calibration Error', 'Sharpness'])
     latex_df['Surrogate'] = df['surrogate']
@@ -225,5 +250,6 @@ def BO_performance_table1_real_results(df):
     latex_df['Total Regret'] = df['tot_regret_pool'].astype(str) + " \pm " + df['tot_regret_pool_ste'].astype(str)
     latex_df['Calibration Error'] = df['calibration_mse'].astype(str) + " \pm " + df['calibration_mse_ste'].astype(str)
     latex_df['Sharpness'] = df['sharpness'].astype(str) + " \pm " + df['sharpness_ste'].astype(str)
-    table_with_highlight = df.style.apply(min_value_in_column, subset=['inst_regret_pool', "tot_regret_pool", 'calibration_mse'], axis=0)
+    #latex_df['ELPD'] = df['elpd'].astype(str) + " \pm " + df['elpd_ste'].astype(str)
+    table_with_highlight = df.style.apply(min_value_in_column, subset=['inst_regret_pool', "tot_regret_pool", 'calibration_mse'], axis=0).apply(maximum_value_in_column, subset=['elpd'])
     return table_with_highlight, latex_df
