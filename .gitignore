@@ -16,6 +16,7 @@ parsed_results/
 tables/
 results_pertubaion/
 plots/
+article_tables_figures_generators/
 
 ### VisualStudioCode Patch ###
 # Ignore all local history of files
