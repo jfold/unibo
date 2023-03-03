@@ -2,7 +2,17 @@ from dataclasses import asdict
 from botorch.posteriors.posterior import Posterior
 from src.dataset import Dataset
 from src.parameters import Parameters
+from botorch.posteriors.gpytorch import GPyTorchPosterior
+from botorch.acquisition.objective import PosteriorTransform
 from imports.general import *
+from botorch.posteriors.transformed import TransformedPosterior
+from botorch.models.utils import (
+    _make_X_full,
+    add_output_dim,
+    gpt_posterior_settings,
+    mod_batch_shape,
+    multioutput_to_batch_mode_transform,
+)
 from imports.ml import *
 
 

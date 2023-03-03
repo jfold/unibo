@@ -13,10 +13,11 @@ class Parameters:
     data_name: str = "Benchmark"  # dataclass name
     seed: bool = 0  # random seed
     d: int = 1  # number of input dimensions
-    n_test: int = 1000  # number of test samples for calibration analysis
+    n_test: int = 5000  # number of test samples for calibration analysis
     n_initial: int = 10  # number of starting points
     n_validation: int = 100  # number of iid samples for recalibration
-    n_evals: int = 90  # number of BO iterations
+    n_evals: int = 100  # number of BO iterations
+    n_pool : int = 5000
     rf_cv_splits: int = 2  # number of CV splits for random forest hyperparamtuning
     vanilla: bool = False  # simplest implementation (used for test)
     plot_it: bool = False  # whether to plot during BO loop
@@ -24,9 +25,10 @@ class Parameters:
     bo: bool = False  # performing bo to sample X or merely randomly sample X
     noisify: bool = True
     test: bool = True
+    beta: float = 1.0 #beta value if acquisition function is UCB. Experimenting with different values seem to indicate that beta = 1 is best, but this is probably largely dependant on optim. problem. 
     recalibrate: bool = False
     analyze_all_epochs: bool = True
-    extensive_metrics: bool = False
+    extensive_metrics: bool = True
     maximization: bool = False
     fully_bayes: bool = False  # if fully bayes in BO rutine (marginalize hyperparams)
     xi: float = 0.0  # exploration parameter for BO
@@ -39,8 +41,12 @@ class Parameters:
     sigma_noise: float = None  # computed as function of SNR and sigma_data
     n_calibration_bins: int = 20
     K: int = 1  # number of terms in sum for VerificationData
+    b_train: int = 64 # Batch size while training NN on MNIST
+    hidden_size: int = 100 # hidden layer number of neurons for NN on MNIST
     savepth: str = os.getcwd() + "/results/"
     experiment: str = ""  # folder name
+    n_seeds_per_job: int = 1 #Select how many jobs to run for this particular seed. Set via input params only.
+    save_scratch: bool = False #If want results saved on scratch directory.
 
     def __init__(self, kwargs: Dict = {}, mkdir: bool = False) -> None:
         self.update(kwargs)
@@ -51,11 +57,37 @@ class Parameters:
         if self.problem == "" and self.data_name.lower() == "benchmark":
             problem = self.find_benchmark_problem_i()
             kwargs["problem"] = problem
-            self.update(kwargs)
+            kwargs['savepth'] = "./results_synth_data/"
+
         elif self.data_name.lower() == "mnist":
             kwargs["problem"] = "mnist"
             kwargs["d"] = 5
-            self.update(kwargs)
+            kwargs['savepth'] = "./results_real_data/results_mnist/"
+        elif self.data_name.lower() == "fashionmnist":
+            kwargs["problem"] = "fashionmnist"
+            kwargs["d"] = 5
+            kwargs['savepth'] = "./results_real_data/results_FashionMNIST/"
+        elif self.data_name.lower() == "fashionmnist_cnn":
+            kwargs["problem"] = "fashionmnist_cnn"
+            kwargs["d"] = 5
+            kwargs['savepth'] = "./results_real_data/results_FashionMNIST_CNN/"
+        elif self.data_name.lower() == "mnist_cnn":
+            kwargs["problem"] = "mnist_cnn"
+            kwargs["d"] = 5
+            kwargs['savepth'] = "./results_real_data/results_MNIST_CNN/"
+        elif self.data_name.lower() == "news":
+            kwargs["problem"] = "news"
+            kwargs["d"] = 5
+            kwargs['savepth'] = "./results_real_data/results_News/"
+        elif self.data_name.lower() == "svm_wine":
+            kwargs["problem"] = "svm_wine"
+            kwargs["d"] = 2
+            kwargs['savepth'] = "./results_real_data/results_SVM/"
+        if self.save_scratch and self.std_change == 1.0:
+            kwargs['savepth'] = kwargs['savepth'].replace(".", "/work3/mikkjo/unibo_results")
+        elif self.save_scratch and self.std_change != 1.0:
+            kwargs['savepth'] = kwargs['savepth'].replace(".", "/work3/mikkjo/unibo_results/std_change")
+        self.update(kwargs)
 
         if mkdir and not os.path.isdir(self.savepth):
             os.mkdir(self.savepth)
@@ -64,6 +96,8 @@ class Parameters:
         else:
             folder_name = (
                 f"{self.experiment}--{datetime.now().strftime('%d%m%y-%H%M%S')}"
+                + "--"
+                + f"seed-{self.seed}"
                 + "--"
                 + "".join(random.choice(string.ascii_lowercase) for x in range(6))
             )

@@ -1,6 +1,11 @@
 from argparse import ArgumentError
 from typing import Dict
 from datasets.MNIST.mnist import MNIST
+from datasets.FashionMNIST.fashion_mnist import FashionMNIST
+from datasets.FashionMNIST_CNN.fashion_mnist_CNN import FashionMNIST_CNN
+from datasets.MNIST_CNN.mnist_CNN import MNIST_CNN
+from datasets.News.News import News
+from datasets.SVM.SVM_wine import SVM_Wine
 from datasets.RBF.rbf_sampler import RBFSampler
 from src.parameters import *
 from imports.general import *
@@ -12,12 +17,22 @@ from datasets.custom.custom import CustomData
 class Dataset(object):
     def __init__(self, parameters: Parameters) -> None:
         self.__dict__.update(asdict(parameters))
-        if parameters.data_name.lower() == "rbfsampler":
-            self.data = RBFSampler(parameters)
-        elif parameters.data_name.lower() == "benchmark":
+#        if parameters.data_name.lower() == "rbfsampler":
+#            self.data = RBFSampler(parameters)
+        if parameters.data_name.lower() == "benchmark":
             self.data = Benchmark(parameters)
         elif parameters.data_name.lower() == "mnist":
             self.data = MNIST(parameters)
+        elif parameters.data_name.lower() == "fashionmnist":
+            self.data = FashionMNIST(parameters)
+        elif parameters.data_name.lower() == "fashionmnist_cnn":
+            self.data = FashionMNIST_CNN(parameters)
+        elif parameters.data_name.lower() == "mnist_cnn":
+            self.data = MNIST_CNN(parameters)
+        elif parameters.data_name.lower() == "news":
+            self.data = News(parameters)
+        elif parameters.data_name.lower() == "svm_wine":
+            self.data = SVM_Wine(parameters)
         else:
             raise ArgumentError(f"{parameters.problem} problem in parameters not found")
 
@@ -25,27 +40,37 @@ class Dataset(object):
             "data_name": self.data_name,
             "x_ubs": self.data.x_ubs.tolist(),
             "x_lbs": self.data.x_lbs.tolist(),
-            "X_mean": self.data.X_mean.tolist(),
-            "y_mean": self.data.y_mean.tolist(),
-            "X_std": self.data.X_std.tolist(),
-            "y_std": self.data.y_std.tolist(),
+            "X_mean_scaler": self.data.X_mean_pool_scaling.tolist(),
+            "y_mean_scaler": self.data.y_mean_pool_scaling.tolist(),
+            "X_mean": self.data.X_mean_pool.tolist(),
+            "y_mean": self.data.y_mean_pool.tolist(),
+            "X_std": self.data.X_std_pool.tolist(),
+            "y_std": self.data.y_std_pool.tolist(),
             "X_test": self.data.X_test.tolist(),
             "y_test": self.data.y_test.tolist(),
             "X_train": self.data.X_train.tolist(),
             "y_train": self.data.y_train.tolist(),
-            "y_min_idx": float(self.data.y_min_idx),
-            "y_min_loc": self.data.y_min_loc.tolist(),
-            "y_min": float(self.data.y_min),
+            "X_pool": self.data.X_pool.tolist(),
+            "y_pool": self.data.y_pool.tolist(),
+            "y_min_idx_pool": float(self.data.y_min_idx_pool),
+            "y_min_loc_pool": self.data.y_min_loc_pool.tolist(),
+            "y_min_pool": float(self.data.y_min_pool),
+            "y_min_idx_test": float(self.data.y_min_idx_test),
+            "y_min_loc_test": self.data.y_min_loc_test.tolist(),
+            "y_min_test": float(self.data.y_min_test),
         }
         if not self.data.real_world:
             self.summary.update(
                 {
-                    "signal_std": float(self.data.signal_std),
+                    "signal_std": float(self.data.signal_std_pool),
                     "noise_std": float(self.data.noise_std),
-                    "f_min": float(self.data.f_min),
+                    "f_min_pool": float(self.data.f_min_pool),
+                    "f_min_test": float(self.data.f_min_test),
                     "ne_true": float(self.data.ne_true),
-                    "f_min_loc": self.data.f_min_loc.tolist(),
-                    "f_min_idx": float(self.data.f_min_idx),
+                    "f_min_loc_pool": self.data.f_min_loc_pool.tolist(),
+                    "f_min_idx_pool": float(self.data.f_min_idx_pool),
+                    "f_min_loc_test": self.data.f_min_loc_test.tolist(),
+                    "f_min_idx_test": float(self.data.f_min_idx_test),
                     "f_test": self.data.f_test.tolist(),
                     "f_train": self.data.f_train.tolist(),
                 }
@@ -81,6 +106,7 @@ class Dataset(object):
                     "X_f_opt": self.X_f_opt.tolist(),
                     "opt_idx": int(self.opt_idx),
                     "f_opt": int(self.f_opt),
+                    "f_train": self.data.f_train.tolist()
                 }
             )
 
@@ -105,10 +131,10 @@ class Dataset(object):
             self.data.f_train = np.append(self.data.f_train, f_new, axis=0)
 
         if i_choice is not None:
-            self.data.X_test = np.delete(self.data.X_test, i_choice, axis=0)
-            self.data.y_test = np.delete(self.data.y_test, i_choice, axis=0)
+            self.data.X_pool = np.delete(self.data.X_pool, i_choice, axis=0)
+            self.data.y_pool = np.delete(self.data.y_pool, i_choice, axis=0)
             if not self.data.real_world:
-                self.data.f_test = np.delete(self.data.f_test, i_choice, axis=0)
+                self.data.f_pool = np.delete(self.data.f_pool, i_choice, axis=0)
             # x, y, f = self.data.sample_data(n_samples=1)
             # self.data.X_test = np.append(self.data.X_test, x, axis=0)
             # self.data.f_test = np.append(self.data.f_test, y, axis=0)
@@ -118,6 +144,7 @@ class Dataset(object):
         self.expected_improvement = acq_val
         self.update_solution()
 
+    #Why do we sample a testset?
     def sample_testset(self, n_samples: int = None) -> Dict[np.ndarray, np.ndarray]:
         n_samples = self.n_test if n_samples is None else n_samples
         if self.data.real_world:

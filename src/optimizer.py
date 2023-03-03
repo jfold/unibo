@@ -7,12 +7,15 @@ from surrogates.dummy_surrogate import DummySurrogate
 from surrogates.gaussian_process import GaussianProcess
 from surrogates.random_forest import RandomForest
 from surrogates.bayesian_neural_network import BayesianNeuralNetwork
+from botorch.generation.sampling import MaxPosteriorSampling
 from botorch.optim import optimize_acqf
 from acquisitions.botorch_acqs import (
     ExpectedImprovement,
     UpperConfidenceBound,
 )
 from src.recalibrator import Recalibrator
+from acquisitions.min_posterior_sampling import MinPosteriorSampling
+import warnings
 
 
 class Optimizer(object):
@@ -63,13 +66,15 @@ class Optimizer(object):
         elif self.acquisition == "UCB":
             self.acquisition_function = UpperConfidenceBound(
                 self.surrogate_model,
-                beta=1.0,
+                beta=self.parameters.beta,
                 maximize=self.maximization,
                 std_change=self.std_change,
                 recalibrator=recalibrator,
             )
         elif self.acquisition == "RS":
             self.acquisition_function = RandomSearch()
+        elif self.acquisition == "TS":
+            self.acquisition_function = MinPosteriorSampling(model=self.surrogate_model, replacement=True, surrogate_type=self.parameters.surrogate)
         else:
             raise ValueError(f"Acquisition function {self.acquisition} not supported.")
 
@@ -83,7 +88,7 @@ class Optimizer(object):
     def bo_iter(
         self,
         dataset: Dataset,
-        X_test: np.ndarray = None,
+        X_pool: np.ndarray = None,
         recalibrator: Recalibrator = None,
         return_idx: bool = False,
     ) -> Dict[np.ndarray, np.ndarray]:
@@ -91,42 +96,60 @@ class Optimizer(object):
 
         self.construct_acquisition_function(dataset, recalibrator)
 
-        if X_test is None:
-            X_test, _, _ = dataset.sample_testset(self.n_test)
-            idxs = list(range(self.n_test))
-            X_test_entire = X_test.copy()
-        elif dataset.data.X_test.shape[0] > 1000:
-            idxs = np.random.permutation(dataset.data.X_test.shape[0])[:1000]
-            X_test = dataset.data.X_test[idxs, :]
-            X_test_entire = dataset.data.X_test.copy()
-        else:
-            X_test = dataset.data.X_test.copy()
-            X_test_entire = dataset.data.X_test.copy()
-            idxs = list(range(dataset.data.X_test.shape[0]))
+        #Why do we sample X_test again here???
+        #if X_pool is None:
+        #    X_pool, _, _ = dataset.sample_testset(self.n_pool)
+        #    idxs = list(range(self.n_pool))
+        #    X_pool_entire = X_pool.copy()
+#        elif dataset.data.X_test.shape[0] > 1000:
+#            idxs = np.random.permutation(dataset.data.X_test.shape[0])[:1000]
+#            X_test = dataset.data.X_test[idxs, :]
+#            X_test_entire = dataset.data.X_test.copy()
+        X_pool = dataset.data.X_pool.copy()
+        X_pool_entire = dataset.data.X_pool.copy()
+        idxs = list(range(dataset.data.X_pool.shape[0]))
+        
+        if self.parameters.acquisition == "TS":
+            #Using Botorches MaxPosteriorSampling requires dimension to be (1xNxd) instead of (Nx1xd) in other acq. functions.
+            X_pool_torch = torch.from_numpy(np.expand_dims(X_pool, 0))
 
-        X_test_torch = torch.from_numpy(np.expand_dims(X_test, 1))
-        acquisition_values = (
-            self.acquisition_function(X_test_torch.float()).detach().numpy()
-        )
+            x_optim = self.acquisition_function(X_pool_torch)
+            i_choice = np.random.choice(np.nonzero((x_optim.squeeze(0).detach().numpy()==X_pool_entire).all(axis=1))[0])
 
-        # find idx
-        if self.parameters.prob_acq:
-            acquisition_values += 1e-8  # numerical adjust.
-            p = acquisition_values / np.sum(acquisition_values)
-            i_choice = np.random.choice(range(len(p)), p=p)
+            if return_idx:
+                return(
+                    X_pool_entire[[idxs[i_choice]], :],
+                    "N/A",
+                    idxs[i_choice],
+                )
+            else:
+                return (
+                    X_pool_entire[[idxs[i_choice]], :],
+                    "N/A",
+                )
         else:
-            i_choice = np.random.choice(
-                np.flatnonzero(acquisition_values == acquisition_values.max())
-            )
+            X_pool_torch = torch.from_numpy(np.expand_dims(X_pool, 1))
 
-        if return_idx:
-            return (
-                X_test_entire[[idxs[i_choice]], :],
-                acquisition_values[i_choice],
-                idxs[i_choice],
+            acquisition_values = (
+                self.acquisition_function(X_pool_torch.float()).detach().numpy()
             )
-        else:
-            return (
-                X_test_entire[[idxs[i_choice]], :],
-                acquisition_values[i_choice],
-            )
+            # find idx
+            if self.parameters.prob_acq:
+                acquisition_values += 1e-8  # numerical adjust.
+                p = acquisition_values / np.sum(acquisition_values)
+                i_choice = np.random.choice(range(len(p)), p=p)
+            else:
+                i_choice = np.random.choice(
+                    np.flatnonzero(acquisition_values == acquisition_values.max())
+                )
+            if return_idx:
+                return (
+                    X_pool_entire[[idxs[i_choice]], :],
+                    acquisition_values[i_choice],
+                    idxs[i_choice],
+                )
+            else:
+                return (
+                    X_pool_entire[[idxs[i_choice]], :],
+                    acquisition_values[i_choice],
+                )

@@ -15,6 +15,7 @@ class Metrics(object):
 
     def __init__(self, parameters: Parameters) -> None:
         self.__dict__.update(asdict(parameters))
+        self.n_init = parameters.n_initial
         self.p_array = np.linspace(0.001, 0.999, self.n_calibration_bins)
         self.summary = {
             "p_array": self.p_array.tolist(),
@@ -31,15 +32,20 @@ class Metrics(object):
             "y_calibration_nmse": [],
             "calibration_local_dist_to_nearest_train_sample": [],
             "calibration_local_y": [],
+            "next_sample_train_distance": [],
             "elpd": [],
             "expected_improvement": [],
             "actual_improvement": [],
             "mse": [],
             "nmse": [],
-            "y_regret": [],
-            "f_regret": [],
-            "x_y_opt_dist": [],
-            "x_f_opt_dist": [],
+            "y_regret_pool": [],
+            "y_regret_test": [],
+            "f_regret_pool": [],
+            "f_regret_test": [],
+            "x_y_opt_dist_pool": [],
+            "x_f_opt_dist_pool": [],
+            "x_y_opt_dist_test": [],
+            "x_f_opt_dist_test": [],
             "uct_calibration": [],
             "uct_sharpness": [],
         }
@@ -287,6 +293,9 @@ class Metrics(object):
                 for i in range(sigmas.shape[0])
             ]
         )
+        print(np.min(log_pdfs))
+        print(mus[np.argmin(log_pdfs)])
+        print(sigmas[np.argmin(log_pdfs)])
         elpd = np.mean(log_pdfs)
         self.update_summary({"elpd": elpd})
 
@@ -308,22 +317,37 @@ class Metrics(object):
         self.update_summary({"mse": mse, "nmse": nmse})
 
     def regret(self, dataset: Dataset) -> None:
-        y_regret = np.abs(dataset.data.y_min.squeeze() - dataset.y_opt.squeeze())
-        self.update_summary({"y_regret": y_regret.squeeze()})
+        y_regret_pool = np.abs(dataset.data.y_min_pool.squeeze() - dataset.y_opt.squeeze())
+        y_regret_test = np.abs(dataset.data.y_min_test.squeeze() - dataset.y_opt.squeeze())
+        self.update_summary({"y_regret_pool": y_regret_pool.squeeze()})
+        self.update_summary({"y_regret_test": y_regret_test.squeeze()})
         if not dataset.data.real_world:
-            f_regret = np.abs(dataset.data.f_min - dataset.f_opt)
-            self.update_summary({"f_regret": f_regret.squeeze()})
+            f_regret_pool = np.abs(dataset.data.f_min_pool - dataset.f_opt)
+            f_regret_test = np.abs(dataset.data.f_min_test - dataset.f_opt)
+            self.update_summary({"f_regret_pool": f_regret_pool.squeeze()})
+            self.update_summary({"f_regret_test": f_regret_test.squeeze()})
 
-    def glob_min_dist(self, dataset: Dataset) -> None:
-        y_squared_error = (dataset.X_y_opt - np.array(dataset.data.y_min_loc)) ** 2
-        self.update_summary(
-            {"x_y_opt_dist": np.sqrt(np.sum(y_squared_error)),}
-        )
-        if not dataset.data.real_world:
-            f_squared_error = (dataset.X_f_opt - np.array(dataset.data.f_min_loc)) ** 2
+    def glob_min_dist(self, dataset: Dataset, test_set: bool =False) -> None:
+        if not test_set:
+            y_squared_error = (dataset.X_y_opt - np.array(dataset.data.y_min_loc_pool)) ** 2
             self.update_summary(
-                {"x_f_opt_dist": np.sqrt(np.sum(f_squared_error)),}
+                {"x_y_opt_dist_pool": np.sqrt(np.sum(y_squared_error)),}
             )
+            if not dataset.data.real_world:
+                f_squared_error = (dataset.X_f_opt - np.array(dataset.data.f_min_loc_pool)) ** 2
+                self.update_summary(
+                    {"x_f_opt_dist_pool": np.sqrt(np.sum(f_squared_error)),}
+                )
+        else:
+            y_squared_error = (dataset.X_y_opt - np.array(dataset.data.y_min_loc_test)) ** 2
+            self.update_summary(
+                {"x_y_opt_dist_test": np.sqrt(np.sum(y_squared_error)),}
+            )
+            if not dataset.data.real_world:
+                f_squared_error = (dataset.X_f_opt - np.array(dataset.data.f_min_loc_test)) ** 2
+                self.update_summary(
+                    {"x_f_opt_dist_test": np.sqrt(np.sum(f_squared_error)),}
+                )
 
     def run_uct(self, mu_test, sigma_test, y_test):
         uct_metrics = uct.metrics.get_all_metrics(
@@ -336,6 +360,19 @@ class Metrics(object):
             }
         )
 
+    def calculate_exploration(self, dataset: Dataset):
+        dists = cdist(dataset.data.X_train[:-2], [dataset.data.X_train[-1]], metric='euclidean')
+        min_dist = np.min(dists, axis=0)
+        self.update_summary(
+            {
+                "next_sample_train_distance": min_dist,
+            }
+        )
+#---------------------------
+#YOU WERE BUSY UPDATING HERE
+#YOU NEED TO CHECK THE ABOVE FUNCTIONS TO SEE IF THEY HAVE ANY ISSUES WITH ANALYZE FUNCTION AND UPDATED DATASETS
+#->REGRET NEEDS TO BE BASED ON BOTH POOL AND TEST SET
+#---------------------------
     def analyze(
         self,
         surrogate: Model,
@@ -345,17 +382,17 @@ class Metrics(object):
     ) -> None:
         if surrogate is not None and extensive:
 
-            if dataset.data.X_test.shape[0] > 1000:
-                idxs = np.random.permutation(dataset.data.X_test.shape[0])[:1000]
-                X_test = dataset.data.X_test[idxs, :]
-                y_test = dataset.data.y_test[idxs, :]
-                if not dataset.data.real_world:
-                    f_test = dataset.data.f_test[idxs, :]
-            else:
-                X_test = dataset.data.X_test
-                y_test = dataset.data.y_test
-                if not dataset.data.real_world:
-                    f_test = dataset.data.f_test
+#           if dataset.data.X_test.shape[0] > 1000:
+#               idxs = np.random.permutation(dataset.data.X_test.shape[0])[:1000]
+#               X_test = dataset.data.X_test[idxs, :]
+#               y_test = dataset.data.y_test[idxs, :]
+#               if not dataset.data.real_world:
+#                   f_test = dataset.data.f_test[idxs, :]
+#           else:
+            X_test = dataset.data.X_test
+            y_test = dataset.data.y_test
+            if not dataset.data.real_world:
+                f_test = dataset.data.f_test
 
             mu_test, sigma_test = surrogate.predict(X_test)
             if recalibrator is not None:
@@ -375,7 +412,13 @@ class Metrics(object):
                 self.bias(mu_test, f_test)
             self.run_uct(mu_test, sigma_test, y_test)
             self.improvement(dataset)
+            self.regret(dataset)
+            self.glob_min_dist(dataset, test_set=True)
+            self.glob_min_dist(dataset, test_set=False)
+            if dataset.data.X_train.shape[0] > self.n_init:
+                self.calculate_exploration(dataset)
 
-        self.regret(dataset)
-        self.glob_min_dist(dataset)
+        #self.regret(dataset)
+        #self.glob_min_dist(dataset, test_set=True)
+        #self.glob_min_dist(dataset, test_set=False)
 
